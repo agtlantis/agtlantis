@@ -1,0 +1,13 @@
+# Valid YAML but references non-existent persona
+agent: test-agent
+
+personas:
+  friendly:
+    name: Friendly User
+    systemPrompt: You are friendly.
+
+cases:
+  - id: bad-ref
+    input:
+      message: Hello
+    persona: non-existent-persona

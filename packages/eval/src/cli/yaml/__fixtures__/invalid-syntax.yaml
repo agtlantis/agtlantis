@@ -1,0 +1,8 @@
+# Invalid YAML syntax - missing colon
+agent booking-agent
+name: This should fail to parse
+
+cases:
+  - id: test
+    input:
+      message: Hello

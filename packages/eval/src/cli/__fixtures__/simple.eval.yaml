@@ -1,0 +1,19 @@
+# Simple YAML Eval Test
+# Used by E2E tests to verify YAML discovery and execution
+
+agent: qa-bot
+name: Simple Q&A Tests
+
+cases:
+  - id: yaml-1
+    name: Basic question
+    input:
+      question: "What is the capital of France?"
+
+  - id: yaml-2
+    name: Math question
+    input:
+      question: "What is 5 + 3?"
+    tags:
+      - math
+      - basic

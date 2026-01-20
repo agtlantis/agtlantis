@@ -1,0 +1,59 @@
+# Multi-turn test cases with personas and termination conditions
+agent: booking-agent
+name: Booking Agent Evaluation
+description: Multi-turn booking flow tests
+
+defaults:
+  maxTurns: 10
+  endWhen:
+    field: booking.status
+    equals: confirmed
+  onConditionMet: pass
+  onMaxTurnsReached: fail
+  tags: [booking]
+
+personas:
+  friendly:
+    name: Friendly Customer
+    systemPrompt: |
+      You are a friendly and cooperative customer.
+      - Answer questions clearly and concisely
+      - Be polite and patient
+
+  rushed:
+    name: Rushed Customer
+    systemPrompt: |
+      You are in a hurry and want to book quickly.
+      - Provide multiple pieces of information at once
+      - Be brief but not rude
+
+cases:
+  - id: happy-path
+    name: Friendly customer complete flow
+    tags: [p0, happy-path]
+    input:
+      message: I'd like to make a reservation
+    persona: friendly
+
+  - id: rushed-booking
+    name: Rushed customer quick booking
+    tags: [p1]
+    input:
+      message: Book 4 people tomorrow at 7pm
+    persona: rushed
+    maxTurns: 5
+
+  - id: field-check-only
+    name: Field termination without persona
+    input:
+      message: Start booking
+    endWhen:
+      field: booking.date
+
+  - id: inline-persona
+    name: Inline persona definition
+    input:
+      message: Hello
+    persona:
+      name: Custom User
+      systemPrompt: You are a custom user for this specific test.

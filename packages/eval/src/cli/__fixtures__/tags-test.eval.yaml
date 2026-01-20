@@ -1,0 +1,28 @@
+# Tags Test YAML
+# Used to test --tags filtering
+
+agent: qa-bot
+name: Tagged Tests
+
+cases:
+  - id: tagged-1
+    name: Important test
+    input:
+      question: "Important question?"
+    tags:
+      - important
+      - critical
+
+  - id: tagged-2
+    name: Normal test
+    input:
+      question: "Normal question?"
+    tags:
+      - normal
+
+  - id: tagged-3
+    name: Regression test
+    input:
+      question: "Regression test?"
+    tags:
+      - regression

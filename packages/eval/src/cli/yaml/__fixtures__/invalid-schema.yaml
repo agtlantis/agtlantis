@@ -1,0 +1,5 @@
+# Valid YAML but invalid schema - missing required fields
+name: Missing agent field
+description: This should fail schema validation
+
+cases: []

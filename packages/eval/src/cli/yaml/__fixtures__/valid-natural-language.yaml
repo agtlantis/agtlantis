@@ -1,0 +1,13 @@
+# Test cases with natural language termination conditions
+agent: support-agent
+name: Support Agent Evaluation
+
+cases:
+  - id: nl-termination
+    name: Natural language termination
+    input:
+      message: I need help with my order
+    endWhen:
+      naturalLanguage: The customer's issue has been resolved and they expressed satisfaction
+    maxTurns: 8
+    onConditionMet: pass

@@ -1,0 +1,8 @@
+id: improvable-agent
+version: "1.0.0"
+system: |
+  You solve math problems.
+
+  Answer the question.
+userTemplate: |
+  {{problem}}

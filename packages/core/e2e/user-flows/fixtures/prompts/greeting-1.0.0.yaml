@@ -1,0 +1,4 @@
+id: greeting
+version: "1.0.0"
+system: "You are a friendly greeter. Keep your responses brief and warm."
+userTemplate: "Hello, my name is {{name}}. Please greet me warmly."

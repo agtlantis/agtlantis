@@ -1,0 +1,19 @@
+# Simple test cases (no multi-turn)
+agent: qa-agent
+name: Q&A Agent Evaluation
+description: Basic question answering tests
+
+cases:
+  - id: simple-math
+    name: Simple Math Question
+    tags: [math, basic]
+    input:
+      question: What is 2 + 2?
+    expectedOutput:
+      answer: 4
+
+  - id: capital-city
+    name: Capital City Question
+    tags: [geography]
+    input:
+      question: What is the capital of France?

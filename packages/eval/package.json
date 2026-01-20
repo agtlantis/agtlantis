@@ -1,0 +1,101 @@
+{
+  "name": "@agtlantis/eval",
+  "version": "0.1.0",
+  "description": "LLM-as-Judge based AI Agent testing library with multi-turn conversations, AI simulated users, and statistical analysis",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "agent-eval": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run src/",
+    "test:e2e": "vitest run e2e/",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build && pnpm run test run",
+    "example:qa": "tsx --env-file=.env examples/eval-qa-agent.ts",
+    "example:multi-turn": "tsx --env-file=.env examples/eval-multi-turn.ts",
+    "example:ai-user": "tsx --env-file=.env examples/eval-ai-user.ts",
+    "example:full-pipeline": "tsx --env-file=.env examples/eval-full-pipeline.ts"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "evaluation",
+    "testing",
+    "llm",
+    "llm-as-judge",
+    "openai",
+    "gpt",
+    "gemini",
+    "multi-turn",
+    "conversation",
+    "prompt-engineering",
+    "ai-testing",
+    "agent-testing",
+    "typescript",
+    "vercel-ai-sdk"
+  ],
+  "author": "hakzzong",
+  "license": "MIT",
+  "homepage": "https://github.com/hakzzong/agent-eval#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hakzzong/agent-eval.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hakzzong/agent-eval/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.0.0",
+    "dotenv": "^17.2.3",
+    "execa": "^9.6.1",
+    "tsup": "^8.5.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16",
+    "zod": "^3.23.8"
+  },
+  "peerDependencies": {
+    "zod": "^3.22.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": false
+    }
+  },
+  "dependencies": {
+    "@agtlantis/core": "workspace:*",
+    "@ai-sdk/google": "^3.0.2",
+    "@ai-sdk/openai": "^3.0.4",
+    "ai": "^6.0.11",
+    "better-sqlite3": "^12.5.0",
+    "bundle-require": "^5.1.0",
+    "cac": "^6.7.14",
+    "fast-glob": "^3.3.3",
+    "handlebars": "^4.7.8",
+    "yaml": "^2.8.2"
+  }
+}

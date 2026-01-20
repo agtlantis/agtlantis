@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "1.1.0",
+  "sessionId": "test-fixture-session",
+  "startedAt": "2026-01-13T00:00:00.000Z",
+  "completedAt": "2026-01-13T00:01:00.000Z",
+  "initialPrompt": {
+    "id": "math-solver",
+    "version": "1.0.0",
+    "system": "You are a math problem solver.\nSolve the given math problem and show your work.\nAlways end with \"Answer: X\" where X is the final numeric answer.",
+    "userTemplate": "Problem: {{problem}}"
+  },
+  "currentPrompt": {
+    "id": "math-solver",
+    "version": "1.1.0",
+    "system": "You are a precise math problem solver.\nSolve the given math problem step by step.\nShow your reasoning clearly.\nAlways end with \"Answer: X\" where X is the final numeric answer.",
+    "userTemplate": "Problem: {{problem}}"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "promptSnapshot": {
+        "id": "math-solver",
+        "version": "1.0.0",
+        "system": "You are a math problem solver.\nSolve the given math problem and show your work.\nAlways end with \"Answer: X\" where X is the final numeric answer.",
+        "userTemplate": "Problem: {{problem}}"
+      },
+      "report": {
+        "summary": {
+          "avgScore": 75.0,
+          "passRate": 0.5,
+          "totalTests": 2,
+          "passed": 1,
+          "failed": 1
+        }
+      },
+      "suggestions": [
+        {
+          "type": "system_prompt",
+          "priority": "high",
+          "currentValue": "You are a math problem solver.",
+          "suggestedValue": "You are a precise math problem solver.",
+          "reasoning": "Adding precision qualifier",
+          "expectedImprovement": "Better accuracy",
+          "approved": true
+        }
+      ],
+      "appliedSuggestions": 1,
+      "cost": {
+        "agent": 0.001,
+        "judge": 0.002,
+        "improver": 0.003,
+        "total": 0.006
+      }
+    },
+    {
+      "round": 2,
+      "promptSnapshot": {
+        "id": "math-solver",
+        "version": "1.1.0",
+        "system": "You are a precise math problem solver.\nSolve the given math problem step by step.\nShow your reasoning clearly.\nAlways end with \"Answer: X\" where X is the final numeric answer.",
+        "userTemplate": "Problem: {{problem}}"
+      },
+      "report": {
+        "summary": {
+          "avgScore": 90.0,
+          "passRate": 1.0,
+          "totalTests": 2,
+          "passed": 2,
+          "failed": 0
+        }
+      },
+      "suggestions": [],
+      "appliedSuggestions": 0,
+      "cost": {
+        "agent": 0.001,
+        "judge": 0.002,
+        "improver": 0.001,
+        "total": 0.004
+      }
+    }
+  ],
+  "terminationReason": "Target score reached (90.0 >= 85)",
+  "totalCost": 0.01
+}
