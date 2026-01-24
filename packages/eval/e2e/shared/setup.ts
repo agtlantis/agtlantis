@@ -11,6 +11,7 @@ import { describe } from 'vitest';
 import {
     createGoogleProvider,
     createFilePromptRepository,
+    PromptContent,
     GOOGLE_PRICING,
     type Provider,
 } from '@agtlantis/core';
@@ -25,7 +26,7 @@ import { extractJson } from '@/utils/json';
 import type { Judge } from '@/judge/types';
 import type { Improver } from '@/improver/types';
 import type { Criterion, AgentPrompt, EvalAgent, AgentResult, EvalTokenUsage } from '@/core/types';
-import type { PromptDefinition } from '@agtlantis/core';
+// PromptBuilder is used via PromptContent.from().toBuilder()
 import type { EvalPricingConfig } from '@/reporter/cost-helpers';
 import type { CycleTerminationCondition } from '@/improvement-cycle/types';
 import { E2E_CONFIG, validateE2EConfig } from './config';
@@ -204,7 +205,14 @@ export const TEST_TIMEOUTS = {
 export function createPromptLoader(fixturesDir: string) {
     return async function loadPromptFixture<TInput>(name: string): Promise<AgentPrompt<TInput>> {
         const repo = createFilePromptRepository({ directory: fixturesDir });
-        const prompt = await repo.read<TInput>(name);
-        return prompt as AgentPrompt<TInput>;
+        const data = await repo.read(name);
+        const builder = PromptContent.from(data).toBuilder<unknown, TInput>();
+        return {
+            id: data.id,
+            version: data.version,
+            system: data.system,
+            userTemplate: data.userTemplate,
+            buildUserPrompt: builder.buildUserPrompt,
+        } as AgentPrompt<TInput>;
     };
 }

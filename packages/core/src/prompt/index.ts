@@ -7,33 +7,36 @@
  * ```typescript
  * import {
  *   createFilePromptRepository,
- *   toPromptDefinition,
- *   type PromptDefinition,
+ *   PromptContent,
+ *   type PromptBuilder,
  * } from '@agtlantis/core';
  *
  * // Create a file-based repository
  * const repo = createFilePromptRepository({ directory: './prompts' });
  *
- * // Read a prompt
- * interface GreetingInput {
- *   name: string;
- * }
- * const prompt = await repo.read<GreetingInput>('greeting');
+ * // Read a prompt and compile to builder
+ * interface SessionCtx { studentName: string }
+ * interface TurnCtx { answers: string[] }
  *
- * // Use the prompt
- * const userPrompt = prompt.buildUserPrompt({ name: 'World' });
- * console.log(prompt.system);      // System prompt
- * console.log(userPrompt);         // 'Hello, World!'
+ * const data = await repo.read('greeting');
+ * const builder = PromptContent.from(data).toBuilder<SessionCtx, TurnCtx>();
+ *
+ * // Use the builder
+ * const systemPrompt = builder.buildSystemPrompt({ studentName: 'Kim' });
+ * const userPrompt = builder.buildUserPrompt({ answers: ['A', 'B'] });
  * ```
  */
 
 // Types
 export type {
-  PromptContent,
-  PromptDefinition,
+  PromptContentData,
+  PromptBuilder,
   PromptRepository,
   FileSystem,
 } from './types';
+
+// PromptContent class
+export { PromptContent } from './prompt-content';
 
 // Errors
 export {
@@ -47,7 +50,7 @@ export {
 } from './errors';
 
 // Template utilities
-export { compileTemplate, toPromptDefinition } from './template';
+export { compileTemplate } from './template';
 
 // Repository implementations
 export {

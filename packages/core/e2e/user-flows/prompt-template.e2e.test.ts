@@ -2,6 +2,7 @@ import path from 'path';
 import { describe, it, expect } from 'vitest';
 import { describeEachProvider, createTestProvider, E2E_CONFIG } from '@e2e/helpers';
 import { createFilePromptRepository } from '@/prompt/file-prompt-repository';
+import { PromptContent } from '@/prompt/prompt-content';
 import {
     PromptNotFoundError,
     PromptInvalidFormatError,
@@ -16,14 +17,15 @@ describeEachProvider('Prompt Template', (providerType) => {
             'should load prompt, apply variables, and execute successfully',
             async ({ task }) => {
                 const repo = createFilePromptRepository({ directory: fixturesPath });
-                const prompt = await repo.read<{ name: string }>('greeting');
+                const data = await repo.read('greeting');
+                const builder = PromptContent.from(data).toBuilder<unknown, { name: string }>();
 
-                const userMessage = prompt.buildUserPrompt({ name: 'World' });
+                const userMessage = builder.buildUserPrompt({ name: 'World' });
 
                 const provider = createTestProvider(providerType, { task });
                 const execution = provider.simpleExecution(async (session) => {
                     return session.generateText({
-                        system: prompt.system,
+                        system: data.system,
                         prompt: userMessage,
                     });
                 });
@@ -43,12 +45,13 @@ describeEachProvider('Prompt Template', (providerType) => {
             async () => {
                 const repo = createFilePromptRepository({ directory: fixturesPath });
 
-                const prompt = await repo.read<{ name: string }>('greeting');
+                const data = await repo.read('greeting');
 
-                expect(prompt.version).toBe('2.0.0');
-                expect(prompt.system).toContain('enthusiastic');
+                expect(data.version).toBe('2.0.0');
+                expect(data.system).toContain('enthusiastic');
 
-                const userMessage = prompt.buildUserPrompt({ name: 'Tester' });
+                const builder = PromptContent.from(data).toBuilder<unknown, { name: string }>();
+                const userMessage = builder.buildUserPrompt({ name: 'Tester' });
                 expect(userMessage).toContain('Tester');
             },
             E2E_CONFIG.timeout
@@ -59,12 +62,13 @@ describeEachProvider('Prompt Template', (providerType) => {
             async () => {
                 const repo = createFilePromptRepository({ directory: fixturesPath });
 
-                const prompt = await repo.read<{ name: string }>('greeting', '1.0.0');
+                const data = await repo.read('greeting', '1.0.0');
 
-                expect(prompt.version).toBe('1.0.0');
-                expect(prompt.system).toContain('friendly greeter');
+                expect(data.version).toBe('1.0.0');
+                expect(data.system).toContain('friendly greeter');
 
-                const userMessage = prompt.buildUserPrompt({ name: 'Alice' });
+                const builder = PromptContent.from(data).toBuilder<unknown, { name: string }>();
+                const userMessage = builder.buildUserPrompt({ name: 'Alice' });
                 expect(userMessage).toContain('Alice');
             },
             E2E_CONFIG.timeout
@@ -108,10 +112,11 @@ describeEachProvider('Prompt Template', (providerType) => {
             'should throw PromptTemplateError when required variable is missing',
             async () => {
                 const repo = createFilePromptRepository({ directory: fixturesPath });
-                const prompt = await repo.read<{ name: string }>('greeting');
+                const data = await repo.read('greeting');
+                const builder = PromptContent.from(data).toBuilder<unknown, { name: string }>();
 
                 expect(() => {
-                    prompt.buildUserPrompt({} as { name: string });
+                    builder.buildUserPrompt({} as { name: string });
                 }).toThrow(PromptTemplateError);
             },
             E2E_CONFIG.timeout

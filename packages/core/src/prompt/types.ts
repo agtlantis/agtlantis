@@ -9,12 +9,12 @@
 // =============================================================================
 
 /**
- * Raw prompt content as stored in the repository.
+ * Raw prompt content data as stored in the repository.
  * This is the serialized form before template compilation.
  *
  * @example
  * ```typescript
- * const content: PromptContent = {
+ * const data: PromptContentData = {
  *   id: 'greeting',
  *   version: '1.0.0',
  *   system: 'You are a helpful assistant.',
@@ -22,56 +22,52 @@
  * };
  * ```
  */
-export interface PromptContent {
+export interface PromptContentData {
   /** Unique identifier for the prompt */
   id: string;
   /** Semantic version string (e.g., '1.0.0') */
   version: string;
-  /** System prompt content */
+  /** System prompt template (Handlebars syntax) */
   system: string;
   /** User prompt template (Handlebars syntax) */
   userTemplate: string;
 }
 
 // =============================================================================
-// Prompt Definition (Compiled)
+// Prompt Builder (Compiled)
 // =============================================================================
 
 /**
- * Compiled prompt definition with template function.
- * Created from PromptContent after Handlebars compilation.
+ * Compiled prompt builder with template functions.
+ * Created from PromptContent.toBuilder() after Handlebars compilation.
  *
- * @typeParam TInput - Type of the input object for template rendering
+ * @typeParam TSystemInput - Type of the input object for system prompt rendering
+ * @typeParam TUserInput - Type of the input object for user prompt rendering
  *
  * @example
  * ```typescript
- * interface GreetingInput {
- *   name: string;
+ * interface SessionContext {
+ *   studentName: string;
+ * }
+ * interface TurnContext {
+ *   previousAnswers: string[];
  * }
  *
- * const prompt: PromptDefinition<GreetingInput> = {
- *   id: 'greeting',
- *   version: '1.0.0',
- *   system: 'You are a helpful assistant.',
- *   userTemplate: 'Hello, {{name}}!',
- *   buildUserPrompt: (input) => `Hello, ${input.name}!`,
- * };
+ * const builder: PromptBuilder<SessionContext, TurnContext> = content.toBuilder();
  *
- * const userPrompt = prompt.buildUserPrompt({ name: 'World' });
- * // => 'Hello, World!'
+ * const systemPrompt = builder.buildSystemPrompt({ studentName: 'Kim' });
+ * const userPrompt = builder.buildUserPrompt({ previousAnswers: ['A', 'B'] });
  * ```
  */
-export interface PromptDefinition<TInput> {
+export interface PromptBuilder<TSystemInput = unknown, TUserInput = unknown> {
   /** Unique identifier for the prompt */
   id: string;
   /** Semantic version string (e.g., '1.0.0') */
   version: string;
-  /** System prompt content */
-  system: string;
-  /** Original user prompt template (Handlebars syntax) */
-  userTemplate: string;
+  /** Compiled template function that renders the system prompt */
+  buildSystemPrompt: (input: TSystemInput) => string;
   /** Compiled template function that renders the user prompt */
-  buildUserPrompt: (input: TInput) => string;
+  buildUserPrompt: (input: TUserInput) => string;
 }
 
 // =============================================================================
@@ -84,13 +80,16 @@ export interface PromptDefinition<TInput> {
  *
  * @example
  * ```typescript
+ * import { createFilePromptRepository, PromptContent } from '@agtlantis/core';
+ *
  * const repo = createFilePromptRepository({ directory: './prompts' });
  *
  * // Read latest version
- * const prompt = await repo.read<GreetingInput>('greeting');
+ * const data = await repo.read('greeting');
+ * const builder = PromptContent.from(data).toBuilder<SessionCtx, TurnCtx>();
  *
  * // Read specific version
- * const v1 = await repo.read<GreetingInput>('greeting', '1.0.0');
+ * const v1Data = await repo.read('greeting', '1.0.0');
  *
  * // Write new prompt
  * await repo.write({
@@ -103,17 +102,15 @@ export interface PromptDefinition<TInput> {
  */
 export interface PromptRepository {
   /**
-   * Reads a prompt definition from the repository.
+   * Reads raw prompt content from the repository.
    *
-   * @typeParam TInput - Type of the input object for template rendering
    * @param id - Prompt identifier
    * @param version - Optional specific version. If omitted, returns the latest version.
-   * @returns Compiled prompt definition
+   * @returns Raw prompt content data
    * @throws {PromptNotFoundError} If prompt with given id (and version) doesn't exist
    * @throws {PromptInvalidFormatError} If prompt file has invalid format
-   * @throws {PromptTemplateError} If template compilation fails
    */
-  read<TInput>(id: string, version?: string): Promise<PromptDefinition<TInput>>;
+  read(id: string, version?: string): Promise<PromptContentData>;
 
   /**
    * Writes a prompt to the repository.
@@ -121,7 +118,7 @@ export interface PromptRepository {
    * @param content - Raw prompt content to store
    * @throws {PromptIOError} If write operation fails
    */
-  write(content: PromptContent): Promise<void>;
+  write(content: PromptContentData): Promise<void>;
 }
 
 // =============================================================================

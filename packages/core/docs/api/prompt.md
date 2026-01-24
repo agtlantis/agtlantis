@@ -18,15 +18,15 @@ Key features:
 import {
   // Classes
   FilePromptRepository,
+  PromptContent,
 
   // Functions
   createFilePromptRepository,
   compileTemplate,
-  toPromptDefinition,
 
   // Types
-  type PromptContent,
-  type PromptDefinition,
+  type PromptContentData,
+  type PromptBuilder,
   type PromptRepository,
   type FileSystem,
   type FilePromptRepositoryOptions,
@@ -43,17 +43,17 @@ import {
 
 ## Types
 
-### PromptContent
+### PromptContentData
 
-Raw prompt content as stored in the repository. This is the serialized form before template compilation.
+Raw prompt content data as stored in the repository. This is the serialized form before template compilation.
 
 ```typescript
-interface PromptContent {
+interface PromptContentData {
   /** Unique identifier for the prompt */
   id: string;
   /** Semantic version string (e.g., '1.0.0') */
   version: string;
-  /** System prompt content */
+  /** System prompt template (Handlebars syntax) */
   system: string;
   /** User prompt template (Handlebars syntax) */
   userTemplate: string;
@@ -66,67 +66,138 @@ interface PromptContent {
 # prompts/greeting-1.0.0.yaml
 id: greeting
 version: "1.0.0"
-system: You are a helpful assistant.
-userTemplate: "Hello, {{name}}!"
+system: You are helping {{studentName}} with their studies.
+userTemplate: "Hello, {{name}}! Let's continue our lesson."
 ```
+
+> **Note:** Both `system` and `userTemplate` support Handlebars syntax for dynamic content.
 
 ---
 
-### PromptDefinition<TInput>
+### PromptBuilder<TSystemInput, TUserInput>
 
-Compiled prompt definition with template function. Created from `PromptContent` after Handlebars compilation.
+Compiled prompt builder with template functions. Created from `PromptContent.toBuilder()` after Handlebars compilation.
 
 ```typescript
-interface PromptDefinition<TInput> {
+interface PromptBuilder<TSystemInput = unknown, TUserInput = TSystemInput> {
   /** Unique identifier for the prompt */
   id: string;
   /** Semantic version string (e.g., '1.0.0') */
   version: string;
-  /** System prompt content */
-  system: string;
-  /** Original user prompt template (Handlebars syntax) */
-  userTemplate: string;
+  /** Compiled template function that renders the system prompt */
+  buildSystemPrompt: (input: TSystemInput) => string;
   /** Compiled template function that renders the user prompt */
-  buildUserPrompt: (input: TInput) => string;
+  buildUserPrompt: (input: TUserInput) => string;
 }
 ```
+
+**Type Parameters:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `TSystemInput` | `unknown` | Input type for system prompt template |
+| `TUserInput` | `TSystemInput` | Input type for user prompt template (defaults to TSystemInput) |
 
 **Example:**
 
 ```typescript
-interface GreetingInput {
-  name: string;
+interface SessionContext {
+  studentName: string;
 }
 
-const prompt: PromptDefinition<GreetingInput> = {
+interface TurnContext {
+  question: string;
+}
+
+const data = await repo.read('tutor');
+const builder = PromptContent.from(data).toBuilder<SessionContext, TurnContext>();
+
+const systemPrompt = builder.buildSystemPrompt({ studentName: 'Kim' });
+// => 'You are helping Kim with their studies.'
+
+const userPrompt = builder.buildUserPrompt({ question: 'What is photosynthesis?' });
+// => 'Student asks: What is photosynthesis?'
+```
+
+**Single Type Parameter (Same Input for Both):**
+
+```typescript
+interface CommonContext {
+  topic: string;
+}
+
+// TUserInput defaults to TSystemInput
+const builder = PromptContent.from(data).toBuilder<CommonContext>();
+```
+
+---
+
+### PromptContent (Class)
+
+Prompt content class with template compilation capabilities. Use `PromptContent.from()` to create from raw data, then call `toBuilder()` to get compiled template functions.
+
+```typescript
+class PromptContent implements PromptContentData {
+  readonly id: string;
+  readonly version: string;
+  readonly system: string;
+  readonly userTemplate: string;
+
+  static from(data: PromptContentData): PromptContent;
+  toBuilder<TSystemInput = unknown, TUserInput = TSystemInput>(): PromptBuilder<TSystemInput, TUserInput>;
+  toData(): PromptContentData;
+}
+```
+
+**Methods:**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `from(data)` | `PromptContent` | Static factory method to create from raw data |
+| `toBuilder<S, U>()` | `PromptBuilder<S, U>` | Compiles templates and returns builder |
+| `toData()` | `PromptContentData` | Returns raw data representation |
+
+**Example:**
+
+```typescript
+import { PromptContent, type PromptContentData } from '@agtlantis/core';
+
+const data: PromptContentData = {
   id: 'greeting',
   version: '1.0.0',
-  system: 'You are a helpful assistant.',
+  system: 'You are helping {{studentName}}.',
   userTemplate: 'Hello, {{name}}!',
-  buildUserPrompt: (input) => `Hello, ${input.name}!`,
 };
 
-const userPrompt = prompt.buildUserPrompt({ name: 'World' });
-// => 'Hello, World!'
+interface SessionCtx { studentName: string }
+interface TurnCtx { name: string }
+
+const content = PromptContent.from(data);
+const builder = content.toBuilder<SessionCtx, TurnCtx>();
+
+const systemPrompt = builder.buildSystemPrompt({ studentName: 'Kim' });
+const userPrompt = builder.buildUserPrompt({ name: 'World' });
 ```
 
 ---
 
 ### PromptRepository
 
-Repository interface for prompt storage operations.
+Repository interface for prompt storage operations. Returns raw `PromptContentData` (not compiled builders).
 
 ```typescript
 interface PromptRepository {
-  read<TInput>(id: string, version?: string): Promise<PromptDefinition<TInput>>;
-  write(content: PromptContent): Promise<void>;
+  read(id: string, version?: string): Promise<PromptContentData>;
+  write(content: PromptContentData): Promise<void>;
 }
 ```
 
 | Method | Parameters | Returns | Description |
 |--------|------------|---------|-------------|
-| `read<TInput>` | `id: string, version?: string` | `Promise<PromptDefinition<TInput>>` | Read prompt, optionally by version |
-| `write` | `content: PromptContent` | `Promise<void>` | Write prompt to storage |
+| `read` | `id: string, version?: string` | `Promise<PromptContentData>` | Read raw prompt data, optionally by version |
+| `write` | `content: PromptContentData` | `Promise<void>` | Write prompt to storage |
+
+> **Note:** To compile templates, use `PromptContent.from(data).toBuilder<S, U>()`.
 
 ---
 
@@ -187,19 +258,26 @@ function createFilePromptRepository(
 **Example:**
 
 ```typescript
-import { createFilePromptRepository } from '@agtlantis/core';
+import { createFilePromptRepository, PromptContent } from '@agtlantis/core';
 
 const repo = createFilePromptRepository({ directory: './prompts' });
 
-// Read latest version of 'greeting'
-const latest = await repo.read<{ name: string }>('greeting');
-console.log(latest.version); // Latest version
+// Read latest version of 'greeting' (returns raw data)
+const data = await repo.read('greeting');
+console.log(data.version); // Latest version
 
-// Read specific version
-const v1 = await repo.read<{ name: string }>('greeting', '1.0.0');
+// Compile to builder with type parameters
+interface SessionCtx { studentName: string }
+interface TurnCtx { name: string }
 
-// Build user prompt with variables
-const userPrompt = latest.buildUserPrompt({ name: 'World' });
+const builder = PromptContent.from(data).toBuilder<SessionCtx, TurnCtx>();
+
+// Build prompts with variables
+const systemPrompt = builder.buildSystemPrompt({ studentName: 'Kim' });
+const userPrompt = builder.buildUserPrompt({ name: 'World' });
+
+// For static system prompts (no variables), use data.system directly
+const staticSystem = data.system;
 ```
 
 ---
@@ -212,14 +290,14 @@ Class implementation of file-based prompt repository. Use this class directly wh
 class FilePromptRepository implements PromptRepository {
   constructor(options: FilePromptRepositoryOptions);
 
-  read<TInput>(id: string, version?: string): Promise<PromptDefinition<TInput>>;
-  write(content: PromptContent): Promise<void>;
+  read(id: string, version?: string): Promise<PromptContentData>;
+  write(content: PromptContentData): Promise<void>;
 
   // Protected methods for subclassing
   protected getFileName(id: string, version: string): string;
   protected parseFileName(fileName: string): { id: string; version: string } | null;
-  protected parseContent(content: string, promptId: string): PromptContent;
-  protected serializeContent(content: PromptContent): string;
+  protected parseContent(content: string, promptId: string): PromptContentData;
+  protected serializeContent(content: PromptContentData): string;
 }
 ```
 
@@ -237,13 +315,13 @@ class FilePromptRepository implements PromptRepository {
 |--------|-------------|
 | `getFileName(id, version)` | Generates file name (default: `{id}-{version}.yaml`) |
 | `parseFileName(fileName)` | Parses file name to extract id and version |
-| `parseContent(content, promptId)` | Parses file content to `PromptContent` |
-| `serializeContent(content)` | Serializes `PromptContent` to file content |
+| `parseContent(content, promptId)` | Parses file content to `PromptContentData` |
+| `serializeContent(content)` | Serializes `PromptContentData` to file content |
 
 **Example (Subclassing for JSON format):**
 
 ```typescript
-import { FilePromptRepository, type PromptContent } from '@agtlantis/core';
+import { FilePromptRepository, type PromptContentData } from '@agtlantis/core';
 
 class JsonPromptRepository extends FilePromptRepository {
   protected getFileName(id: string, version: string): string {
@@ -258,11 +336,11 @@ class JsonPromptRepository extends FilePromptRepository {
     return { id: baseName.slice(0, lastDash), version: baseName.slice(lastDash + 1) };
   }
 
-  protected parseContent(content: string): PromptContent {
+  protected parseContent(content: string): PromptContentData {
     return JSON.parse(content);
   }
 
-  protected serializeContent(content: PromptContent): string {
+  protected serializeContent(content: PromptContentData): string {
     return JSON.stringify(content, null, 2);
   }
 }
@@ -302,37 +380,6 @@ const render = compileTemplate<{ name: string; items: string[] }>(
 
 const result = render({ name: 'Alice', items: ['a', 'b', 'c'] });
 // => 'Hello, Alice! You have 3 items.'
-```
-
----
-
-### toPromptDefinition()
-
-Converts raw `PromptContent` to a compiled `PromptDefinition`.
-
-```typescript
-function toPromptDefinition<TInput>(
-  content: PromptContent
-): PromptDefinition<TInput>
-```
-
-**Throws:** `PromptTemplateError` - If template compilation fails.
-
-**Example:**
-
-```typescript
-import { toPromptDefinition, type PromptContent } from '@agtlantis/core';
-
-const content: PromptContent = {
-  id: 'greeting',
-  version: '1.0.0',
-  system: 'You are a helpful assistant.',
-  userTemplate: 'Hello, {{name}}!',
-};
-
-const definition = toPromptDefinition<{ name: string }>(content);
-const userPrompt = definition.buildUserPrompt({ name: 'World' });
-// => 'Hello, World!'
 ```
 
 ---
@@ -482,16 +529,22 @@ try {
 ### Basic Prompt Loading and Usage
 
 ```typescript
-import { createFilePromptRepository, createGoogleProvider } from '@agtlantis/core';
+import { createFilePromptRepository, createGoogleProvider, PromptContent } from '@agtlantis/core';
 
-interface GreetingInput {
+interface SessionContext {
+  assistantName: string;
+}
+
+interface TurnContext {
   name: string;
 }
 
 const repo = createFilePromptRepository({ directory: './prompts' });
-const prompt = await repo.read<GreetingInput>('greeting');
+const data = await repo.read('greeting');
+const builder = PromptContent.from(data).toBuilder<SessionContext, TurnContext>();
 
-const userMessage = prompt.buildUserPrompt({ name: 'World' });
+const systemPrompt = builder.buildSystemPrompt({ assistantName: 'Helper' });
+const userMessage = builder.buildUserPrompt({ name: 'World' });
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
@@ -499,7 +552,7 @@ const provider = createGoogleProvider({
 
 const execution = provider.simpleExecution(async (session) => {
   const result = await session.generateText({
-    system: prompt.system,
+    system: systemPrompt,
     prompt: userMessage,
   });
   return result.text;
@@ -509,10 +562,37 @@ const text = await execution.toResult();
 console.log(text);
 ```
 
+### Static System Prompt (No Template Variables)
+
+When your system prompt has no template variables, you can use `data.system` directly:
+
+```typescript
+import { createFilePromptRepository, createGoogleProvider, PromptContent } from '@agtlantis/core';
+
+interface TurnContext {
+  name: string;
+}
+
+const repo = createFilePromptRepository({ directory: './prompts' });
+const data = await repo.read('greeting');
+
+// Use data.system directly for static system prompts
+const builder = PromptContent.from(data).toBuilder<unknown, TurnContext>();
+const userMessage = builder.buildUserPrompt({ name: 'World' });
+
+const execution = provider.simpleExecution(async (session) => {
+  const result = await session.generateText({
+    system: data.system,  // Static system prompt
+    prompt: userMessage,
+  });
+  return result.text;
+});
+```
+
 ### Multi-Version Prompt Management
 
 ```typescript
-import { createFilePromptRepository } from '@agtlantis/core';
+import { createFilePromptRepository, PromptContent } from '@agtlantis/core';
 
 interface AnalysisInput {
   text: string;
@@ -521,29 +601,32 @@ interface AnalysisInput {
 const repo = createFilePromptRepository({ directory: './prompts' });
 
 // Automatically select latest version
-const latestPrompt = await repo.read<AnalysisInput>('analysis');
-console.log(`Using version: ${latestPrompt.version}`);
+const latestData = await repo.read('analysis');
+console.log(`Using version: ${latestData.version}`);
 
 // Request specific version for A/B testing
-const v1Prompt = await repo.read<AnalysisInput>('analysis', '1.0.0');
-const v2Prompt = await repo.read<AnalysisInput>('analysis', '2.0.0');
+const v1Data = await repo.read('analysis', '1.0.0');
+const v2Data = await repo.read('analysis', '2.0.0');
+
+const v1Builder = PromptContent.from(v1Data).toBuilder<unknown, AnalysisInput>();
+const v2Builder = PromptContent.from(v2Data).toBuilder<unknown, AnalysisInput>();
 
 const input: AnalysisInput = { text: 'Sample text' };
-const v1Message = v1Prompt.buildUserPrompt(input);
-const v2Message = v2Prompt.buildUserPrompt(input);
+const v1Message = v1Builder.buildUserPrompt(input);
+const v2Message = v2Builder.buildUserPrompt(input);
 ```
 
 ### Creating and Writing Prompts
 
 ```typescript
-import { createFilePromptRepository, type PromptContent } from '@agtlantis/core';
+import { createFilePromptRepository, type PromptContentData } from '@agtlantis/core';
 
 const repo = createFilePromptRepository({ directory: './prompts' });
 
-const newPrompt: PromptContent = {
+const newPrompt: PromptContentData = {
   id: 'summary',
   version: '1.0.0',
-  system: 'You are a concise summarizer.',
+  system: 'You are a concise summarizer for {{subject}}.',
   userTemplate: 'Summarize the following text:\n\n{{text}}',
 };
 
@@ -555,18 +638,20 @@ await repo.write(newPrompt);
 ```typescript
 import {
   createFilePromptRepository,
+  PromptContent,
   PromptNotFoundError,
   PromptInvalidFormatError,
   PromptTemplateError,
   PromptIOError,
+  type PromptContentData,
 } from '@agtlantis/core';
 
 const repo = createFilePromptRepository({ directory: './prompts' });
 
-async function loadPromptSafely<T>(id: string, version?: string) {
+async function loadPromptSafely(id: string, version?: string) {
   try {
-    const prompt = await repo.read<T>(id, version);
-    return { success: true, prompt } as const;
+    const data = await repo.read(id, version);
+    return { success: true, data } as const;
   } catch (error) {
     if (error instanceof PromptNotFoundError) {
       return { success: false, error: `Prompt '${error.promptId}' not found` } as const;
@@ -584,9 +669,10 @@ async function loadPromptSafely<T>(id: string, version?: string) {
   }
 }
 
-const result = await loadPromptSafely<{ name: string }>('greeting');
+const result = await loadPromptSafely('greeting');
 if (result.success) {
-  console.log(result.prompt.buildUserPrompt({ name: 'World' }));
+  const builder = PromptContent.from(result.data).toBuilder<unknown, { name: string }>();
+  console.log(builder.buildUserPrompt({ name: 'World' }));
 } else {
   console.error(result.error);
 }
@@ -595,13 +681,13 @@ if (result.success) {
 ### Custom File System for Testing
 
 ```typescript
-import { createFilePromptRepository, type FileSystem } from '@agtlantis/core';
+import { createFilePromptRepository, PromptContent, type FileSystem } from '@agtlantis/core';
 
 const mockFiles: Record<string, string> = {
   './prompts/test-1.0.0.yaml': `
 id: test
 version: "1.0.0"
-system: Test system prompt
+system: "You are helping {{studentName}}."
 userTemplate: "Hello {{name}}"
 `,
 };
@@ -618,8 +704,15 @@ const mockFs: FileSystem = {
 };
 
 const repo = createFilePromptRepository({ directory: './prompts', fs: mockFs });
-const prompt = await repo.read<{ name: string }>('test', '1.0.0');
-console.log(prompt.buildUserPrompt({ name: 'Test' }));
+const data = await repo.read('test', '1.0.0');
+
+interface SessionCtx { studentName: string }
+interface TurnCtx { name: string }
+
+const builder = PromptContent.from(data).toBuilder<SessionCtx, TurnCtx>();
+console.log(builder.buildSystemPrompt({ studentName: 'Kim' }));
+// => "You are helping Kim."
+console.log(builder.buildUserPrompt({ name: 'Test' }));
 // => "Hello Test"
 ```
 

@@ -15,70 +15,70 @@
  * } from './setup'
  */
 
-import path from 'node:path'
-import { createFilePromptRepository } from '@agtlantis/core'
-import type { AgentPrompt } from '@/core/types'
-import { schema } from '@/judge/criteria'
-import type { ValidatorCriterion } from '@/core/types'
-import type { EvalReport } from '@/reporter/types'
-import type { EvalSuite } from '@/core/suite'
-import type { TestCase } from '@/core/types'
-import type { ZodSchema } from 'zod'
+import path from 'node:path';
+import { createFilePromptRepository, PromptContent } from '@agtlantis/core';
+import type { AgentPrompt } from '@/core/types';
+import { schema } from '@/judge/criteria';
+import type { ValidatorCriterion } from '@/core/types';
+import type { EvalReport } from '@/reporter/types';
+import type { EvalSuite } from '@/core/suite';
+import type { TestCase } from '@/core/types';
+import type { ZodSchema } from 'zod';
 
-import { PersonSchema, OrderSchema, SCHEMAS, type SchemaName } from './fixtures/schema-definitions'
-import type { ExtractorInput } from './fixtures/test-cases'
+import { PersonSchema, OrderSchema, SCHEMAS, type SchemaName } from './fixtures/schema-definitions';
+import type { ExtractorInput } from './fixtures/test-cases';
 
 // ============================================================================
 // Shared Infrastructure Re-exports
 // ============================================================================
 
 export {
-  E2E_CONFIG,
-  skipIfNoRealE2E,
-  validateEnvironment,
-  createTestProvider,
-  DEFAULT_CRITERIA,
-  createTestJudge,
-  createProviderAgent,
-  TEST_PRICING_CONFIG,
-  TEST_TIMEOUTS,
-  logTestResultIO,
-  logEvalReportIO,
-  saveEvalReport,
-  E2E_PATHS,
-} from '@e2e/shared'
+    E2E_CONFIG,
+    skipIfNoRealE2E,
+    validateEnvironment,
+    createTestProvider,
+    DEFAULT_CRITERIA,
+    createTestJudge,
+    createProviderAgent,
+    TEST_PRICING_CONFIG,
+    TEST_TIMEOUTS,
+    logTestResultIO,
+    logEvalReportIO,
+    saveEvalReport,
+    E2E_PATHS,
+} from '@e2e/shared';
 
 // Local imports for use within this module
 import {
-  E2E_CONFIG,
-  E2E_PATHS,
-  TEST_PRICING_CONFIG,
-  logEvalReportIO,
-  saveEvalReport,
-} from '@e2e/shared'
+    E2E_CONFIG,
+    E2E_PATHS,
+    TEST_PRICING_CONFIG,
+    logEvalReportIO,
+    saveEvalReport,
+} from '@e2e/shared';
 
-export type { VerbosityLevel } from '@e2e/shared'
+export type { VerbosityLevel } from '@e2e/shared';
 
 // ============================================================================
 // Re-export Schema Definitions & Test Cases
 // ============================================================================
 
-export { PersonSchema, OrderSchema, SCHEMAS, type SchemaName } from './fixtures/schema-definitions'
-export type { Person, Order, OrderItem } from './fixtures/schema-definitions'
+export { PersonSchema, OrderSchema, SCHEMAS, type SchemaName } from './fixtures/schema-definitions';
+export type { Person, Order, OrderItem } from './fixtures/schema-definitions';
 
 export {
-  type ExtractorInput,
-  VALID_PERSON_CASES,
-  VALID_ORDER_CASES,
-  VALID_EXTRACTION_CASES,
-  VALID_EXTRACTION_MINIMAL,
-  INVALID_PERSON_CASES,
-  INVALID_ORDER_CASES,
-  INVALID_EXTRACTION_CASES,
-  INVALID_EXTRACTION_MINIMAL,
-  getValidCases,
-  getInvalidCases,
-} from './fixtures/test-cases'
+    type ExtractorInput,
+    VALID_PERSON_CASES,
+    VALID_ORDER_CASES,
+    VALID_EXTRACTION_CASES,
+    VALID_EXTRACTION_MINIMAL,
+    INVALID_PERSON_CASES,
+    INVALID_ORDER_CASES,
+    INVALID_EXTRACTION_CASES,
+    INVALID_EXTRACTION_MINIMAL,
+    getValidCases,
+    getInvalidCases,
+} from './fixtures/test-cases';
 
 // ============================================================================
 // Schema-Specific Paths
@@ -87,13 +87,13 @@ export {
 /**
  * Output directory for schema-agent test reports.
  */
-export const SCHEMA_AGENT_PATH = path.join(E2E_PATHS.base, 'schema-agent')
+export const SCHEMA_AGENT_PATH = path.join(E2E_PATHS.base, 'schema-agent');
 
 // ============================================================================
 // Local Prompt Loading
 // ============================================================================
 
-const FIXTURES_DIR = path.join(__dirname, 'fixtures')
+const FIXTURES_DIR = path.join(__dirname, 'fixtures');
 
 /**
  * Loads the JSON extractor prompt from the fixtures directory.
@@ -107,11 +107,18 @@ const FIXTURES_DIR = path.join(__dirname, 'fixtures')
  * const agent = createLLMAgent(llm, prompt)
  */
 export async function loadExtractorPrompt(): Promise<AgentPrompt<ExtractorInput>> {
-  const repo = createFilePromptRepository({
-    directory: FIXTURES_DIR,
-  })
-  const prompt = await repo.read<ExtractorInput>('json-extractor')
-  return prompt as AgentPrompt<ExtractorInput>
+    const repo = createFilePromptRepository({
+        directory: FIXTURES_DIR,
+    });
+    const data = await repo.read('json-extractor');
+    const builder = PromptContent.from(data).toBuilder<unknown, ExtractorInput>();
+    return {
+        id: data.id,
+        version: data.version,
+        system: data.system,
+        userTemplate: data.userTemplate,
+        buildUserPrompt: builder.buildUserPrompt,
+    };
 }
 
 // ============================================================================
@@ -128,16 +135,16 @@ export async function loadExtractorPrompt(): Promise<AgentPrompt<ExtractorInput>
  * const criterion = createSchemaCriterion('person', { weight: 2 })
  */
 export function createSchemaCriterion(
-  schemaName: SchemaName,
-  options: { id?: string; name?: string; weight?: number } = {},
+    schemaName: SchemaName,
+    options: { id?: string; name?: string; weight?: number } = {}
 ): ValidatorCriterion {
-  const zodSchema = SCHEMAS[schemaName] as ZodSchema
-  return schema({
-    schema: zodSchema,
-    id: options.id ?? `${schemaName}-schema`,
-    name: options.name ?? `${schemaName.charAt(0).toUpperCase() + schemaName.slice(1)} Schema`,
-    weight: options.weight,
-  })
+    const zodSchema = SCHEMAS[schemaName] as ZodSchema;
+    return schema({
+        schema: zodSchema,
+        id: options.id ?? `${schemaName}-schema`,
+        name: options.name ?? `${schemaName.charAt(0).toUpperCase() + schemaName.slice(1)} Schema`,
+        weight: options.weight,
+    });
 }
 
 // ============================================================================
@@ -151,12 +158,12 @@ export function createSchemaCriterion(
  * const report = await runAndSave(suite, testCases, 'person-valid')
  */
 export async function runAndSave<TInput, TOutput>(
-  suite: EvalSuite<TInput, TOutput>,
-  testCases: TestCase<TInput>[],
-  testName: string,
+    suite: EvalSuite<TInput, TOutput>,
+    testCases: TestCase<TInput>[],
+    testName: string
 ): Promise<EvalReport<TInput, TOutput>> {
-  const report = await suite.run(testCases)
-  logEvalReportIO(report, TEST_PRICING_CONFIG, E2E_CONFIG.verbose)
-  saveEvalReport(report, testName, SCHEMA_AGENT_PATH, TEST_PRICING_CONFIG)
-  return report
+    const report = await suite.run(testCases);
+    logEvalReportIO(report, TEST_PRICING_CONFIG, E2E_CONFIG.verbose);
+    saveEvalReport(report, testName, SCHEMA_AGENT_PATH, TEST_PRICING_CONFIG);
+    return report;
 }

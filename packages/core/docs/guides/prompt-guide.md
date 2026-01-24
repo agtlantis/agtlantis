@@ -14,23 +14,30 @@ The prompt module helps you manage LLM prompts as structured, versioned template
 ## Quick Start
 
 ```typescript
-import { createFilePromptRepository, createGoogleProvider } from '@agtlantis/core';
+import { createFilePromptRepository, createGoogleProvider, PromptContent } from '@agtlantis/core';
 
-// 1. Create repository and load prompt
+// 1. Create repository and load prompt data
 const repo = createFilePromptRepository({ directory: './prompts' });
-const prompt = await repo.read<{ topic: string }>('explain');
+const data = await repo.read('explain');
 
-// 2. Build user message from template
-const userMessage = prompt.buildUserPrompt({ topic: 'quantum computing' });
+// 2. Compile to builder with type parameters
+interface SessionContext { context: string }
+interface TurnContext { topic: string }
 
-// 3. Use with provider
+const builder = PromptContent.from(data).toBuilder<SessionContext, TurnContext>();
+
+// 3. Build prompts from templates
+const systemPrompt = builder.buildSystemPrompt({ context: 'educational' });
+const userMessage = builder.buildUserPrompt({ topic: 'quantum computing' });
+
+// 4. Use with provider
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY!,
 }).withDefaultModel('gemini-2.5-flash');
 
 const execution = provider.simpleExecution(async (session) => {
   const result = await session.generateText({
-    system: prompt.system,
+    system: systemPrompt,
     prompt: userMessage,
   });
   return result.text;
@@ -56,13 +63,16 @@ userTemplate: "Hello, {{name}}! You are interested in {{topic}}."
 ```
 
 ```typescript
+import { PromptContent } from '@agtlantis/core';
+
 interface GreetingInput {
   name: string;
   topic: string;
 }
 
-const prompt = await repo.read<GreetingInput>('greeting');
-const message = prompt.buildUserPrompt({ name: 'Alice', topic: 'AI' });
+const data = await repo.read('greeting');
+const builder = PromptContent.from(data).toBuilder<unknown, GreetingInput>();
+const message = builder.buildUserPrompt({ name: 'Alice', topic: 'AI' });
 // => "Hello, Alice! You are interested in AI."
 ```
 
@@ -110,14 +120,17 @@ interface AnalysisInput {
   format?: string;
 }
 
+const data = await repo.read('analysis');
+const builder = PromptContent.from(data).toBuilder<unknown, AnalysisInput>();
+
 // With examples
-prompt.buildUserPrompt({ text: 'Hello world', includeExamples: true });
+builder.buildUserPrompt({ text: 'Hello world', includeExamples: true });
 
 // With custom format
-prompt.buildUserPrompt({ text: 'Hello world', format: 'bullet points' });
+builder.buildUserPrompt({ text: 'Hello world', format: 'bullet points' });
 
 // Defaults (no examples, default format message)
-prompt.buildUserPrompt({ text: 'Hello world' });
+builder.buildUserPrompt({ text: 'Hello world' });
 ```
 
 **Falsy values:** `{{#if}}` treats `false`, `undefined`, `null`, `0`, `""`, and `[]` as falsy.
@@ -139,7 +152,9 @@ interface ReviewInput {
   items: string[];
 }
 
-prompt.buildUserPrompt({ items: ['item1', 'item2', 'item3'] });
+const data = await repo.read('review');
+const builder = PromptContent.from(data).toBuilder<unknown, ReviewInput>();
+builder.buildUserPrompt({ items: ['item1', 'item2', 'item3'] });
 // => "Review the following items:\n- item1\n- item2\n- item3\n"
 ```
 
@@ -158,7 +173,9 @@ interface MeetingInput {
   participants: Array<{ name: string; role: string }>;
 }
 
-prompt.buildUserPrompt({
+const data = await repo.read('meeting');
+const builder = PromptContent.from(data).toBuilder<unknown, MeetingInput>();
+builder.buildUserPrompt({
   participants: [
     { name: 'Alice', role: 'host' },
     { name: 'Bob', role: 'guest' },
@@ -236,10 +253,11 @@ interface CodeReviewInput {
   context?: string;
 }
 
-const prompt = await repo.read<CodeReviewInput>('code-review');
+const data = await repo.read('code-review');
+const builder = PromptContent.from(data).toBuilder<unknown, CodeReviewInput>();
 
 // Full review
-prompt.buildUserPrompt({
+builder.buildUserPrompt({
   language: 'typescript',
   code: 'function add(a, b) { return a + b; }',
   focusAreas: ['type safety', 'error handling'],
@@ -247,7 +265,7 @@ prompt.buildUserPrompt({
 });
 
 // Minimal review
-prompt.buildUserPrompt({
+builder.buildUserPrompt({
   language: 'python',
   code: 'def hello(): print("hi")',
 });
@@ -257,10 +275,10 @@ prompt.buildUserPrompt({
 
 ### Basic Integration
 
-The simplest pattern: load prompt, build message, call session.
+The simplest pattern: load prompt data, compile to builder, call session.
 
 ```typescript
-import { createFilePromptRepository, createGoogleProvider } from '@agtlantis/core';
+import { createFilePromptRepository, createGoogleProvider, PromptContent } from '@agtlantis/core';
 
 const repo = createFilePromptRepository({ directory: './prompts' });
 const provider = createGoogleProvider({
@@ -268,12 +286,13 @@ const provider = createGoogleProvider({
 }).withDefaultModel('gemini-2.5-flash');
 
 async function explain(topic: string): Promise<string> {
-  const prompt = await repo.read<{ topic: string }>('explain');
+  const data = await repo.read('explain');
+  const builder = PromptContent.from(data).toBuilder<unknown, { topic: string }>();
 
   const execution = provider.simpleExecution(async (session) => {
     const result = await session.generateText({
-      system: prompt.system,
-      prompt: prompt.buildUserPrompt({ topic }),
+      system: data.system,  // Static system prompt
+      prompt: builder.buildUserPrompt({ topic }),
     });
     return result.text;
   });
@@ -287,7 +306,7 @@ async function explain(topic: string): Promise<string> {
 Combine prompts with Zod schemas for validated, typed responses:
 
 ```typescript
-import { createFilePromptRepository, createGoogleProvider } from '@agtlantis/core';
+import { createFilePromptRepository, createGoogleProvider, PromptContent } from '@agtlantis/core';
 import { z } from 'zod';
 
 const sentimentSchema = z.object({
@@ -305,7 +324,8 @@ interface SentimentInput {
 
 async function analyzeSentiment(input: SentimentInput): Promise<SentimentResult> {
   const repo = createFilePromptRepository({ directory: './prompts' });
-  const prompt = await repo.read<SentimentInput>('sentiment-analysis');
+  const data = await repo.read('sentiment-analysis');
+  const builder = PromptContent.from(data).toBuilder<unknown, SentimentInput>();
 
   const provider = createGoogleProvider({
     apiKey: process.env.GOOGLE_AI_API_KEY!,
@@ -313,8 +333,8 @@ async function analyzeSentiment(input: SentimentInput): Promise<SentimentResult>
 
   const execution = provider.simpleExecution(async (session) => {
     const result = await session.generateText({
-      system: prompt.system,
-      prompt: prompt.buildUserPrompt(input),
+      system: data.system,
+      prompt: builder.buildUserPrompt(input),
       output: 'object',
       schema: sentimentSchema,
     });
@@ -330,16 +350,23 @@ async function analyzeSentiment(input: SentimentInput): Promise<SentimentResult>
 Use prompts for the initial system message and first user turn:
 
 ```typescript
-import { createFilePromptRepository, createGoogleProvider } from '@agtlantis/core';
+import { createFilePromptRepository, createGoogleProvider, PromptContent } from '@agtlantis/core';
 
-interface ChatInput {
+interface SessionContext {
+  assistantRole: string;
+}
+
+interface TurnContext {
   context: string;
   initialQuestion: string;
 }
 
-async function startConversation(input: ChatInput) {
+async function startConversation(sessionCtx: SessionContext, turnCtx: TurnContext) {
   const repo = createFilePromptRepository({ directory: './prompts' });
-  const prompt = await repo.read<ChatInput>('chat-assistant');
+  const data = await repo.read('chat-assistant');
+  const builder = PromptContent.from(data).toBuilder<SessionContext, TurnContext>();
+
+  const systemPrompt = builder.buildSystemPrompt(sessionCtx);
 
   const provider = createGoogleProvider({
     apiKey: process.env.GOOGLE_AI_API_KEY!,
@@ -348,15 +375,15 @@ async function startConversation(input: ChatInput) {
   const execution = provider.simpleExecution(async (session) => {
     // Initial turn with prompt
     const firstResponse = await session.generateText({
-      system: prompt.system,
-      messages: [{ role: 'user', content: prompt.buildUserPrompt(input) }],
+      system: systemPrompt,
+      messages: [{ role: 'user', content: builder.buildUserPrompt(turnCtx) }],
     });
 
     // Follow-up turns
     const secondResponse = await session.generateText({
-      system: prompt.system,
+      system: systemPrompt,
       messages: [
-        { role: 'user', content: prompt.buildUserPrompt(input) },
+        { role: 'user', content: builder.buildUserPrompt(turnCtx) },
         { role: 'model', content: firstResponse.text },
         { role: 'user', content: 'Can you elaborate on that?' },
       ],
@@ -377,11 +404,12 @@ async function startConversation(input: ChatInput) {
 Prompts work seamlessly with streaming executions:
 
 ```typescript
-import { createFilePromptRepository, createGoogleProvider } from '@agtlantis/core';
+import { createFilePromptRepository, createGoogleProvider, PromptContent } from '@agtlantis/core';
 
 async function* streamExplanation(topic: string) {
   const repo = createFilePromptRepository({ directory: './prompts' });
-  const prompt = await repo.read<{ topic: string }>('explain');
+  const data = await repo.read('explain');
+  const builder = PromptContent.from(data).toBuilder<unknown, { topic: string }>();
 
   const provider = createGoogleProvider({
     apiKey: process.env.GOOGLE_AI_API_KEY!,
@@ -389,8 +417,8 @@ async function* streamExplanation(topic: string) {
 
   const execution = provider.streamingExecution(async function* (session) {
     yield* session.streamText({
-      system: prompt.system,
-      prompt: prompt.buildUserPrompt({ topic }),
+      system: data.system,
+      prompt: builder.buildUserPrompt({ topic }),
     });
   });
 
@@ -416,6 +444,7 @@ import {
   createFilePromptRepository,
   createGoogleProvider,
   withValidation,
+  PromptContent,
 } from '@agtlantis/core';
 import { z } from 'zod';
 
@@ -433,7 +462,8 @@ interface AnalysisInput {
 
 async function analyzeDocument(document: string): Promise<Analysis> {
   const repo = createFilePromptRepository({ directory: './prompts' });
-  const prompt = await repo.read<AnalysisInput>('document-analysis');
+  const data = await repo.read('document-analysis');
+  const builder = PromptContent.from(data).toBuilder<unknown, AnalysisInput>();
 
   const provider = createGoogleProvider({
     apiKey: process.env.GOOGLE_AI_API_KEY!,
@@ -448,8 +478,8 @@ async function analyzeDocument(document: string): Promise<Analysis> {
         };
 
         const result = await session.generateText({
-          system: prompt.system,
-          prompt: prompt.buildUserPrompt(input),
+          system: data.system,
+          prompt: builder.buildUserPrompt(input),
           output: 'object',
           schema: analysisSchema,
         });
@@ -496,30 +526,40 @@ Test template rendering in isolation without LLM calls:
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { toPromptDefinition, type PromptContent } from '@agtlantis/core';
+import { PromptContent, type PromptContentData } from '@agtlantis/core';
 
 describe('greeting prompt', () => {
-  const content: PromptContent = {
+  const data: PromptContentData = {
     id: 'greeting',
     version: '1.0.0',
-    system: 'You are a helpful assistant.',
+    system: 'You are helping {{studentName}}.',
     userTemplate: 'Hello, {{name}}! You have {{items.length}} items.',
   };
+
+  interface SessionContext {
+    studentName: string;
+  }
 
   interface GreetingInput {
     name: string;
     items: string[];
   }
 
-  it('renders with all variables', () => {
-    const prompt = toPromptDefinition<GreetingInput>(content);
-    const result = prompt.buildUserPrompt({ name: 'Alice', items: ['a', 'b'] });
+  it('renders system prompt with variables', () => {
+    const builder = PromptContent.from(data).toBuilder<SessionContext, GreetingInput>();
+    const result = builder.buildSystemPrompt({ studentName: 'Kim' });
+    expect(result).toBe('You are helping Kim.');
+  });
+
+  it('renders user prompt with all variables', () => {
+    const builder = PromptContent.from(data).toBuilder<SessionContext, GreetingInput>();
+    const result = builder.buildUserPrompt({ name: 'Alice', items: ['a', 'b'] });
     expect(result).toBe('Hello, Alice! You have 2 items.');
   });
 
   it('handles empty arrays', () => {
-    const prompt = toPromptDefinition<GreetingInput>(content);
-    const result = prompt.buildUserPrompt({ name: 'Bob', items: [] });
+    const builder = PromptContent.from(data).toBuilder<SessionContext, GreetingInput>();
+    const result = builder.buildUserPrompt({ name: 'Bob', items: [] });
     expect(result).toBe('Hello, Bob! You have 0 items.');
   });
 });
@@ -529,10 +569,10 @@ describe('greeting prompt', () => {
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { toPromptDefinition, type PromptContent } from '@agtlantis/core';
+import { PromptContent, type PromptContentData } from '@agtlantis/core';
 
 describe('code-review prompt', () => {
-  const content: PromptContent = {
+  const data: PromptContentData = {
     id: 'code-review',
     version: '1.0.0',
     system: 'You are a code reviewer.',
@@ -555,8 +595,8 @@ Focus areas:
   }
 
   it('renders without optional fields', () => {
-    const prompt = toPromptDefinition<CodeReviewInput>(content);
-    const result = prompt.buildUserPrompt({
+    const builder = PromptContent.from(data).toBuilder<unknown, CodeReviewInput>();
+    const result = builder.buildUserPrompt({
       language: 'typescript',
       code: 'const x = 1;',
     });
@@ -567,8 +607,8 @@ Focus areas:
   });
 
   it('renders with focus areas', () => {
-    const prompt = toPromptDefinition<CodeReviewInput>(content);
-    const result = prompt.buildUserPrompt({
+    const builder = PromptContent.from(data).toBuilder<unknown, CodeReviewInput>();
+    const result = builder.buildUserPrompt({
       language: 'python',
       code: 'x = 1',
       focusAreas: ['performance', 'readability'],
@@ -587,14 +627,14 @@ Test repository interactions without file system:
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { createFilePromptRepository, type FileSystem } from '@agtlantis/core';
+import { createFilePromptRepository, PromptContent, type FileSystem } from '@agtlantis/core';
 
 describe('prompt repository', () => {
   const mockFiles: Record<string, string> = {
     'greeting-1.0.0.yaml': `
 id: greeting
 version: "1.0.0"
-system: Test system
+system: "You are helping {{studentName}}."
 userTemplate: "Hello {{name}}"
 `,
   };
@@ -612,17 +652,21 @@ userTemplate: "Hello {{name}}"
     readdir: async () => Object.keys(mockFiles),
   };
 
+  interface SessionCtx { studentName: string }
+  interface TurnCtx { name: string }
+
   it('loads and compiles prompt', async () => {
     const repo = createFilePromptRepository({
       directory: './prompts',
       fs: mockFs,
     });
 
-    const prompt = await repo.read<{ name: string }>('greeting', '1.0.0');
+    const data = await repo.read('greeting', '1.0.0');
+    const builder = PromptContent.from(data).toBuilder<SessionCtx, TurnCtx>();
 
-    expect(prompt.id).toBe('greeting');
-    expect(prompt.system).toBe('Test system');
-    expect(prompt.buildUserPrompt({ name: 'World' })).toBe('Hello World');
+    expect(data.id).toBe('greeting');
+    expect(builder.buildSystemPrompt({ studentName: 'Kim' })).toBe('You are helping Kim.');
+    expect(builder.buildUserPrompt({ name: 'World' })).toBe('Hello World');
   });
 
   it('throws on missing prompt', async () => {
@@ -640,33 +684,33 @@ userTemplate: "Hello {{name}}"
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { toPromptDefinition, PromptTemplateError, type PromptContent } from '@agtlantis/core';
+import { PromptContent, PromptTemplateError, type PromptContentData } from '@agtlantis/core';
 
 describe('template errors', () => {
   it('throws on missing required variable', () => {
-    const content: PromptContent = {
+    const data: PromptContentData = {
       id: 'test',
       version: '1.0.0',
       system: 'System',
       userTemplate: 'Hello {{name}}',
     };
 
-    const prompt = toPromptDefinition<{ name: string }>(content);
+    const builder = PromptContent.from(data).toBuilder<unknown, { name: string }>();
 
-    expect(() => prompt.buildUserPrompt({} as { name: string })).toThrow(
+    expect(() => builder.buildUserPrompt({} as { name: string })).toThrow(
       PromptTemplateError
     );
   });
 
   it('throws on invalid template syntax', () => {
-    const content: PromptContent = {
+    const data: PromptContentData = {
       id: 'test',
       version: '1.0.0',
       system: 'System',
       userTemplate: 'Hello {{#if}}', // Invalid - missing condition
     };
 
-    expect(() => toPromptDefinition(content)).toThrow(PromptTemplateError);
+    expect(() => PromptContent.from(data).toBuilder()).toThrow(PromptTemplateError);
   });
 });
 ```

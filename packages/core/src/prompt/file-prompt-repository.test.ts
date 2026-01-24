@@ -5,13 +5,14 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createFilePromptRepository } from './file-prompt-repository';
+import { PromptContent } from './prompt-content';
 import {
   PromptInvalidFormatError,
   PromptIOError,
   PromptNotFoundError,
   PromptTemplateError,
 } from './errors';
-import type { PromptContent } from './types';
+import type { PromptContentData } from './types';
 
 describe('createFilePromptRepository', () => {
   let testDir: string;
@@ -28,7 +29,7 @@ describe('createFilePromptRepository', () => {
   // Helper functions
   // ==========================================================================
 
-  async function writePromptFile(content: PromptContent): Promise<void> {
+  async function writePromptFile(content: PromptContentData): Promise<void> {
     const fileName = `${content.id}-${content.version}.yaml`;
     const yaml = `id: ${content.id}
 version: "${content.version}"
@@ -57,13 +58,16 @@ userTemplate: "${content.userTemplate}"
         });
 
         const repo = createFilePromptRepository({ directory: testDir });
-        const prompt = await repo.read<{ name: string }>('greeting', '1.0.0');
+        const data = await repo.read('greeting', '1.0.0');
 
-        expect(prompt.id).toBe('greeting');
-        expect(prompt.version).toBe('1.0.0');
-        expect(prompt.system).toBe('You are helpful.');
-        expect(prompt.userTemplate).toBe('Hello, {{name}}!');
-        expect(prompt.buildUserPrompt({ name: 'World' })).toBe('Hello, World!');
+        expect(data.id).toBe('greeting');
+        expect(data.version).toBe('1.0.0');
+        expect(data.system).toBe('You are helpful.');
+        expect(data.userTemplate).toBe('Hello, {{name}}!');
+
+        // Test builder
+        const builder = PromptContent.from(data).toBuilder<unknown, { name: string }>();
+        expect(builder.buildUserPrompt({ name: 'World' })).toBe('Hello, World!');
       });
 
       it('should throw PromptNotFoundError for non-existent version', async () => {
@@ -219,10 +223,11 @@ userTemplate: "{{#if a}}hello{{/unless}}"
         );
 
         const repo = createFilePromptRepository({ directory: testDir });
-        const prompt = await repo.read<{ a: boolean }>('greeting', '1.0.0');
+        const data = await repo.read('greeting', '1.0.0');
 
         // Template compiles but throws when rendering
-        expect(() => prompt.buildUserPrompt({ a: true })).toThrow(PromptTemplateError);
+        const builder = PromptContent.from(data).toBuilder<unknown, { a: boolean }>();
+        expect(() => builder.buildUserPrompt({ a: true })).toThrow(PromptTemplateError);
       });
     });
   });
@@ -243,11 +248,13 @@ userTemplate: "{{#if a}}hello{{/unless}}"
       });
 
       // Verify by reading back
-      const prompt = await repo.read<{ name: string }>('greeting', '1.0.0');
-      expect(prompt.id).toBe('greeting');
-      expect(prompt.version).toBe('1.0.0');
-      expect(prompt.system).toBe('You are helpful.');
-      expect(prompt.buildUserPrompt({ name: 'Test' })).toBe('Hello, Test!');
+      const data = await repo.read('greeting', '1.0.0');
+      expect(data.id).toBe('greeting');
+      expect(data.version).toBe('1.0.0');
+      expect(data.system).toBe('You are helpful.');
+
+      const builder = PromptContent.from(data).toBuilder<unknown, { name: string }>();
+      expect(builder.buildUserPrompt({ name: 'Test' })).toBe('Hello, Test!');
     });
 
     it('should overwrite existing file', async () => {
@@ -296,8 +303,9 @@ userTemplate: "{{#if a}}hello{{/unless}}"
         userTemplate: '{{#if a}}hello{{/unless}}',
       });
 
-      const prompt = await repo.read<{ a: boolean }>('greeting', '1.0.0');
-      expect(() => prompt.buildUserPrompt({ a: true })).toThrow(PromptTemplateError);
+      const data = await repo.read('greeting', '1.0.0');
+      const builder = PromptContent.from(data).toBuilder<unknown, { a: boolean }>();
+      expect(() => builder.buildUserPrompt({ a: true })).toThrow(PromptTemplateError);
     });
 
     it('should throw PromptIOError for invalid directory', async () => {
@@ -342,9 +350,9 @@ userTemplate: "Hello, {{name}}!"
       };
 
       const repo = createFilePromptRepository({ directory: testDir, fs: customFs });
-      const prompt = await repo.read<{ name: string }>('greeting', '1.0.0');
+      const data = await repo.read('greeting', '1.0.0');
 
-      expect(prompt.system).toBe('Custom FS');
+      expect(data.system).toBe('Custom FS');
     });
   });
 

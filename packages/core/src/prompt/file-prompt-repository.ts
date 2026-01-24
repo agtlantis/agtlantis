@@ -9,14 +9,9 @@ import * as path from 'node:path';
 
 import * as yaml from 'yaml';
 
-import type { FileSystem, PromptContent, PromptDefinition, PromptRepository } from './types';
-import {
-  PromptInvalidFormatError,
-  PromptIOError,
-  PromptNotFoundError,
-  PromptTemplateError,
-} from './errors';
-import { toPromptDefinition } from './template';
+import type { FileSystem, PromptContentData, PromptRepository } from './types';
+import { PromptInvalidFormatError, PromptIOError, PromptNotFoundError } from './errors';
+import { compileTemplate } from './template';
 
 // =============================================================================
 // Types
@@ -127,9 +122,9 @@ function parseFileName(fileName: string): { id: string; version: string } | null
 // =============================================================================
 
 /**
- * Parses and validates YAML content as PromptContent.
+ * Parses and validates YAML content as PromptContentData.
  */
-function parsePromptYaml(content: string, promptId: string): PromptContent {
+function parsePromptYaml(content: string, promptId: string): PromptContentData {
   let parsed: unknown;
   try {
     parsed = yaml.parse(content);
@@ -167,9 +162,9 @@ function parsePromptYaml(content: string, promptId: string): PromptContent {
 }
 
 /**
- * Serializes PromptContent to YAML string.
+ * Serializes PromptContentData to YAML string.
  */
-function serializePromptYaml(content: PromptContent): string {
+function serializePromptYaml(content: PromptContentData): string {
   return yaml.stringify(content);
 }
 
@@ -207,7 +202,7 @@ export class FilePromptRepository implements PromptRepository {
   protected readonly fileSystem: FileSystem;
   protected readonly cacheEnabled: boolean;
 
-  private readonly promptCache = new Map<string, PromptDefinition<unknown>>();
+  private readonly contentCache = new Map<string, PromptContentData>();
 
   constructor(options: FilePromptRepositoryOptions) {
     this.directory = options.directory;
@@ -232,18 +227,18 @@ export class FilePromptRepository implements PromptRepository {
   }
 
   /**
-   * Parses raw file content into PromptContent.
+   * Parses raw file content into PromptContentData.
    * Override this to support different file formats (e.g., JSON, TOML).
    */
-  protected parseContent(content: string, promptId: string): PromptContent {
+  protected parseContent(content: string, promptId: string): PromptContentData {
     return parsePromptYaml(content, promptId);
   }
 
   /**
-   * Serializes PromptContent to file content string.
+   * Serializes PromptContentData to file content string.
    * Override this to support different file formats (e.g., JSON, TOML).
    */
-  protected serializeContent(content: PromptContent): string {
+  protected serializeContent(content: PromptContentData): string {
     return serializePromptYaml(content);
   }
 
@@ -251,14 +246,14 @@ export class FilePromptRepository implements PromptRepository {
     return `${id}:${version}`;
   }
 
-  async read<TInput>(id: string, version?: string): Promise<PromptDefinition<TInput>> {
+  async read(id: string, version?: string): Promise<PromptContentData> {
     if (version) {
       const cacheKey = this.getCacheKey(id, version);
 
       if (this.cacheEnabled) {
-        const cached = this.promptCache.get(cacheKey);
+        const cached = this.contentCache.get(cacheKey);
         if (cached) {
-          return cached as PromptDefinition<TInput>;
+          return cached;
         }
       }
 
@@ -284,13 +279,11 @@ export class FilePromptRepository implements PromptRepository {
         );
       }
 
-      const definition = toPromptDefinition<TInput>(promptContent);
-
       if (this.cacheEnabled) {
-        this.promptCache.set(cacheKey, definition as PromptDefinition<unknown>);
+        this.contentCache.set(cacheKey, promptContent);
       }
 
-      return definition;
+      return promptContent;
     }
 
     let files: string[];
@@ -315,13 +308,13 @@ export class FilePromptRepository implements PromptRepository {
     versions.sort((a, b) => compareVersions(b, a));
     const latestVersion = versions[0];
 
-    return this.read<TInput>(id, latestVersion);
+    return this.read(id, latestVersion);
   }
 
-  async write(content: PromptContent): Promise<void> {
+  async write(content: PromptContentData): Promise<void> {
     // Invalidate cache for this id:version (before any validation)
     if (this.cacheEnabled) {
-      this.promptCache.delete(this.getCacheKey(content.id, content.version));
+      this.contentCache.delete(this.getCacheKey(content.id, content.version));
     }
 
     const fileName = this.getFileName(content.id, content.version);
@@ -334,16 +327,9 @@ export class FilePromptRepository implements PromptRepository {
       );
     }
 
-    try {
-      toPromptDefinition(content);
-    } catch (error) {
-      if (error instanceof PromptTemplateError) {
-        throw error;
-      }
-      throw new PromptTemplateError(content.id, toErrorMessage(error), {
-        cause: toErrorCause(error),
-      });
-    }
+    // Validate templates can be compiled (fails fast on syntax errors)
+    compileTemplate(content.system, content.id);
+    compileTemplate(content.userTemplate, content.id);
 
     const yamlContent = this.serializeContent(content);
 

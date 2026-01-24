@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { compileTemplate, toPromptDefinition } from './template';
+import { compileTemplate } from './template';
+import { PromptContent } from './prompt-content';
 import { PromptTemplateError } from './errors';
-import type { PromptContent } from './types';
+import type { PromptContentData } from './types';
 
 describe('compileTemplate', () => {
   describe('basic templating', () => {
@@ -175,49 +176,83 @@ describe('compileTemplate', () => {
   });
 });
 
-describe('toPromptDefinition', () => {
-  it('should convert PromptContent to PromptDefinition', () => {
-    const content: PromptContent = {
+describe('PromptContent.toBuilder', () => {
+  it('should convert PromptContentData to PromptBuilder', () => {
+    const data: PromptContentData = {
       id: 'greeting',
       version: '1.0.0',
-      system: 'You are a helpful assistant.',
+      system: 'You are helping {{studentName}}.',
       userTemplate: 'Hello, {{name}}!',
     };
 
-    const definition = toPromptDefinition<{ name: string }>(content);
+    const builder = PromptContent.from(data).toBuilder<
+      { studentName: string },
+      { name: string }
+    >();
 
-    expect(definition.id).toBe('greeting');
-    expect(definition.version).toBe('1.0.0');
-    expect(definition.system).toBe('You are a helpful assistant.');
-    expect(definition.userTemplate).toBe('Hello, {{name}}!');
-    expect(typeof definition.buildUserPrompt).toBe('function');
+    expect(builder.id).toBe('greeting');
+    expect(builder.version).toBe('1.0.0');
+    expect(typeof builder.buildSystemPrompt).toBe('function');
+    expect(typeof builder.buildUserPrompt).toBe('function');
   });
 
-  it('should compile template correctly', () => {
-    const content: PromptContent = {
+  it('should compile both templates correctly', () => {
+    const data: PromptContentData = {
       id: 'test',
       version: '1.0.0',
-      system: 'System',
+      system: 'Helping {{studentName}}',
       userTemplate: '{{greeting}}, {{name}}!',
     };
 
-    const definition = toPromptDefinition<{ greeting: string; name: string }>(content);
-    const result = definition.buildUserPrompt({ greeting: 'Hi', name: 'Alice' });
+    const builder = PromptContent.from(data).toBuilder<
+      { studentName: string },
+      { greeting: string; name: string }
+    >();
 
-    expect(result).toBe('Hi, Alice!');
+    expect(builder.buildSystemPrompt({ studentName: 'Kim' })).toBe('Helping Kim');
+    expect(builder.buildUserPrompt({ greeting: 'Hi', name: 'Alice' })).toBe('Hi, Alice!');
+  });
+
+  it('should use same input type when only one type param is provided', () => {
+    const data: PromptContentData = {
+      id: 'test',
+      version: '1.0.0',
+      system: 'User: {{name}}',
+      userTemplate: 'Hello, {{name}}!',
+    };
+
+    // Single type param applies to both
+    const builder = PromptContent.from(data).toBuilder<{ name: string }>();
+
+    expect(builder.buildSystemPrompt({ name: 'Kim' })).toBe('User: Kim');
+    expect(builder.buildUserPrompt({ name: 'Kim' })).toBe('Hello, Kim!');
   });
 
   it('should throw PromptTemplateError for template errors at render time', () => {
     // Handlebars defers most error checking to render time
-    const content: PromptContent = {
+    const data: PromptContentData = {
       id: 'invalid',
       version: '1.0.0',
       system: 'System',
       userTemplate: '{{#if a}}hello{{/unless}}',
     };
 
-    const definition = toPromptDefinition<{ a: boolean }>(content);
+    const builder = PromptContent.from(data).toBuilder<unknown, { a: boolean }>();
     // Error happens when rendering, not when compiling
-    expect(() => definition.buildUserPrompt({ a: true })).toThrow(PromptTemplateError);
+    expect(() => builder.buildUserPrompt({ a: true })).toThrow(PromptTemplateError);
+  });
+
+  it('should return raw data via toData()', () => {
+    const data: PromptContentData = {
+      id: 'test',
+      version: '1.0.0',
+      system: 'System prompt',
+      userTemplate: 'User template',
+    };
+
+    const content = PromptContent.from(data);
+    const result = content.toData();
+
+    expect(result).toEqual(data);
   });
 });

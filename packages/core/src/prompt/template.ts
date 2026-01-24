@@ -6,7 +6,8 @@
 
 import Handlebars from 'handlebars';
 
-import type { PromptContent, PromptDefinition } from './types';
+// Note: PromptContent class uses compileTemplate, not the other way around
+// This avoids circular dependencies
 import { PromptTemplateError } from './errors';
 
 // =============================================================================
@@ -77,40 +78,3 @@ export function compileTemplate<TInput>(
   }
 }
 
-// =============================================================================
-// Prompt Definition Conversion
-// =============================================================================
-
-/**
- * Converts raw PromptContent to a compiled PromptDefinition.
- *
- * @typeParam TInput - Type of the input object for template rendering
- * @param content - Raw prompt content from repository
- * @returns Compiled prompt definition with buildUserPrompt function
- * @throws {PromptTemplateError} If template compilation fails
- *
- * @example
- * ```typescript
- * const content: PromptContent = {
- *   id: 'greeting',
- *   version: '1.0.0',
- *   system: 'You are a helpful assistant.',
- *   userTemplate: 'Hello, {{name}}!',
- * };
- *
- * const definition = toPromptDefinition<{ name: string }>(content);
- * const userPrompt = definition.buildUserPrompt({ name: 'World' });
- * // => 'Hello, World!'
- * ```
- */
-export function toPromptDefinition<TInput>(content: PromptContent): PromptDefinition<TInput> {
-  const buildUserPrompt = compileTemplate<TInput>(content.userTemplate, content.id);
-
-  return {
-    id: content.id,
-    version: content.version,
-    system: content.system,
-    userTemplate: content.userTemplate,
-    buildUserPrompt,
-  };
-}
