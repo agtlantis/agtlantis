@@ -36,6 +36,8 @@ export abstract class BaseProvider implements Provider {
 
     abstract withPricing(pricing: ProviderPricing): Provider;
 
+    abstract withDefaultOptions(options: Record<string, unknown>): Provider;
+
     streamingExecution<TEvent extends { type: string; metrics: EventMetrics }, TResult>(
         generator: (
             session: StreamingSession<TEvent, TResult>

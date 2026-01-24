@@ -57,11 +57,13 @@ export {
   type SafetySetting,
   type HarmCategory,
   type HarmBlockThreshold,
+  type GoogleGenerativeAIProviderOptions,
 } from './google';
 
 export {
   createOpenAIProvider,
   type OpenAIProviderConfig,
+  type OpenAIChatLanguageModelOptions,
 } from './openai';
 
 export {

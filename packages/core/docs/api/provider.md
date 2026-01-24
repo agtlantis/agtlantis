@@ -40,6 +40,10 @@ import {
   type HarmCategory,
   type HarmBlockThreshold,
 
+  // Provider-specific options (for withDefaultOptions)
+  type GoogleGenerativeAIProviderOptions,
+  type OpenAIChatLanguageModelOptions,
+
   // Errors
   RateLimitError,
   TimeoutError,
@@ -59,6 +63,7 @@ interface Provider {
   withDefaultModel(modelId: string): Provider;
   withLogger(logger: Logger): Provider;
   withPricing(pricing: ProviderPricing): Provider;
+  withDefaultOptions(options: Record<string, unknown>): Provider;
 
   streamingExecution<TEvent, TResult>(
     generator: (session: StreamingSession<TEvent, TResult>) => AsyncGenerator<TEvent, TEvent>
@@ -75,6 +80,7 @@ interface Provider {
 | `withDefaultModel(modelId)` | `Provider` | Returns new provider with default model set |
 | `withLogger(logger)` | `Provider` | Returns new provider with logger for observability |
 | `withPricing(pricing)` | `Provider` | Returns new provider with custom pricing config |
+| `withDefaultOptions(options)` | `Provider` | Returns new provider with default provider-specific options |
 | `streamingExecution(generator)` | `StreamingExecution` | Creates streaming execution with event emission |
 | `simpleExecution(fn)` | `Promise<Execution>` | Creates simple Promise-based execution |
 
@@ -294,6 +300,14 @@ const provider = createGoogleProvider({
     { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
   ],
 }).withDefaultModel('gemini-2.5-flash');
+
+// With default provider options (e.g., Gemini thinking mode)
+const thinkingProvider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY!,
+}).withDefaultModel('gemini-2.0-flash-thinking-exp')
+  .withDefaultOptions({
+    thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' }
+  });
 ```
 
 ### createOpenAIProvider

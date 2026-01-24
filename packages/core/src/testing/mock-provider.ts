@@ -143,6 +143,13 @@ export class MockProvider extends BaseProvider {
         );
     }
 
+    /**
+     * Mock implementation - returns same provider since mocks don't use provider options.
+     */
+    withDefaultOptions(_options: Record<string, unknown>): MockProvider {
+        return this;
+    }
+
     protected createSimpleSession(signal?: AbortSignal): SimpleSession {
         return new SimpleSession({ ...this.buildSessionConfig(), signal });
     }

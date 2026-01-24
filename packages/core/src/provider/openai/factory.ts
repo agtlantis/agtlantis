@@ -1,4 +1,4 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAI, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
 import type { Provider } from '../types';
 import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
@@ -25,7 +25,8 @@ class OpenAIProvider extends BaseProvider {
         private readonly logger: Logger,
         private readonly baseURL?: string,
         private readonly organization?: string,
-        private readonly pricingConfig?: ProviderPricing
+        private readonly pricingConfig?: ProviderPricing,
+        private readonly defaultOptions?: OpenAIChatLanguageModelOptions,
     ) {
         super();
         this.openai = createOpenAI({
@@ -42,7 +43,8 @@ class OpenAIProvider extends BaseProvider {
             this.logger,
             this.baseURL,
             this.organization,
-            this.pricingConfig
+            this.pricingConfig,
+            this.defaultOptions,
         );
     }
 
@@ -53,7 +55,8 @@ class OpenAIProvider extends BaseProvider {
             newLogger,
             this.baseURL,
             this.organization,
-            this.pricingConfig
+            this.pricingConfig,
+            this.defaultOptions,
         );
     }
 
@@ -65,7 +68,34 @@ class OpenAIProvider extends BaseProvider {
             this.logger,
             this.baseURL,
             this.organization,
-            pricing
+            pricing,
+            this.defaultOptions,
+        );
+    }
+
+    /**
+     * Set default provider-specific options for all LLM calls.
+     * These options will be deep-merged with per-call providerOptions.
+     * 
+     * @example
+     * ```typescript
+     * createOpenAIProvider({ apiKey: 'xxx' })
+     *   .withDefaultModel('gpt-4o')
+     *   .withDefaultOptions({
+     *     reasoningEffort: 'high',
+     *     parallelToolCalls: true,
+     *   })
+     * ```
+     */
+    withDefaultOptions(options: OpenAIChatLanguageModelOptions): Provider {
+        return new OpenAIProvider(
+            this.apiKey,
+            this.defaultModelId,
+            this.logger,
+            this.baseURL,
+            this.organization,
+            this.pricingConfig,
+            options,
         );
     }
 
@@ -77,6 +107,9 @@ class OpenAIProvider extends BaseProvider {
             providerPricing: this.pricingConfig,
             fileManager: new NoOpFileManager(),
             logger: this.logger,
+            defaultProviderOptions: this.defaultOptions
+                ? { openai: this.defaultOptions }
+                : undefined,
         };
     }
 
@@ -101,3 +134,6 @@ export function createOpenAIProvider(config: OpenAIProviderConfig): Provider {
         config.organization
     );
 }
+
+// Re-export provider options type for consumers
+export type { OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';

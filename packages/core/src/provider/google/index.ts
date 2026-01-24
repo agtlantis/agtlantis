@@ -11,6 +11,7 @@ export {
   type SafetySetting,
   type HarmCategory,
   type HarmBlockThreshold,
+  type GoogleGenerativeAIProviderOptions,
 } from './factory';
 
 // FileManager

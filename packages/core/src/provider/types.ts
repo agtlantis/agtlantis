@@ -104,6 +104,12 @@ export interface Provider {
     withDefaultModel(modelId: string): Provider;
     withLogger(logger: Logger): Provider;
     withPricing(pricing: ProviderPricing): Provider;
+    /**
+     * Set default provider-specific options for all LLM calls.
+     * These options will be deep-merged with per-call providerOptions.
+     * The actual options type depends on the provider (Google, OpenAI, etc.).
+     */
+    withDefaultOptions(options: Record<string, unknown>): Provider;
 
     streamingExecution<TEvent extends { type: string; metrics: EventMetrics }, TResult>(
         generator: (

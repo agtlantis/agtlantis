@@ -150,6 +150,49 @@ const provider = createGoogleProvider({
   });
 ```
 
+**Setting Default Provider Options:**
+
+Configure provider-specific options that apply to all LLM calls. These options are deep-merged with per-call `providerOptions` (per-call takes precedence).
+
+```typescript
+import { createGoogleProvider } from '@agtlantis/core';
+
+// Google: Enable Gemini thinking mode
+const thinkingProvider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY!,
+}).withDefaultModel('gemini-2.0-flash-thinking-exp')
+  .withDefaultOptions({
+    thinkingConfig: {
+      includeThoughts: true,
+      thinkingLevel: 'low', // 'minimal' | 'low' | 'medium' | 'high'
+    }
+  });
+
+// Per-call override is still possible
+const execution = thinkingProvider.simpleExecution(async (session) => {
+  const result = await session.generateText({
+    prompt: 'Complex problem...',
+    providerOptions: {
+      google: { thinkingConfig: { thinkingLevel: 'high' } } // Override default
+    }
+  });
+  return result.text;
+});
+```
+
+```typescript
+import { createOpenAIProvider } from '@agtlantis/core';
+
+// OpenAI: Set default options like parallel tool calls
+const openaiProvider = createOpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY!,
+}).withDefaultModel('gpt-4o')
+  .withDefaultOptions({
+    parallelToolCalls: true,
+    reasoningEffort: 'high',
+  });
+```
+
 ### Simple Execution
 
 Use `simpleExecution()` when you just need a result without streaming intermediate events.

@@ -1,5 +1,5 @@
 import type { LanguageModel } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGoogleGenerativeAI, type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { Provider } from '../types';
 import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
@@ -43,7 +43,8 @@ class GoogleProvider extends BaseProvider {
         private readonly defaultModelId: string | null,
         private readonly logger: Logger,
         private readonly safetySettings?: SafetySetting[],
-        private readonly pricingConfig?: ProviderPricing
+        private readonly pricingConfig?: ProviderPricing,
+        private readonly defaultOptions?: GoogleGenerativeAIProviderOptions,
     ) {
         super();
         this.google = createGoogleGenerativeAI({ apiKey });
@@ -55,7 +56,8 @@ class GoogleProvider extends BaseProvider {
             modelId,
             this.logger,
             this.safetySettings,
-            this.pricingConfig
+            this.pricingConfig,
+            this.defaultOptions,
         );
     }
 
@@ -65,7 +67,8 @@ class GoogleProvider extends BaseProvider {
             this.defaultModelId,
             newLogger,
             this.safetySettings,
-            this.pricingConfig
+            this.pricingConfig,
+            this.defaultOptions,
         );
     }
 
@@ -76,7 +79,32 @@ class GoogleProvider extends BaseProvider {
             this.defaultModelId,
             this.logger,
             this.safetySettings,
-            pricing
+            pricing,
+            this.defaultOptions,
+        );
+    }
+
+    /**
+     * Set default provider-specific options for all LLM calls.
+     * These options will be deep-merged with per-call providerOptions.
+     * 
+     * @example
+     * ```typescript
+     * createGoogleProvider({ apiKey: 'xxx' })
+     *   .withDefaultModel('gemini-2.0-flash-thinking-exp')
+     *   .withDefaultOptions({
+     *     thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' }
+     *   })
+     * ```
+     */
+    withDefaultOptions(options: GoogleGenerativeAIProviderOptions): Provider {
+        return new GoogleProvider(
+            this.apiKey,
+            this.defaultModelId,
+            this.logger,
+            this.safetySettings,
+            this.pricingConfig,
+            options,
         );
     }
 
@@ -90,6 +118,9 @@ class GoogleProvider extends BaseProvider {
             providerPricing: this.pricingConfig,
             fileManager: new GoogleFileManager(this.apiKey),
             logger: this.logger,
+            defaultProviderOptions: this.defaultOptions
+                ? { google: this.defaultOptions }
+                : undefined,
         };
     }
 
@@ -129,3 +160,6 @@ export function createGoogleProvider(config: GoogleProviderConfig): Provider {
         config.safetySettings
     );
 }
+
+// Re-export provider options type for consumers
+export type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';

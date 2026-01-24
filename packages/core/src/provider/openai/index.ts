@@ -7,4 +7,5 @@
 export {
   createOpenAIProvider,
   type OpenAIProviderConfig,
+  type OpenAIChatLanguageModelOptions,
 } from './factory';

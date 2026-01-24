@@ -7,6 +7,7 @@ import type {
   LanguageModelUsage,
   ToolSet,
 } from 'ai';
+import merge from 'lodash/merge';
 import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
 import type { FileManager } from '@/provider/types';
@@ -27,6 +28,12 @@ import {
 } from './types';
 import { mergeUsages, createZeroUsage } from './usage-extractors';
 
+/**
+ * Provider-specific options type.
+ * Maps provider names (e.g., 'google', 'openai') to their option objects.
+ */
+type ProviderOptions = Record<string, Record<string, unknown>>;
+
 export interface SimpleSessionOptions {
   defaultLanguageModel?: LanguageModel | null;
   modelFactory?: (modelId: string) => LanguageModel;
@@ -40,6 +47,11 @@ export interface SimpleSessionOptions {
    * When aborted, ongoing generateText/streamText calls will be cancelled.
    */
   signal?: AbortSignal;
+  /**
+   * Default provider-specific options to apply to all LLM calls.
+   * These will be deep-merged with per-call providerOptions (per-call takes precedence).
+   */
+  defaultProviderOptions?: ProviderOptions;
 }
 
 export class SimpleSession {
@@ -47,6 +59,7 @@ export class SimpleSession {
   private readonly modelFactory: ((modelId: string) => LanguageModel) | null;
   private readonly providerType: ProviderType;
   private readonly providerPricing: ProviderPricing | undefined;
+  private readonly defaultProviderOptions: ProviderOptions | undefined;
   private readonly _fileManager: FileManager;
   private readonly logger: Logger;
   private readonly sessionStartTime: number;
@@ -62,6 +75,7 @@ export class SimpleSession {
     this.modelFactory = options.modelFactory ?? null;
     this.providerType = options.providerType;
     this.providerPricing = options.providerPricing;
+    this.defaultProviderOptions = options.defaultProviderOptions;
     this._fileManager = options.fileManager;
     this.logger = options.logger ?? noopLogger;
     this.sessionStartTime = options.startTime ?? Date.now();
@@ -107,9 +121,14 @@ export class SimpleSession {
     params: GenerateTextParams<TOOLS, OUTPUT>
   ): Promise<GenerateTextResultTyped<TOOLS, OUTPUT>> {
     const callStartTime = Date.now();
-    const { model: requestedModel, ...restParams } = params;
+    const { model: requestedModel, providerOptions, ...restParams } = params;
     const languageModel = this.getModel(requestedModel);
     const modelId = this.extractModelId(languageModel);
+
+    // Deep merge default + per-call options (per-call takes precedence)
+    const mergedProviderOptions = (this.defaultProviderOptions || providerOptions)
+      ? merge({}, this.defaultProviderOptions ?? {}, providerOptions ?? {})
+      : undefined;
 
     this.logger.onLLMCallStart?.({
       type: 'llm_call_start',
@@ -123,6 +142,7 @@ export class SimpleSession {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await aiGenerateText({
         ...restParams,
+        providerOptions: mergedProviderOptions,
         model: languageModel,
         abortSignal: this.signal,
       } as any);
@@ -176,9 +196,14 @@ export class SimpleSession {
     OUTPUT extends OutputSpec = DefaultOutput,
   >(params: StreamTextParams<TOOLS, OUTPUT>): StreamTextResultTyped<TOOLS, OUTPUT> {
     const callStartTime = Date.now();
-    const { model: requestedModel, ...restParams } = params;
+    const { model: requestedModel, providerOptions, ...restParams } = params;
     const languageModel = this.getModel(requestedModel);
     const modelId = this.extractModelId(languageModel);
+
+    // Deep merge default + per-call options (per-call takes precedence)
+    const mergedProviderOptions = (this.defaultProviderOptions || providerOptions)
+      ? merge({}, this.defaultProviderOptions ?? {}, providerOptions ?? {})
+      : undefined;
 
     this.logger.onLLMCallStart?.({
       type: 'llm_call_start',
@@ -191,6 +216,7 @@ export class SimpleSession {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = aiStreamText({
       ...restParams,
+      providerOptions: mergedProviderOptions,
       model: languageModel,
       abortSignal: this.signal,
     } as any);

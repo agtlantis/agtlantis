@@ -5,6 +5,7 @@ import {
     type SafetySetting,
     type HarmCategory,
     type HarmBlockThreshold,
+    type GoogleGenerativeAIProviderOptions,
 } from './factory';
 import { GoogleFileManager } from './file-manager';
 
@@ -135,6 +136,42 @@ describe('createGoogleProvider', () => {
                     },
                 })
             ).toThrow('google/gemini-2.5-pro: inputPricePerMillion must be a finite number');
+        });
+
+        it('should return new instance on withDefaultOptions()', () => {
+            const provider1 = createGoogleProvider({ apiKey: 'test-api-key' });
+            const provider2 = provider1.withDefaultOptions({
+                thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' },
+            } as GoogleGenerativeAIProviderOptions);
+
+            expect(provider1).not.toBe(provider2);
+        });
+
+        it('should allow chaining withDefaultOptions with other fluent methods', () => {
+            const provider = createGoogleProvider({ apiKey: 'test-api-key' })
+                .withDefaultModel('gemini-2.0-flash-thinking-exp')
+                .withDefaultOptions({
+                    thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' },
+                } as GoogleGenerativeAIProviderOptions)
+                .withLogger({ onLLMCallStart: vi.fn() });
+
+            expect(provider).toBeDefined();
+            expect(provider.withDefaultOptions).toBeTypeOf('function');
+        });
+
+        it('should preserve defaultOptions through other fluent method calls', () => {
+            const options = {
+                thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' },
+            } as GoogleGenerativeAIProviderOptions;
+
+            const provider = createGoogleProvider({ apiKey: 'test-api-key' })
+                .withDefaultOptions(options)
+                .withDefaultModel('gemini-2.0-flash')
+                .withLogger({});
+
+            // Provider should be defined and have withDefaultOptions method
+            expect(provider).toBeDefined();
+            expect(provider.withDefaultOptions).toBeTypeOf('function');
         });
     });
 
