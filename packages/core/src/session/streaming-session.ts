@@ -1,4 +1,4 @@
-import type { LanguageModel } from 'ai';
+import type { LanguageModel, ToolSet } from 'ai';
 import type { EventMetrics } from '@/observability';
 import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
@@ -6,7 +6,9 @@ import type { FileManager } from '@/provider/types';
 import type { ProviderType, ProviderPricing } from '@/pricing/types';
 import type { SessionSummary } from './types';
 import { SimpleSession } from './simple-session';
-import type { SessionEventInput } from '@/execution/types';
+import type { SessionEventInput, EmittableEventInput } from '@/execution/types';
+
+type ProviderOptions = Record<string, Record<string, unknown>>;
 
 export interface StreamingSessionOptions {
   defaultLanguageModel?: LanguageModel | null;
@@ -17,6 +19,8 @@ export interface StreamingSessionOptions {
   logger?: Logger;
   startTime?: number;
   signal?: AbortSignal;
+  defaultProviderOptions?: ProviderOptions;
+  defaultTools?: ToolSet;
 }
 
 export class StreamingSession<
@@ -35,6 +39,8 @@ export class StreamingSession<
       logger: options.logger,
       startTime: options.startTime,
       signal: options.signal,
+      defaultProviderOptions: options.defaultProviderOptions,
+      defaultTools: options.defaultTools,
     });
 
     this.lastEventTime = this._startTime;
@@ -47,10 +53,32 @@ export class StreamingSession<
 
   /**
    * Emits a streaming event with automatically attached metrics.
+   *
+   * Reserved types ('complete', 'error') throw at runtime - use session.done()
+   * or session.fail() instead.
+   *
    * @param event - The event to emit (metrics will be added automatically)
    * @returns The complete event with metrics attached
+   * @throws Error when attempting to emit reserved types ('complete', 'error')
    */
-  emit(event: SessionEventInput<TEvent>): TEvent {
+  emit(event: EmittableEventInput<TEvent>): TEvent {
+    // Runtime check: prevent reserved types even when TypeScript is bypassed
+    const eventType = (event as { type: string }).type;
+    if (eventType === 'complete' || eventType === 'error') {
+      throw new Error(
+        `Cannot emit reserved type "${eventType}". ` +
+        'Use session.done() for completion or session.fail() for errors.'
+      );
+    }
+
+    return this.emitInternal(event as SessionEventInput<TEvent>);
+  }
+
+  /**
+   * Internal emit method - bypasses reserved type check.
+   * Used by done() and fail() to emit terminal events.
+   */
+  private emitInternal(event: SessionEventInput<TEvent>): TEvent {
     const metrics = this.createMetrics();
     const fullEvent = { ...event, metrics } as TEvent;
 
@@ -80,8 +108,9 @@ export class StreamingSession<
       summary,
     });
 
+    // Use emitInternal to bypass reserved type check (internal only)
     // Cast required: TypeScript can't know that TEvent includes a 'complete' variant
-    return this.emit({
+    return this.emitInternal({
       type: 'complete',
       data,
       summary,
@@ -126,8 +155,9 @@ export class StreamingSession<
       errorEvent.data = data;
     }
 
+    // Use emitInternal to bypass reserved type check (internal only)
     // Cast required: TypeScript can't know that TEvent includes an 'error' variant
-    return this.emit(errorEvent as unknown as SessionEventInput<TEvent>);
+    return this.emitInternal(errorEvent as unknown as SessionEventInput<TEvent>);
   }
 
   private createMetrics(): EventMetrics {
@@ -153,7 +183,7 @@ export interface StreamingSessionInternal<
   record: SimpleSession['record'];
   recordToolCall: SimpleSession['recordToolCall'];
 
-  emit(event: SessionEventInput<TEvent>): TEvent;
+  emit(event: EmittableEventInput<TEvent>): TEvent;
   done(data: TResult): Promise<TEvent>;
   fail(error: Error, data?: TResult): Promise<TEvent>;
 

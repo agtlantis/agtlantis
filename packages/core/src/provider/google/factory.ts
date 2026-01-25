@@ -1,6 +1,5 @@
 import type { LanguageModel } from 'ai';
 import { createGoogleGenerativeAI, type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import type { Provider } from '../types';
 import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
 import type { EventMetrics } from '@/observability';
@@ -35,7 +34,7 @@ export interface GoogleProviderConfig {
     safetySettings?: SafetySetting[];
 }
 
-class GoogleProvider extends BaseProvider {
+export class GoogleProvider extends BaseProvider {
     private readonly google: ReturnType<typeof createGoogleGenerativeAI>;
 
     constructor(
@@ -45,12 +44,14 @@ class GoogleProvider extends BaseProvider {
         private readonly safetySettings?: SafetySetting[],
         private readonly pricingConfig?: ProviderPricing,
         private readonly defaultOptions?: GoogleGenerativeAIProviderOptions,
+        private readonly searchEnabled: boolean = false,
+        private readonly urlContextEnabled: boolean = false,
     ) {
         super();
         this.google = createGoogleGenerativeAI({ apiKey });
     }
 
-    withDefaultModel(modelId: string): Provider {
+    withDefaultModel(modelId: string): GoogleProvider {
         return new GoogleProvider(
             this.apiKey,
             modelId,
@@ -58,10 +59,12 @@ class GoogleProvider extends BaseProvider {
             this.safetySettings,
             this.pricingConfig,
             this.defaultOptions,
+            this.searchEnabled,
+            this.urlContextEnabled,
         );
     }
 
-    withLogger(newLogger: Logger): Provider {
+    withLogger(newLogger: Logger): GoogleProvider {
         return new GoogleProvider(
             this.apiKey,
             this.defaultModelId,
@@ -69,10 +72,12 @@ class GoogleProvider extends BaseProvider {
             this.safetySettings,
             this.pricingConfig,
             this.defaultOptions,
+            this.searchEnabled,
+            this.urlContextEnabled,
         );
     }
 
-    withPricing(pricing: ProviderPricing): Provider {
+    withPricing(pricing: ProviderPricing): GoogleProvider {
         validateProviderPricing(pricing, 'google');
         return new GoogleProvider(
             this.apiKey,
@@ -81,13 +86,15 @@ class GoogleProvider extends BaseProvider {
             this.safetySettings,
             pricing,
             this.defaultOptions,
+            this.searchEnabled,
+            this.urlContextEnabled,
         );
     }
 
     /**
      * Set default provider-specific options for all LLM calls.
      * These options will be deep-merged with per-call providerOptions.
-     * 
+     *
      * @example
      * ```typescript
      * createGoogleProvider({ apiKey: 'xxx' })
@@ -97,7 +104,7 @@ class GoogleProvider extends BaseProvider {
      *   })
      * ```
      */
-    withDefaultOptions(options: GoogleGenerativeAIProviderOptions): Provider {
+    withDefaultOptions(options: GoogleGenerativeAIProviderOptions): GoogleProvider {
         return new GoogleProvider(
             this.apiKey,
             this.defaultModelId,
@@ -105,10 +112,67 @@ class GoogleProvider extends BaseProvider {
             this.safetySettings,
             this.pricingConfig,
             options,
+            this.searchEnabled,
+            this.urlContextEnabled,
+        );
+    }
+
+    /**
+     * Enable Google Search grounding for all LLM calls.
+     * Allows the model to access real-time web information.
+     *
+     * @example
+     * ```typescript
+     * createGoogleProvider({ apiKey: 'xxx' })
+     *   .withDefaultModel('gemini-2.5-flash')
+     *   .withSearchEnabled()
+     * ```
+     */
+    withSearchEnabled(): GoogleProvider {
+        return new GoogleProvider(
+            this.apiKey,
+            this.defaultModelId,
+            this.logger,
+            this.safetySettings,
+            this.pricingConfig,
+            this.defaultOptions,
+            true,
+            this.urlContextEnabled,
+        );
+    }
+
+    /**
+     * Enable URL Context grounding for all LLM calls.
+     * Allows the model to retrieve and use content from URLs in the prompt.
+     *
+     * @example
+     * ```typescript
+     * createGoogleProvider({ apiKey: 'xxx' })
+     *   .withDefaultModel('gemini-2.5-flash')
+     *   .withUrlContextEnabled()
+     * ```
+     */
+    withUrlContextEnabled(): GoogleProvider {
+        return new GoogleProvider(
+            this.apiKey,
+            this.defaultModelId,
+            this.logger,
+            this.safetySettings,
+            this.pricingConfig,
+            this.defaultOptions,
+            this.searchEnabled,
+            true,
         );
     }
 
     private getSessionConfig() {
+        // Build default tools based on enabled grounding features
+        const defaultTools = {
+            ...(this.searchEnabled && { google_search: this.google.tools.googleSearch({}) }),
+            ...(this.urlContextEnabled && { url_context: this.google.tools.urlContext({}) }),
+        };
+        const hasDefaultTools = this.searchEnabled || this.urlContextEnabled;
+
         return {
             defaultLanguageModel: this.defaultModelId
                 ? this.createModel(this.defaultModelId)
@@ -121,6 +185,7 @@ class GoogleProvider extends BaseProvider {
             defaultProviderOptions: this.defaultOptions
                 ? { google: this.defaultOptions }
                 : undefined,
+            defaultTools: hasDefaultTools ? defaultTools : undefined,
         };
     }
 
@@ -152,7 +217,7 @@ class GoogleProvider extends BaseProvider {
     }
 }
 
-export function createGoogleProvider(config: GoogleProviderConfig): Provider {
+export function createGoogleProvider(config: GoogleProviderConfig): GoogleProvider {
     return new GoogleProvider(
         config.apiKey,
         null, // No default model - must be set with withDefaultModel()

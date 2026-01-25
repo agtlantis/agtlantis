@@ -75,6 +75,50 @@ export type SessionEvent<T extends { type: string }> = T & {
 export type SessionEventInput<T extends { type: string; metrics: EventMetrics }> =
     DistributiveOmit<T, 'metrics'>;
 
+
+// ============================================================================
+// Reserved Event Types
+// ============================================================================
+
+/**
+ * Reserved event types that cannot be emitted directly via session.emit().
+ * These types are controlled internally by session.done() and session.fail().
+ */
+export type ReservedEventType = 'complete' | 'error';
+
+/**
+ * Input type for session.emit() - excludes reserved types ('complete', 'error').
+ *
+ * These terminal event types are reserved for internal use:
+ * - `'complete'` - Emitted automatically by `session.done(result)`
+ * - `'error'` - Emitted automatically by `session.fail(error)`
+ *
+ * **TypeScript Protection:**
+ * Only works when TEvent uses literal types in a discriminated union.
+ * If TEvent has `type: string`, the type check is bypassed but runtime check still applies.
+ *
+ * @example
+ * ```typescript
+ * // ✅ TypeScript protection works (discriminated union)
+ * type MyEvent =
+ *   | { type: 'progress'; step: number; metrics: EventMetrics }
+ *   | { type: 'complete'; data: string; metrics: EventMetrics };
+ *
+ * session.emit({ type: 'progress', step: 1 }); // ✅ OK
+ * session.emit({ type: 'complete', data: 'x' }); // ❌ TypeScript error
+ *
+ * // ❌ TypeScript protection bypassed (loose string type)
+ * interface LooseEvent { type: string; metrics: EventMetrics; }
+ * session.emit({ type: 'complete' }); // TypeScript allows, but throws at runtime!
+ * ```
+ */
+export type EmittableEventInput<T extends { type: string; metrics: EventMetrics }> =
+    T extends { type: infer Type }
+        ? Type extends ReservedEventType
+            ? never
+            : DistributiveOmit<T, 'metrics'>
+        : never;
+
 /**
  * Options for execution.
  * Used by both simpleExecution and streamingExecution.

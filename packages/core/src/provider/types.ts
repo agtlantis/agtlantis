@@ -4,7 +4,7 @@ import type {
     SessionSummary,
     ToolCallSummary,
 } from '../session';
-import type { StreamingExecution, SimpleExecution, ExecutionOptions, SessionEventInput } from '../execution';
+import type { StreamingExecution, SimpleExecution, ExecutionOptions, EmittableEventInput } from '../execution';
 import type { EventMetrics } from '@/observability';
 import type { ProviderPricing } from '@/pricing';
 import type { ToolSet } from 'ai';
@@ -157,8 +157,13 @@ export interface StreamingSession<TEvent extends { type: string; metrics: EventM
     /** Register cleanup function (LIFO order) */
     onDone(fn: () => Promise<void> | void): void;
 
-    /** Emit intermediate event with auto-added metrics */
-    emit(event: SessionEventInput<TEvent>): TEvent;
+    /**
+     * Emit intermediate event with auto-added metrics.
+     *
+     * Reserved types ('complete', 'error') throw at runtime.
+     * Use session.done() for completion or session.fail() for errors.
+     */
+    emit(event: EmittableEventInput<TEvent>): TEvent;
 
     /** Signal successful completion */
     done(data: TResult): Promise<TEvent>;

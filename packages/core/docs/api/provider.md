@@ -40,6 +40,9 @@ import {
   type HarmCategory,
   type HarmBlockThreshold,
 
+  // Provider-specific types
+  type GoogleProvider,  // Google provider with grounding features
+
   // Provider-specific options (for withDefaultOptions)
   type GoogleGenerativeAIProviderOptions,
   type OpenAIChatLanguageModelOptions,
@@ -117,7 +120,7 @@ interface StreamingSession<TEvent, TResult> {
 | `streamText(params)` | Wrapper for AI SDK `streamText()` with usage tracking |
 | `fileManager` | File manager for upload/delete operations |
 | `onDone(fn)` | Register cleanup function (LIFO order) |
-| `emit(event)` | Emit intermediate event (adds metrics automatically) |
+| `emit(event)` | Emit intermediate event (adds metrics automatically). Throws for reserved types (`'complete'`, `'error'`) |
 | `done(data)` | Signal successful completion with result |
 | `fail(error, data?)` | Signal failure with error and optional partial result |
 | `record(data)` | Record custom data for session summary |
@@ -254,8 +257,10 @@ function isFilePartUrl(v: FilePart): v is FilePartUrl;
 Creates a Google AI (Gemini) provider.
 
 ```typescript
-function createGoogleProvider(config: GoogleProviderConfig): Provider;
+function createGoogleProvider(config: GoogleProviderConfig): GoogleProvider;
 ```
+
+> **Note:** Returns `GoogleProvider` which extends `Provider` with additional grounding methods.
 
 **GoogleProviderConfig:**
 
@@ -308,7 +313,37 @@ const thinkingProvider = createGoogleProvider({
   .withDefaultOptions({
     thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' }
   });
+
+// With Google Search grounding
+const searchProvider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY!,
+}).withDefaultModel('gemini-2.5-flash')
+  .withSearchEnabled();
+
+// With URL Context grounding
+const urlContextProvider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY!,
+}).withDefaultModel('gemini-2.5-flash')
+  .withUrlContextEnabled();
+
+// With both grounding features
+const groundedProvider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY!,
+}).withDefaultModel('gemini-2.5-flash')
+  .withSearchEnabled()
+  .withUrlContextEnabled();
 ```
+
+**GoogleProvider Methods:**
+
+The `GoogleProvider` class extends `Provider` with additional grounding methods:
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `withSearchEnabled()` | `GoogleProvider` | Enable Google Search grounding for real-time web information |
+| `withUrlContextEnabled()` | `GoogleProvider` | Enable URL Context grounding to retrieve content from URLs in prompts |
+
+> **Note:** Grounding features require Gemini 2.0 or newer models.
 
 ### createOpenAIProvider
 

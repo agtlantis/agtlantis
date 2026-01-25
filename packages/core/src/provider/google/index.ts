@@ -7,6 +7,7 @@
 // Factory
 export {
   createGoogleProvider,
+  GoogleProvider,
   type GoogleProviderConfig,
   type SafetySetting,
   type HarmCategory,

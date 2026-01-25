@@ -4,7 +4,7 @@ import type { EventMetrics } from '@/observability';
 import type { StreamingSession } from '@/session/streaming-session';
 import type { StreamTextParams } from '@/session/types';
 import type { BaseProvider } from '@/provider/base-provider';
-import type { SessionEventInput } from '@/execution/types';
+import type { EmittableEventInput } from '@/execution/types';
 
 export type ProgressiveStreamOptions<TUserTools extends ToolSet = {}> = Omit<
     StreamTextParams<TUserTools>,
@@ -202,7 +202,7 @@ export class ProgressivePattern<
                         yield session.emit({
                             type: 'progress',
                             data: progressData,
-                        } as unknown as SessionEventInput<TEvent>);
+                        } as unknown as EmittableEventInput<TEvent>);
                     }
                 } else if (part.toolName === 'submitResult') {
                     const input = 'input' in part ? part.input : undefined;

@@ -52,6 +52,11 @@ export interface SimpleSessionOptions {
    * These will be deep-merged with per-call providerOptions (per-call takes precedence).
    */
   defaultProviderOptions?: ProviderOptions;
+  /**
+   * Default tools to apply to all LLM calls (e.g., google_search, url_context).
+   * These will be merged with per-call tools (per-call takes precedence).
+   */
+  defaultTools?: ToolSet;
 }
 
 export class SimpleSession {
@@ -60,6 +65,7 @@ export class SimpleSession {
   private readonly providerType: ProviderType;
   private readonly providerPricing: ProviderPricing | undefined;
   private readonly defaultProviderOptions: ProviderOptions | undefined;
+  private readonly defaultTools: ToolSet | undefined;
   private readonly _fileManager: FileManager;
   private readonly logger: Logger;
   private readonly sessionStartTime: number;
@@ -76,6 +82,7 @@ export class SimpleSession {
     this.providerType = options.providerType;
     this.providerPricing = options.providerPricing;
     this.defaultProviderOptions = options.defaultProviderOptions;
+    this.defaultTools = options.defaultTools;
     this._fileManager = options.fileManager;
     this.logger = options.logger ?? noopLogger;
     this.sessionStartTime = options.startTime ?? Date.now();
@@ -121,13 +128,18 @@ export class SimpleSession {
     params: GenerateTextParams<TOOLS, OUTPUT>
   ): Promise<GenerateTextResultTyped<TOOLS, OUTPUT>> {
     const callStartTime = Date.now();
-    const { model: requestedModel, providerOptions, ...restParams } = params;
+    const { model: requestedModel, providerOptions, tools, ...restParams } = params;
     const languageModel = this.getModel(requestedModel);
     const modelId = this.extractModelId(languageModel);
 
     // Deep merge default + per-call options (per-call takes precedence)
     const mergedProviderOptions = (this.defaultProviderOptions || providerOptions)
       ? merge({}, this.defaultProviderOptions ?? {}, providerOptions ?? {})
+      : undefined;
+
+    // Merge default tools with per-call tools (per-call takes precedence)
+    const mergedTools = (this.defaultTools || tools)
+      ? { ...this.defaultTools, ...tools }
       : undefined;
 
     this.logger.onLLMCallStart?.({
@@ -142,6 +154,7 @@ export class SimpleSession {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await aiGenerateText({
         ...restParams,
+        tools: mergedTools,
         providerOptions: mergedProviderOptions,
         model: languageModel,
         abortSignal: this.signal,
@@ -196,13 +209,18 @@ export class SimpleSession {
     OUTPUT extends OutputSpec = DefaultOutput,
   >(params: StreamTextParams<TOOLS, OUTPUT>): StreamTextResultTyped<TOOLS, OUTPUT> {
     const callStartTime = Date.now();
-    const { model: requestedModel, providerOptions, ...restParams } = params;
+    const { model: requestedModel, providerOptions, tools, ...restParams } = params;
     const languageModel = this.getModel(requestedModel);
     const modelId = this.extractModelId(languageModel);
 
     // Deep merge default + per-call options (per-call takes precedence)
     const mergedProviderOptions = (this.defaultProviderOptions || providerOptions)
       ? merge({}, this.defaultProviderOptions ?? {}, providerOptions ?? {})
+      : undefined;
+
+    // Merge default tools with per-call tools (per-call takes precedence)
+    const mergedTools = (this.defaultTools || tools)
+      ? { ...this.defaultTools, ...tools }
       : undefined;
 
     this.logger.onLLMCallStart?.({
@@ -216,6 +234,7 @@ export class SimpleSession {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = aiStreamText({
       ...restParams,
+      tools: mergedTools,
       providerOptions: mergedProviderOptions,
       model: languageModel,
       abortSignal: this.signal,

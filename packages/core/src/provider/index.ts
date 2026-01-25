@@ -27,6 +27,8 @@ export type {
   DistributiveOmit,
   SessionEvent,
   SessionEventInput,
+  EmittableEventInput,
+  ReservedEventType,
 } from '../execution';
 
 export { combineSignals } from '../execution';
@@ -52,6 +54,7 @@ export {
 
 export {
   createGoogleProvider,
+  GoogleProvider,
   GoogleFileManager,
   type GoogleProviderConfig,
   type SafetySetting,

@@ -158,6 +158,66 @@ describe('createStreamingSession', () => {
       expect(event2.metrics.elapsedMs).toBe(150);
       expect(event3.metrics.elapsedMs).toBe(300);
     });
+
+    describe('reserved type prevention', () => {
+      it('should throw when emitting "complete" type at runtime', () => {
+        const session = createStreamingSession<TestEvent, string>({
+          defaultLanguageModel: createMockModel(),
+          providerType: TEST_PROVIDER_TYPE,
+          fileManager: createMockFileManager(),
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect(() => session.emit({ type: 'complete' } as any)).toThrow(
+          'Cannot emit reserved type "complete". Use session.done() for completion or session.fail() for errors.'
+        );
+      });
+
+      it('should throw when emitting "error" type at runtime', () => {
+        const session = createStreamingSession<TestEvent, string>({
+          defaultLanguageModel: createMockModel(),
+          providerType: TEST_PROVIDER_TYPE,
+          fileManager: createMockFileManager(),
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect(() => session.emit({ type: 'error' } as any)).toThrow(
+          'Cannot emit reserved type "error". Use session.done() for completion or session.fail() for errors.'
+        );
+      });
+
+      it('should allow emitting normal event types', () => {
+        const session = createStreamingSession<TestEvent, string>({
+          defaultLanguageModel: createMockModel(),
+          providerType: TEST_PROVIDER_TYPE,
+          fileManager: createMockFileManager(),
+        });
+
+        expect(() => session.emit({ type: 'progress', message: 'test' })).not.toThrow();
+      });
+
+      it('should still allow done() to emit complete events internally', async () => {
+        const session = createStreamingSession<TestEvent, string>({
+          defaultLanguageModel: createMockModel(),
+          providerType: TEST_PROVIDER_TYPE,
+          fileManager: createMockFileManager(),
+        });
+
+        const event = await session.done('result');
+        expect(event.type).toBe('complete');
+      });
+
+      it('should still allow fail() to emit error events internally', async () => {
+        const session = createStreamingSession<TestEvent, string>({
+          defaultLanguageModel: createMockModel(),
+          providerType: TEST_PROVIDER_TYPE,
+          fileManager: createMockFileManager(),
+        });
+
+        const event = await session.fail(new Error('test'));
+        expect(event.type).toBe('error');
+      });
+    });
   });
 
   describe('done', () => {

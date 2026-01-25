@@ -8,6 +8,8 @@ export type {
   DistributiveOmit,
   SessionEvent,
   SessionEventInput,
+  EmittableEventInput,
+  ReservedEventType,
 } from './types';
 
 export { StreamingExecutionHost } from './streaming-host';

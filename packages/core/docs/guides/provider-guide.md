@@ -14,6 +14,7 @@
 - [Advanced usage](#advanced-usage)
   - [Per-call model override](#per-call-model-override)
   - [File management](#file-management)
+  - [Google Search and URL Context grounding](#google-search-and-url-context-grounding)
   - [Google safety settings](#google-safety-settings)
   - [Session lifecycle hooks](#session-lifecycle-hooks)
 - [Best practices](#best-practices)
@@ -265,6 +266,27 @@ for await (const event of execution) {
 }
 ```
 
+### Reserved Event Types
+
+The `'complete'` and `'error'` event types are reserved for internal use:
+
+- `'complete'` - Emitted automatically by `session.done(result)`
+- `'error'` - Emitted automatically by `session.fail(error)`
+
+Attempting to use these types with `emit()` will throw a runtime error:
+
+```typescript
+// ❌ Throws: Cannot emit reserved type "complete"
+yield session.emit({ type: 'complete', data: result });
+
+// ✅ Correct: Use session.done() for completion
+return session.done(result);
+```
+
+> **TypeScript Protection:** When your event type uses discriminated unions with
+> literal types (e.g., `type: 'progress' | 'complete'`), TypeScript will catch
+> this at compile time. With `type: string`, only runtime protection applies.
+
 ## Advanced Usage
 
 ### Per-Call Model Override
@@ -403,6 +425,78 @@ if (isFilePart(value)) {
 ```
 
 > **Note:** OpenAI doesn't support the upload + URI reference pattern. The `fileManager` on OpenAI sessions will throw an error if you try to upload files. Use inline base64 or URL content parts instead.
+
+### Google Search and URL Context Grounding
+
+Google provider supports grounding features that allow the model to access real-time web information or retrieve content from specific URLs.
+
+**Enable Google Search:**
+
+```typescript
+import { createGoogleProvider } from '@agtlantis/core';
+
+const provider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY!,
+})
+  .withDefaultModel('gemini-2.5-flash')
+  .withSearchEnabled();
+
+const execution = provider.simpleExecution(async (session) => {
+  const result = await session.generateText({
+    prompt: 'What are the top news stories today?',
+  });
+  return result.text;
+});
+```
+
+**Enable URL Context:**
+
+```typescript
+import { createGoogleProvider } from '@agtlantis/core';
+
+const provider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY!,
+})
+  .withDefaultModel('gemini-2.5-flash')
+  .withUrlContextEnabled();
+
+const execution = provider.simpleExecution(async (session) => {
+  const result = await session.generateText({
+    prompt: 'Summarize the content at https://example.com/article',
+  });
+  return result.text;
+});
+```
+
+**Enable Both:**
+
+```typescript
+const provider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY!,
+})
+  .withDefaultModel('gemini-2.5-flash')
+  .withSearchEnabled()
+  .withUrlContextEnabled();
+```
+
+**Access Grounding Metadata:**
+
+```typescript
+const execution = provider.simpleExecution(async (session) => {
+  const result = await session.generateText({
+    prompt: 'What is the latest news about AI?',
+  });
+
+  // Access grounding metadata from provider response
+  const metadata = result.providerMetadata?.google;
+  console.log('Sources:', result.sources);
+  console.log('Grounding metadata:', metadata?.groundingMetadata);
+
+  return result.text;
+});
+```
+
+> **Note:** These features require Gemini 2.0 or newer models. The grounding tools are automatically added to all LLM calls when enabled.
 
 ### Google Safety Settings
 
