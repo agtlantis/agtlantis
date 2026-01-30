@@ -9,6 +9,8 @@ import { GoogleFileManager } from './file-manager';
 import { SimpleSession } from '@/session/simple-session';
 import { StreamingSession } from '@/session/streaming-session';
 import { BaseProvider } from '../base-provider';
+import type { FileCache } from '../types';
+import { InMemoryFileCache } from '../file-cache';
 
 export type HarmCategory =
     | 'HARM_CATEGORY_HATE_SPEECH'
@@ -46,6 +48,7 @@ export class GoogleProvider extends BaseProvider {
         private readonly defaultOptions?: GoogleGenerativeAIProviderOptions,
         private readonly searchEnabled: boolean = false,
         private readonly urlContextEnabled: boolean = false,
+        private readonly fileCache?: FileCache,
     ) {
         super();
         this.google = createGoogleGenerativeAI({ apiKey });
@@ -61,6 +64,7 @@ export class GoogleProvider extends BaseProvider {
             this.defaultOptions,
             this.searchEnabled,
             this.urlContextEnabled,
+            this.fileCache,
         );
     }
 
@@ -74,6 +78,7 @@ export class GoogleProvider extends BaseProvider {
             this.defaultOptions,
             this.searchEnabled,
             this.urlContextEnabled,
+            this.fileCache,
         );
     }
 
@@ -88,6 +93,7 @@ export class GoogleProvider extends BaseProvider {
             this.defaultOptions,
             this.searchEnabled,
             this.urlContextEnabled,
+            this.fileCache,
         );
     }
 
@@ -114,6 +120,7 @@ export class GoogleProvider extends BaseProvider {
             options,
             this.searchEnabled,
             this.urlContextEnabled,
+            this.fileCache,
         );
     }
 
@@ -138,6 +145,7 @@ export class GoogleProvider extends BaseProvider {
             this.defaultOptions,
             true,
             this.urlContextEnabled,
+            this.fileCache,
         );
     }
 
@@ -162,6 +170,37 @@ export class GoogleProvider extends BaseProvider {
             this.defaultOptions,
             this.searchEnabled,
             true,
+            this.fileCache,
+        );
+    }
+
+    /**
+     * Set a file cache for reusing uploaded files across sessions.
+     * If no cache is provided, creates a new InMemoryFileCache.
+     *
+     * @example
+     * ```typescript
+     * // Use default InMemoryFileCache
+     * createGoogleProvider({ apiKey: 'xxx' })
+     *   .withFileCache()
+     *
+     * // Use custom cache with TTL
+     * const cache = new InMemoryFileCache({ defaultTTL: 3600000 });
+     * createGoogleProvider({ apiKey: 'xxx' })
+     *   .withFileCache(cache)
+     * ```
+     */
+    withFileCache(cache?: FileCache): GoogleProvider {
+        return new GoogleProvider(
+            this.apiKey,
+            this.defaultModelId,
+            this.logger,
+            this.safetySettings,
+            this.pricingConfig,
+            this.defaultOptions,
+            this.searchEnabled,
+            this.urlContextEnabled,
+            cache ?? new InMemoryFileCache(),
         );
     }
 
@@ -180,7 +219,7 @@ export class GoogleProvider extends BaseProvider {
             modelFactory: (modelId: string) => this.createModel(modelId),
             providerType: 'google' as const,
             providerPricing: this.pricingConfig,
-            fileManager: new GoogleFileManager(this.apiKey),
+            fileManager: new GoogleFileManager(this.apiKey, { cache: this.fileCache }),
             logger: this.logger,
             defaultProviderOptions: this.defaultOptions
                 ? { google: this.defaultOptions }

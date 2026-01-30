@@ -176,7 +176,7 @@ describe('createGoogleProvider', () => {
     });
 
     describe('streamingExecution', () => {
-        it('should create StreamingExecution with AsyncIterable interface', () => {
+        it('should create StreamingExecution with stream() method', () => {
             const provider = createGoogleProvider({ apiKey: 'test-api-key' }).withDefaultModel(
                 'gemini-2.5-flash'
             );
@@ -186,9 +186,8 @@ describe('createGoogleProvider', () => {
             });
 
             expect(execution).toBeDefined();
-            expect(execution[Symbol.asyncIterator]).toBeTypeOf('function');
-            expect(execution.toResult).toBeTypeOf('function');
-            expect(execution.getSummary).toBeTypeOf('function');
+            expect(execution.stream).toBeTypeOf('function');
+            expect(execution.result).toBeTypeOf('function');
             expect(execution.cleanup).toBeTypeOf('function');
             expect(execution.cancel).toBeTypeOf('function');
         });
@@ -205,7 +204,7 @@ describe('createGoogleProvider', () => {
                 return session.done('result');
             });
 
-            for await (const event of execution) {
+            for await (const event of execution.stream()) {
                 events.push(event);
             }
 
@@ -214,7 +213,7 @@ describe('createGoogleProvider', () => {
             expect(events.some((e: any) => e.type === 'complete')).toBe(true);
         });
 
-        it('should return result via toResult()', async () => {
+        it('should return result via result()', async () => {
             const provider = createGoogleProvider({ apiKey: 'test-api-key' }).withDefaultModel(
                 'gemini-2.5-flash'
             );
@@ -223,8 +222,11 @@ describe('createGoogleProvider', () => {
                 return session.done('my-result');
             });
 
-            const result = await execution.toResult();
-            expect(result).toBe('my-result');
+            const result = await execution.result();
+            expect(result.status).toBe('succeeded');
+            if (result.status === 'succeeded') {
+                expect(result.value).toBe('my-result');
+            }
         });
     });
 
@@ -238,11 +240,14 @@ describe('createGoogleProvider', () => {
                 return 'simple-result';
             });
 
-            const result = await execution.toResult();
-            expect(result).toBe('simple-result');
+            const result = await execution.result();
+            expect(result.status).toBe('succeeded');
+            if (result.status === 'succeeded') {
+                expect(result.value).toBe('simple-result');
+            }
         });
 
-        it('should have metadata after completion', async () => {
+        it('should have summary after completion', async () => {
             const provider = createGoogleProvider({ apiKey: 'test-api-key' }).withDefaultModel(
                 'gemini-2.5-flash'
             );
@@ -251,12 +256,12 @@ describe('createGoogleProvider', () => {
                 return 'result';
             });
 
-            const metadata = await execution.getSummary();
-            expect(metadata).toBeDefined();
-            expect(metadata.totalDuration).toBeTypeOf('number');
+            const result = await execution.result();
+            expect(result.summary).toBeDefined();
+            expect(result.summary.totalDuration).toBeTypeOf('number');
         });
 
-        it('should run onDone hooks and rethrow on error', async () => {
+        it('should return failed status on error', async () => {
             const provider = createGoogleProvider({ apiKey: 'test-api-key' }).withDefaultModel(
                 'gemini-2.5-flash'
             );
@@ -267,7 +272,11 @@ describe('createGoogleProvider', () => {
                 throw testError;
             });
 
-            await expect(execution.toResult()).rejects.toThrow('Test error');
+            const result = await execution.result();
+            expect(result.status).toBe('failed');
+            if (result.status === 'failed') {
+                expect(result.error.message).toBe('Test error');
+            }
         });
 
         it('should run onDone hooks on error path', async () => {
@@ -282,11 +291,7 @@ describe('createGoogleProvider', () => {
                 throw new Error('Test error');
             });
 
-            try {
-                await execution.toResult();
-            } catch {
-                // Expected
-            }
+            await execution.result();
 
             expect(onDoneHook).toHaveBeenCalledOnce();
         });
@@ -304,10 +309,95 @@ describe('createGoogleProvider', () => {
             });
 
             // Consume to trigger session creation
-            execution.toResult().catch(() => {});
+            execution.result().catch(() => {});
 
             // GoogleFileManager should be created when session is created
             expect(GoogleFileManager).toHaveBeenCalled();
+        });
+    });
+
+    describe('withFileCache', () => {
+        it('should return new instance on withFileCache()', () => {
+            const provider1 = createGoogleProvider({ apiKey: 'test-api-key' });
+            const provider2 = provider1.withFileCache();
+
+            expect(provider1).not.toBe(provider2);
+        });
+
+        it('should accept custom cache', () => {
+            const mockCache = {
+                get: vi.fn(),
+                set: vi.fn(),
+                delete: vi.fn(),
+                clear: vi.fn(),
+            };
+
+            const provider = createGoogleProvider({ apiKey: 'test-api-key' }).withFileCache(
+                mockCache
+            );
+
+            expect(provider).toBeDefined();
+        });
+
+        it('should preserve cache through fluent chain', () => {
+            const mockCache = {
+                get: vi.fn(),
+                set: vi.fn(),
+                delete: vi.fn(),
+                clear: vi.fn(),
+            };
+
+            const provider = createGoogleProvider({ apiKey: 'test-api-key' })
+                .withFileCache(mockCache)
+                .withDefaultModel('gemini-2.5-flash')
+                .withLogger({});
+
+            expect(provider).toBeDefined();
+        });
+
+        it('should pass cache to GoogleFileManager', async () => {
+            const mockCache = {
+                get: vi.fn(),
+                set: vi.fn(),
+                delete: vi.fn(),
+                clear: vi.fn(),
+            };
+
+            const provider = createGoogleProvider({ apiKey: 'test-api-key' })
+                .withFileCache(mockCache)
+                .withDefaultModel('gemini-2.5-flash');
+
+            const execution = provider.streamingExecution(async function* (session) {
+                return session.done('test');
+            });
+
+            await execution.result().catch(() => {});
+
+            expect(GoogleFileManager).toHaveBeenCalledWith('test-api-key', { cache: mockCache });
+        });
+
+        it('should create InMemoryFileCache when no argument provided', async () => {
+            const provider = createGoogleProvider({ apiKey: 'test-api-key' })
+                .withFileCache()
+                .withDefaultModel('gemini-2.5-flash');
+
+            const execution = provider.streamingExecution(async function* (session) {
+                return session.done('test');
+            });
+
+            await execution.result().catch(() => {});
+
+            expect(GoogleFileManager).toHaveBeenCalledWith(
+                'test-api-key',
+                expect.objectContaining({
+                    cache: expect.objectContaining({
+                        get: expect.any(Function),
+                        set: expect.any(Function),
+                        delete: expect.any(Function),
+                        clear: expect.any(Function),
+                    }),
+                })
+            );
         });
     });
 

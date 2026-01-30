@@ -74,13 +74,15 @@ const provider = createGoogleProvider({
 });
 
 const execution = provider.simpleExecution(async (session) => {
-  const result = await session.generateText({ prompt: 'Explain what an AI agent is in one sentence.' });
-  return result.text;
+  const response = await session.generateText({ prompt: 'Explain what an AI agent is in one sentence.' });
+  return response.text;
 });
 
-const text = await execution.toResult();
-console.log(text);
-// Output: "An AI agent is an autonomous software system that perceives its environment and takes actions to achieve specific goals."
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log(result.value);
+  // Output: "An AI agent is an autonomous software system that perceives its environment and takes actions to achieve specific goals."
+}
 ```
 
 ## Switching Models
@@ -146,14 +148,16 @@ async function main() {
 
   // Execute
   const execution = provider.simpleExecution(async (session) => {
-    const result = await session.generateText({
+    const response = await session.generateText({
       prompt: 'What are the three laws of robotics? Be brief.',
     });
-    return result.text;
+    return response.text;
   });
 
-  const text = await execution.toResult();
-  console.log('\nResponse:', text);
+  const result = await execution.result();
+  if (result.status === 'succeeded') {
+    console.log('\nResponse:', result.value);
+  }
 }
 
 main().catch(console.error);

@@ -36,8 +36,10 @@ describeEachProvider('Cost-Aware Agent', (providerType) => {
                     return session.generateText({ prompt: 'Count to 5' });
                 });
 
-                await execution.toResult();
-                const metadata = await execution.getSummary();
+                const result = await execution.result();
+                expect(result.status).toBe('succeeded');
+
+                const metadata = result.summary;
 
                 expect(metadata.totalLLMUsage).toBeDefined();
                 expect(metadata.totalLLMUsage.inputTokens).toBeGreaterThan(0);
@@ -87,8 +89,9 @@ describeEachProvider('Cost-Aware Agent', (providerType) => {
                     return session.generateText({ prompt: 'Say hello' });
                 });
 
-                await execution.toResult();
-                const metadata = await execution.getSummary();
+                const result = await execution.result();
+                expect(result.status).toBe('succeeded');
+                const metadata = result.summary;
                 const usage = metadata.totalLLMUsage;
 
                 const resolvedPricing = effectivePricing.pricing;
@@ -134,8 +137,9 @@ describeEachProvider('Cost-Aware Agent', (providerType) => {
                     return session.generateText({ prompt: 'Hi' });
                 });
 
-                await execution.toResult();
-                const metadata = await execution.getSummary();
+                const result = await execution.result();
+                expect(result.status).toBe('succeeded');
+                const metadata = result.summary;
                 const usage = metadata.totalLLMUsage;
 
                 const customCost = calculateCostFromUsage(usage, model, providerType);
@@ -232,7 +236,7 @@ describeEachProvider('Cost-Aware Agent', (providerType) => {
                     return { first: first.text, second: second.text, third: third.text };
                 });
 
-                await execution.toResult();
+                await execution.result();
 
                 expect(llmEndEvents.length).toBe(3);
 

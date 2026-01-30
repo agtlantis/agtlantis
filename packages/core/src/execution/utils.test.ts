@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getDuration, combineSignals } from './utils';
+import { getDuration, combineSignals, Deferred } from './utils';
 
 describe('utils', () => {
   describe('getDuration', () => {
@@ -114,6 +114,102 @@ describe('utils', () => {
       const combined = combineSignals();
 
       expect(combined.aborted).toBe(false);
+    });
+  });
+
+  describe('Deferred', () => {
+    it('should resolve with the provided value', async () => {
+      const deferred = new Deferred<string>();
+
+      deferred.resolve('hello');
+
+      const result = await deferred.promise;
+      expect(result).toBe('hello');
+    });
+
+    it('should reject with the provided error', async () => {
+      const deferred = new Deferred<string>();
+      const error = new Error('test error');
+
+      deferred.reject(error);
+
+      await expect(deferred.promise).rejects.toThrow('test error');
+    });
+
+    it('should work with void type (default)', async () => {
+      const deferred = new Deferred();
+
+      deferred.resolve();
+
+      await expect(deferred.promise).resolves.toBeUndefined();
+    });
+
+    it('should be awaitable before resolution', async () => {
+      const deferred = new Deferred<number>();
+      let resolved = false;
+
+      const awaiter = deferred.promise.then((value) => {
+        resolved = true;
+        return value;
+      });
+
+      expect(resolved).toBe(false);
+
+      deferred.resolve(42);
+
+      const result = await awaiter;
+      expect(resolved).toBe(true);
+      expect(result).toBe(42);
+    });
+
+    it('should resolve only once (first value wins)', async () => {
+      const deferred = new Deferred<string>();
+
+      deferred.resolve('first');
+      deferred.resolve('second'); // This should be ignored
+
+      const result = await deferred.promise;
+      expect(result).toBe('first');
+    });
+
+    it('should work in async generator pattern', async () => {
+      const events: string[] = [];
+      let pending = new Deferred<void>();
+      let done = false;
+
+      // Simulate producer
+      const producer = async () => {
+        await new Promise((r) => setTimeout(r, 5));
+        events.push('a');
+        pending.resolve();
+
+        await new Promise((r) => setTimeout(r, 5));
+        events.push('b');
+        pending.resolve();
+
+        await new Promise((r) => setTimeout(r, 5));
+        done = true;
+        pending.resolve();
+      };
+
+      // Simulate consumer
+      const consumer = async () => {
+        const received: string[] = [];
+        while (!done || events.length > 0) {
+          if (events.length > 0) {
+            received.push(events.shift()!);
+          } else if (!done) {
+            await pending.promise;
+            pending = new Deferred<void>();
+          }
+        }
+        return received;
+      };
+
+      producer();
+      const result = await consumer();
+
+      expect(result).toEqual(['a', 'b']);
     });
   });
 });

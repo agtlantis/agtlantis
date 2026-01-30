@@ -4,14 +4,15 @@
 
 ## Overview
 
-The errors module provides a structured error hierarchy for all @agtlantis/core operations. Each error class includes a machine-readable code, optional cause chaining, and context for debugging. You can use these errors to implement precise error handling and retry logic.
+The errors module provides a structured error hierarchy for all @agtlantis/core operations. Each error class includes a machine-readable code, optional cause chaining, and context for debugging.
 
 Key features:
 - **Error Codes** - Machine-readable codes for each error category
 - **Cause Chaining** - Preserve original errors for debugging
 - **Context** - Attach arbitrary debugging information
-- **Retryable Detection** - Check if an error is worth retrying
 - **Serialization** - Convert errors to JSON for logging
+
+> **Note:** LLM provider errors (rate limits, timeouts, authentication failures) are handled by the Vercel AI SDK and should be caught using their error types (`TooManyRequestsError`, `APICallError`, etc.).
 
 ## Import
 
@@ -21,13 +22,11 @@ import {
   AgtlantisError,
 
   // Error Classes
-  ProviderError,
   ExecutionError,
   ConfigurationError,
   FileError,
 
   // Error Codes
-  ProviderErrorCode,
   ExecutionErrorCode,
   ConfigurationErrorCode,
   FileErrorCode,
@@ -35,7 +34,6 @@ import {
   // Types
   type AgtlantisErrorCode,
   type AgtlantisErrorOptions,
-  type ProviderErrorOptions,
   type ExecutionErrorOptions,
   type ConfigurationErrorOptions,
   type FileErrorOptions,
@@ -43,32 +41,6 @@ import {
 ```
 
 ## Error Codes
-
-### ProviderErrorCode
-
-Error codes for provider-related operations.
-
-```typescript
-enum ProviderErrorCode {
-  PROVIDER_ERROR = 'PROVIDER_ERROR',
-  API_ERROR = 'API_ERROR',
-  RATE_LIMIT = 'RATE_LIMIT',
-  TIMEOUT = 'TIMEOUT',
-  INVALID_MODEL = 'INVALID_MODEL',
-  AUTH_ERROR = 'AUTH_ERROR',
-}
-```
-
-| Code | Retryable | Description |
-|------|-----------|-------------|
-| `PROVIDER_ERROR` | No | Generic provider error |
-| `API_ERROR` | No | API call failed |
-| `RATE_LIMIT` | Yes | Rate limit exceeded |
-| `TIMEOUT` | Yes | Request timeout |
-| `INVALID_MODEL` | No | Model configuration is wrong |
-| `AUTH_ERROR` | No | Authentication failed |
-
----
 
 ### ExecutionErrorCode
 
@@ -131,11 +103,7 @@ enum FileErrorCode {
 Union type of all error codes.
 
 ```typescript
-type AgtlantisErrorCode =
-  | ProviderErrorCode
-  | ExecutionErrorCode
-  | ConfigurationErrorCode
-  | FileErrorCode;
+type AgtlantisErrorCode = ExecutionErrorCode | ConfigurationErrorCode | FileErrorCode;
 ```
 
 ---
@@ -190,62 +158,17 @@ class AgtlantisError<TCode extends AgtlantisErrorCode = AgtlantisErrorCode> exte
 **Example:**
 
 ```typescript
-import { AgtlantisError, ProviderErrorCode } from '@agtlantis/core';
+import { AgtlantisError, ExecutionErrorCode } from '@agtlantis/core';
 
 const error = new AgtlantisError('Something went wrong', {
-  code: ProviderErrorCode.API_ERROR,
-  context: { endpoint: '/api/generate', statusCode: 500 },
+  code: ExecutionErrorCode.EXECUTION_ERROR,
+  context: { operation: 'generateText', attempt: 1 },
 });
 
-console.log(error.code);        // 'API_ERROR'
-console.log(error.context);     // { endpoint: '/api/generate', statusCode: 500 }
+console.log(error.code);        // 'EXECUTION_ERROR'
+console.log(error.context);     // { operation: 'generateText', attempt: 1 }
 console.log(error.isRetryable); // false
 console.log(error.toJSON());    // Serialized error object
-```
-
----
-
-### ProviderError
-
-Error thrown when a provider operation fails.
-
-```typescript
-class ProviderError extends AgtlantisError<ProviderErrorCode> {
-  constructor(message: string, options?: ProviderErrorOptions);
-  get isRetryable(): boolean;
-  static from(error: unknown, code?: ProviderErrorCode, context?: Record<string, unknown>): ProviderError;
-}
-```
-
-`isRetryable` returns `true` for `RATE_LIMIT` and `TIMEOUT`.
-
-**Example:**
-
-```typescript
-import { ProviderError, ProviderErrorCode } from '@agtlantis/core';
-
-const rateLimitError = new ProviderError('API rate limit exceeded', {
-  code: ProviderErrorCode.RATE_LIMIT,
-  context: { model: 'gpt-4o-mini', retryAfter: 60 },
-});
-
-console.log(rateLimitError.name);        // 'ProviderError'
-console.log(rateLimitError.code);        // 'RATE_LIMIT'
-console.log(rateLimitError.isRetryable); // true
-```
-
-**Example with cause chaining:**
-
-```typescript
-const originalError = new Error('Network timeout');
-
-const providerError = new ProviderError('Failed to call API', {
-  code: ProviderErrorCode.TIMEOUT,
-  cause: originalError,
-  context: { endpoint: '/v1/chat/completions' },
-});
-
-console.log(providerError.cause?.message); // 'Network timeout'
 ```
 
 ---
@@ -357,10 +280,10 @@ const error = new FileError('File upload failed', {
 ```typescript
 import {
   createGoogleProvider,
-  ProviderError,
   ExecutionError,
   ConfigurationError,
 } from '@agtlantis/core';
+import { TooManyRequestsError, APICallError } from 'ai';
 
 async function generateText(prompt: string) {
   try {
@@ -380,8 +303,13 @@ async function generateText(prompt: string) {
       return null;
     }
 
-    if (error instanceof ProviderError) {
-      console.error('Provider issue:', error.message);
+    if (error instanceof TooManyRequestsError) {
+      console.error('Rate limited, retry after:', error.retryAfter);
+      return null;
+    }
+
+    if (error instanceof APICallError) {
+      console.error('API call failed:', error.message);
       if (error.isRetryable) {
         console.log('This error is retryable');
       }
@@ -398,10 +326,10 @@ async function generateText(prompt: string) {
 }
 ```
 
-### Retry Logic with Rate Limits
+### Retry Logic with SDK Errors
 
 ```typescript
-import { ProviderError, ProviderErrorCode } from '@agtlantis/core';
+import { TooManyRequestsError, APICallError } from 'ai';
 
 async function withRetry<T>(
   fn: () => Promise<T>,
@@ -416,10 +344,17 @@ async function withRetry<T>(
     } catch (error) {
       lastError = error as Error;
 
-      if (error instanceof ProviderError && error.isRetryable) {
-        const retryAfter = error.context?.retryAfter as number | undefined;
-        const delay = retryAfter ? retryAfter * 1000 : baseDelay * attempt;
+      // Handle rate limiting
+      if (error instanceof TooManyRequestsError) {
+        const delay = error.retryAfter ? error.retryAfter * 1000 : baseDelay * attempt;
+        console.log(`Rate limited, retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
 
+      // Handle retryable API errors
+      if (error instanceof APICallError && error.isRetryable) {
+        const delay = baseDelay * attempt;
         console.log(`Attempt ${attempt} failed, retrying in ${delay}ms...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
@@ -463,70 +398,31 @@ function logError(error: Error): void {
 ### Error Type Guards
 
 ```typescript
-import {
-  AgtlantisError,
-  ProviderError,
-  ProviderErrorCode,
-} from '@agtlantis/core';
+import { AgtlantisError, ExecutionError, ExecutionErrorCode } from '@agtlantis/core';
+import { TooManyRequestsError } from 'ai';
 
 function isAgtlantisError(error: unknown): error is AgtlantisError {
   return error instanceof AgtlantisError;
 }
 
-function isRateLimitError(error: unknown): error is ProviderError {
+function isCancelledError(error: unknown): error is ExecutionError {
   return (
-    error instanceof ProviderError &&
-    error.code === ProviderErrorCode.RATE_LIMIT
+    error instanceof ExecutionError &&
+    error.code === ExecutionErrorCode.CANCELLED
   );
 }
 
 try {
   await callAPI();
 } catch (error) {
-  if (isRateLimitError(error)) {
-    const retryAfter = error.context?.retryAfter as number;
-    console.log(`Rate limited. Retry after ${retryAfter}s`);
+  if (error instanceof TooManyRequestsError) {
+    console.log(`Rate limited. Retry after ${error.retryAfter}s`);
+  } else if (isCancelledError(error)) {
+    console.log('Execution was cancelled');
   } else if (isAgtlantisError(error)) {
     console.log(`Error [${error.code}]: ${error.message}`);
   } else {
     throw error;
-  }
-}
-```
-
-### Custom Error Wrappers
-
-```typescript
-import { ProviderError, ProviderErrorCode } from '@agtlantis/core';
-
-async function callProviderAPI(endpoint: string, options: RequestInit): Promise<Response> {
-  try {
-    const response = await fetch(endpoint, options);
-
-    if (!response.ok) {
-      let code = ProviderErrorCode.API_ERROR;
-      if (response.status === 429) code = ProviderErrorCode.RATE_LIMIT;
-      if (response.status === 401) code = ProviderErrorCode.AUTH_ERROR;
-      if (response.status === 408) code = ProviderErrorCode.TIMEOUT;
-
-      const retryAfter = response.headers.get('Retry-After');
-
-      throw new ProviderError(`API request failed: ${response.status}`, {
-        code,
-        context: {
-          endpoint,
-          statusCode: response.status,
-          retryAfter: retryAfter ? parseInt(retryAfter, 10) : undefined,
-        },
-      });
-    }
-
-    return response;
-  } catch (error) {
-    if (error instanceof ProviderError) {
-      throw error;
-    }
-    throw ProviderError.from(error, ProviderErrorCode.API_ERROR, { endpoint });
   }
 }
 ```

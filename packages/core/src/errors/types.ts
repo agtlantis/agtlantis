@@ -1,14 +1,5 @@
 import { wrapAsError } from './utils';
 
-export enum ProviderErrorCode {
-  PROVIDER_ERROR = 'PROVIDER_ERROR',
-  API_ERROR = 'API_ERROR',
-  RATE_LIMIT = 'RATE_LIMIT',
-  TIMEOUT = 'TIMEOUT',
-  INVALID_MODEL = 'INVALID_MODEL',
-  AUTH_ERROR = 'AUTH_ERROR',
-}
-
 export enum ExecutionErrorCode {
   EXECUTION_ERROR = 'EXECUTION_ERROR',
   STREAM_ERROR = 'STREAM_ERROR',
@@ -33,11 +24,7 @@ export enum FileErrorCode {
   UNSUPPORTED_TYPE = 'UNSUPPORTED_TYPE',
 }
 
-export type AgtlantisErrorCode =
-  | ProviderErrorCode
-  | ExecutionErrorCode
-  | ConfigurationErrorCode
-  | FileErrorCode;
+export type AgtlantisErrorCode = ExecutionErrorCode | ConfigurationErrorCode | FileErrorCode;
 
 export interface AgtlantisErrorOptions<TCode extends AgtlantisErrorCode = AgtlantisErrorCode> {
   code: TCode;
@@ -51,7 +38,6 @@ export interface ErrorOptions<TCode extends AgtlantisErrorCode> {
   context?: Record<string, unknown>;
 }
 
-export type ProviderErrorOptions = ErrorOptions<ProviderErrorCode>;
 export type ExecutionErrorOptions = ErrorOptions<ExecutionErrorCode>;
 export type ConfigurationErrorOptions = ErrorOptions<ConfigurationErrorCode>;
 export type FileErrorOptions = ErrorOptions<FileErrorCode>;
@@ -93,40 +79,6 @@ export class AgtlantisError<TCode extends AgtlantisErrorCode = AgtlantisErrorCod
       cause: this.cause?.message,
       stack: this.stack,
     };
-  }
-}
-
-/**
- * Error thrown when a provider operation fails (API calls, model configuration, rate limits).
- */
-export class ProviderError extends AgtlantisError<ProviderErrorCode> {
-  private static readonly RETRYABLE_CODES = new Set([
-    ProviderErrorCode.RATE_LIMIT,
-    ProviderErrorCode.TIMEOUT,
-  ]);
-
-  constructor(message: string, options: ProviderErrorOptions = {}) {
-    super(message, {
-      code: options.code ?? ProviderErrorCode.PROVIDER_ERROR,
-      cause: options.cause,
-      context: options.context,
-    });
-    this.name = 'ProviderError';
-  }
-
-  override get isRetryable(): boolean {
-    return ProviderError.RETRYABLE_CODES.has(this.code);
-  }
-
-  static from(
-    error: unknown,
-    code: ProviderErrorCode = ProviderErrorCode.PROVIDER_ERROR,
-    context?: Record<string, unknown>
-  ): ProviderError {
-    if (error instanceof ProviderError) {
-      return error;
-    }
-    return wrapAsError(error, ProviderError, { code, context });
   }
 }
 

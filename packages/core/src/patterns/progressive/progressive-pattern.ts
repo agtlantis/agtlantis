@@ -262,9 +262,10 @@ export class ProgressivePattern<
         options: ProgressiveStreamOptions<TUserTools>
     ): AsyncIterable<TEvent> {
         const self = this;
-        return provider.streamingExecution<TEvent, TResult>(async function* (session) {
+        const execution = provider.streamingExecution<TEvent, TResult>(async function* (session) {
             return yield* self.runInSession(session, options);
         });
+        return execution.stream();
     }
 
     private createTools() {

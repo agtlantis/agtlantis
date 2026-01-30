@@ -78,9 +78,15 @@ const execution = provider.streamingExecution<MyEvent, string>(
   }
 );
 
-// Consume events with for-await-of
-for await (const event of execution) {
+// Consume events with for-await-of via stream() method
+for await (const event of execution.stream()) {
   console.log(`[${event.metrics.elapsedMs}ms] ${event.type}:`, event.message || event.data);
+}
+
+// Get result with all events
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log('Final value:', result.value);
 }
 
 // Cleanup resources
@@ -172,7 +178,7 @@ The `done()` method automatically includes the session summary (LLM usage, costs
 
 ### Consuming Events
 
-Use `for await...of` to consume streaming events:
+Use `for await...of` with `stream()` to consume streaming events:
 
 ```typescript
 const execution = provider.streamingExecution<MyEvent, string>(
@@ -183,7 +189,7 @@ const execution = provider.streamingExecution<MyEvent, string>(
 );
 
 // Option 1: Stream events
-for await (const event of execution) {
+for await (const event of execution.stream()) {
   switch (event.type) {
     case 'progress':
       console.log('Progress:', event.message);
@@ -197,8 +203,12 @@ for await (const event of execution) {
   }
 }
 
-// Option 2: Skip to result (consumes events internally)
-const result = await execution.toResult();
+// Option 2: Skip to result (events still available)
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log('Value:', result.value);
+  console.log('Events:', result.events);
+}
 ```
 
 ### Simple Execution
@@ -212,7 +222,7 @@ const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-// simpleExecution returns Promise<Execution<TResult>>
+// simpleExecution returns SimpleExecution<TResult> (sync, no await)
 const execution = provider.simpleExecution(async (session) => {
   const result = await session.generateText({
     prompt: 'What is the capital of France?',
@@ -221,12 +231,13 @@ const execution = provider.simpleExecution(async (session) => {
 });
 
 // Get the result
-const text = await execution.toResult();
-console.log(text); // "Paris"
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log(result.value); // "Paris"
+}
 
-// Get metadata (token usage, costs, etc.)
-const summary = await execution.getSummary();
-console.log('Tokens used:', summary.totalLLMUsage.totalTokens);
+// Metadata always available (even on failure/cancellation)
+console.log('Tokens used:', result.summary.totalLLMUsage.totalTokens);
 
 // Cleanup
 await execution.cleanup();
@@ -357,18 +368,17 @@ const execution = provider.streamingExecution<MyEvent, string>(
   }
 );
 
-// Start consuming
-const consumer = (async () => {
-  for await (const event of execution) {
-    console.log(event);
-    if (event.step === 5) {
-      // Request cancellation
-      execution.cancel();
-    }
+// Stream and cancel on condition
+for await (const event of execution.stream()) {
+  console.log(event);
+  if (event.step === 5) {
+    execution.cancel();
   }
-})();
+}
 
-await consumer;
+// Check result status
+const result = await execution.result();
+// result.status === 'canceled'
 ```
 
 Note: Cancellation is cooperative. The generator must check for cancellation and stop gracefully.
@@ -385,8 +395,11 @@ async function processDocument() {
     return result.text;
   });
 
-  const text = await execution.toResult();
-  return text;
+  const result = await execution.result();
+  if (result.status === 'succeeded') {
+    return result.value;
+  }
+  throw new Error('Processing failed');
   // execution.cleanup() called automatically here
 }
 ```
@@ -401,18 +414,20 @@ Always clean up executions, either with `cleanup()` or `await using`:
 // Option 1: Manual cleanup with try/finally
 const execution = provider.streamingExecution(...);
 try {
-  for await (const event of execution) {
+  for await (const event of execution.stream()) {
     // Process events
   }
+  const result = await execution.result();
 } finally {
   await execution.cleanup();
 }
 
 // Option 2: Automatic cleanup with await using (preferred)
 await using execution = provider.streamingExecution(...);
-for await (const event of execution) {
+for await (const event of execution.stream()) {
   // Process events
 }
+const result = await execution.result();
 // cleanup() called automatically
 ```
 
@@ -467,7 +482,7 @@ const execution = provider.streamingExecution<MyEvent, string>(
   async function* (session) {
     // Upload files (auto-cleaned on session end)
     const files = await session.fileManager.upload([
-      { type: 'file', source: 'path', path: './document.pdf' },
+      {  source: 'path', path: './document.pdf' },
     ]);
 
     const result = await session.generateText({

@@ -1,5 +1,4 @@
 export {
-  ProviderErrorCode,
   ExecutionErrorCode,
   ConfigurationErrorCode,
   FileErrorCode,
@@ -8,7 +7,6 @@ export {
 
 export type {
   AgtlantisErrorOptions,
-  ProviderErrorOptions,
   ExecutionErrorOptions,
   ConfigurationErrorOptions,
   FileErrorOptions,
@@ -16,7 +14,6 @@ export type {
 
 export {
   AgtlantisError,
-  ProviderError,
   ExecutionError,
   ConfigurationError,
   FileError,

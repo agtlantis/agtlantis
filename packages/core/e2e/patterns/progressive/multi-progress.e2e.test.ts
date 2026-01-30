@@ -47,7 +47,7 @@ You MUST call reportProgress exactly 3 times (once per stage), then call submitR
         });
       });
 
-      for await (const event of execution) {
+      for await (const event of execution.stream()) {
         if (event.type === 'progress' && 'data' in event) {
           progressEvents.push(event.data as MultiStageProgress);
         } else if (event.type === 'complete' && 'data' in event) {

@@ -20,18 +20,18 @@ import {
   type SimpleSession,
   type FileManager,
   type UploadedFile,
-  type FilePart,
-  type FilePartPath,
-  type FilePartData,
-  type FilePartBase64,
-  type FilePartUrl,
+  type FileSource,
+  type FileSourcePath,
+  type FileSourceData,
+  type FileSourceBase64,
+  type FileSourceUrl,
 
   // Type guards
-  isFilePart,
-  isFilePartPath,
-  isFilePartData,
-  isFilePartBase64,
-  isFilePartUrl,
+  isFileSource,
+  isFileSourcePath,
+  isFileSourceData,
+  isFileSourceBase64,
+  isFileSourceUrl,
 
   // Config types
   type GoogleProviderConfig,
@@ -154,7 +154,7 @@ Provider-agnostic file manager interface.
 
 ```typescript
 interface FileManager {
-  upload(files: FilePart[]): Promise<UploadedFile[]>;
+  upload(files: FileSource[]): Promise<UploadedFile[]>;
   delete(fileId: string): Promise<void>;
   clear(): Promise<void>;
   getUploadedFiles(): UploadedFile[];
@@ -168,86 +168,154 @@ interface FileManager {
 | `clear()` | Clear all uploaded files (best-effort cleanup) |
 | `getUploadedFiles()` | Get list of all uploaded files |
 
-### UploadedFile
+### FileCache
 
-Result of uploading a file.
+Cache interface for uploaded files. Prevents redundant uploads of identical content.
 
 ```typescript
-interface UploadedFile {
-  id: string;        // Unique identifier from provider
-  uri: string;       // URI for referencing in API calls
-  mimeType: string;  // MIME type of uploaded file
-  name: string;      // Display name or original filename
-  isExternal?: boolean; // True for URL references (not uploaded)
+interface FileCache {
+  get(hash: string): UploadedFile | null;
+  set(hash: string, file: UploadedFile): void;
+  delete(hash: string): void;
+  clear(): void;
 }
 ```
 
-### FilePart
+| Method | Description |
+|--------|-------------|
+| `get(hash)` | Retrieve cached file by hash, returns null if not found |
+| `set(hash, file)` | Store uploaded file in cache |
+| `delete(hash)` | Remove single entry from cache |
+| `clear()` | Clear all cached entries |
+
+### InMemoryFileCache
+
+Default implementation with optional TTL (time-to-live) support.
+
+```typescript
+import { InMemoryFileCache } from '@agtlantis/core';
+
+// Without TTL (entries never expire)
+const cache = new InMemoryFileCache();
+
+// With TTL (entries expire after 30 minutes)
+const cacheWithTTL = new InMemoryFileCache({ ttlMs: 30 * 60 * 1000 });
+```
+
+**Usage with Provider:**
+
+```typescript
+import { createGoogleProvider, InMemoryFileCache } from '@agtlantis/core';
+
+// Use default InMemoryFileCache
+const provider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY,
+})
+  .withDefaultModel('gemini-2.5-flash')
+  .withFileCache();
+
+// Or provide a custom cache with TTL
+const providerWithTTL = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY,
+})
+  .withDefaultModel('gemini-2.5-flash')
+  .withFileCache(new InMemoryFileCache({ defaultTTL: 30 * 60 * 1000 }));
+```
+
+> **Note:** `withFileCache()` is also available on OpenAI provider for API consistency, but it's a no-op since OpenAI doesn't support file uploads.
+
+When a file is uploaded, the FileManager computes a hash from its content (or uses the explicit `hash` field if provided) and checks the cache. If found, the cached `UploadedFile` is returned immediately without re-uploading.
+
+### UploadedFile
+
+Result of uploading a file. Contains an AI SDK-compatible part ready for use in prompts.
+
+```typescript
+interface UploadedFile {
+  id: string | null;           // Provider file ID (null for external URLs)
+  part: FilePart | ImagePart;  // AI SDK-compatible part for prompts
+}
+```
+
+The `part` field is directly usable in AI SDK prompts:
+
+```typescript
+const uploaded = await session.fileManager.upload(files);
+
+const result = await session.generateText({
+  prompt: [
+    { type: 'text', text: 'Analyze this:' },
+    uploaded[0].part,  // Use directly in prompt
+  ],
+});
+```
+
+### FileSource
 
 Union type for file input. Use the `source` field to discriminate.
 
 ```typescript
-type FilePart = FilePartPath | FilePartData | FilePartBase64 | FilePartUrl;
+type FileSource = FileSourcePath | FileSourceData | FileSourceBase64 | FileSourceUrl;
 ```
 
-**FilePartPath** - File from local path:
+**FileSourcePath** - File from local path:
 
 ```typescript
-interface FilePartPath {
-  type: 'file';
+interface FileSourcePath {
   source: 'path';
   path: string;         // Absolute or relative path
   mediaType?: string;   // MIME type (inferred if not provided)
   filename?: string;    // Display name
+  hash?: string;        // Optional cache key (if provided, used instead of computing hash from content)
 }
 ```
 
-**FilePartData** - File from binary data:
+**FileSourceData** - File from binary data:
 
 ```typescript
-interface FilePartData {
-  type: 'file';
+interface FileSourceData {
   source: 'data';
   data: Buffer | Uint8Array;
   mediaType: string;    // Required
   filename?: string;
+  hash?: string;        // Optional cache key (if provided, used instead of computing hash from content)
 }
 ```
 
-**FilePartBase64** - File from base64 string:
+**FileSourceBase64** - File from base64 string:
 
 ```typescript
-interface FilePartBase64 {
-  type: 'file';
+interface FileSourceBase64 {
   source: 'base64';
   data: string;         // Base64-encoded content
   mediaType: string;    // Required
   filename?: string;
+  hash?: string;        // Optional cache key (if provided, used instead of computing hash from content)
 }
 ```
 
-**FilePartUrl** - File from URL (no upload, passed directly to LLM):
+**FileSourceUrl** - File from URL (no upload, passed directly to LLM):
 
 ```typescript
-interface FilePartUrl {
-  type: 'file';
+interface FileSourceUrl {
   source: 'url';
   url: string;
   mediaType?: string;
   filename?: string;
+  hash?: string;        // Optional cache key (if provided, used instead of computing hash from content)
 }
 ```
 
 ### Type Guards
 
-Functions to check FilePart types at runtime.
+Functions to check FileSource types at runtime.
 
 ```typescript
-function isFilePart(v: unknown): v is FilePart;
-function isFilePartPath(v: FilePart): v is FilePartPath;
-function isFilePartData(v: FilePart): v is FilePartData;
-function isFilePartBase64(v: FilePart): v is FilePartBase64;
-function isFilePartUrl(v: FilePart): v is FilePartUrl;
+function isFileSource(v: unknown): v is FileSource;
+function isFileSourcePath(v: FileSource): v is FileSourcePath;
+function isFileSourceData(v: FileSource): v is FileSourceData;
+function isFileSourceBase64(v: FileSource): v is FileSourceBase64;
+function isFileSourceUrl(v: FileSource): v is FileSourceUrl;
 ```
 
 ## Functions
@@ -336,12 +404,13 @@ const groundedProvider = createGoogleProvider({
 
 **GoogleProvider Methods:**
 
-The `GoogleProvider` class extends `Provider` with additional grounding methods:
+The `GoogleProvider` class extends `Provider` with additional methods:
 
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `withSearchEnabled()` | `GoogleProvider` | Enable Google Search grounding for real-time web information |
 | `withUrlContextEnabled()` | `GoogleProvider` | Enable URL Context grounding to retrieve content from URLs in prompts |
+| `withFileCache(cache?)` | `GoogleProvider` | Set file cache for reusing uploaded files. If no cache provided, creates InMemoryFileCache |
 
 > **Note:** Grounding features require Gemini 2.0 or newer models.
 
@@ -582,15 +651,15 @@ const execution = provider.simpleExecution(async (session) => {
 ### File Upload (Google Only)
 
 ```typescript
-import { createGoogleProvider, type FilePart } from '@agtlantis/core';
+import { createGoogleProvider, type FileSource } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY!,
 }).withDefaultModel('gemini-2.5-flash');
 
 const execution = provider.simpleExecution(async (session) => {
-  const files: FilePart[] = [
-    { type: 'file', source: 'path', path: './report.pdf' },
+  const files: FileSource[] = [
+    { source: 'path', path: './report.pdf' },
   ];
 
   const uploaded = await session.fileManager.upload(files);
@@ -598,11 +667,7 @@ const execution = provider.simpleExecution(async (session) => {
   const result = await session.generateText({
     prompt: [
       { type: 'text', text: 'Summarize this document:' },
-      {
-        type: 'file',
-        data: new URL(uploaded[0].uri),
-        mimeType: uploaded[0].mimeType,
-      },
+      uploaded[0].part,  // AI SDK-compatible part
     ],
   });
 

@@ -221,17 +221,17 @@ const reproducible2 = cases.random(5, { seed: 42 })
 
 ---
 
-## FilePart
+## FileSource
 
 A flexible, type-safe abstraction for embedding files directly in test inputs. Files are automatically scanned and resolved to AI SDK compatible format at runtime.
 
-### FilePart Types
+### FileSource Types
 
-FileParts use a discriminated union pattern with `type: 'file'` and `source` as the discriminator.
+FileSources use a discriminated union pattern with `type: 'file'` and `source` as the discriminator.
 
 ```typescript
 // Path-based: loaded from filesystem
-interface FilePartPath {
+interface FileSourcePath {
   type: 'file'
   source: 'path'
   path: string
@@ -240,7 +240,7 @@ interface FilePartPath {
 }
 
 // In-memory data (e.g., from Multer)
-interface FilePartData {
+interface FileSourceData {
   type: 'file'
   source: 'data'
   data: Buffer | Uint8Array
@@ -249,7 +249,7 @@ interface FilePartData {
 }
 
 // Base64-encoded (raw string, no data: prefix)
-interface FilePartBase64 {
+interface FileSourceBase64 {
   type: 'file'
   source: 'base64'
   data: string
@@ -258,7 +258,7 @@ interface FilePartBase64 {
 }
 
 // URL-based: AI SDK fetches lazily
-interface FilePartUrl {
+interface FileSourceUrl {
   type: 'file'
   source: 'url'
   url: string
@@ -267,22 +267,22 @@ interface FilePartUrl {
 }
 
 // Union type
-type FilePart = FilePartPath | FilePartData | FilePartBase64 | FilePartUrl
+type FileSource = FileSourcePath | FileSourceData | FileSourceBase64 | FileSourceUrl
 ```
 
 ### Usage in Test Cases
 
 ```typescript
-import type { TestCase, FilePart } from '@agtlantis/eval'
+import type { TestCase, FileSource } from '@agtlantis/eval'
 
 // Single file
-const testCase: TestCase<FilePart> = {
+const testCase: TestCase<FileSource> = {
   id: 'analyze-pdf',
   input: { type: 'file', source: 'path', path: './fixtures/record.pdf' }
 }
 
 // Mixed content with multiple files
-const testCase: TestCase<{ prompt: string; files: FilePart[] }> = {
+const testCase: TestCase<{ prompt: string; files: FileSource[] }> = {
   id: 'multi-file-analysis',
   input: {
     prompt: 'Analyze these documents',
@@ -294,14 +294,14 @@ const testCase: TestCase<{ prompt: string; files: FilePart[] }> = {
 }
 ```
 
-### `resolveFilePart(part, options?)`
+### `resolveFileSource(part, options?)`
 
-Resolves a single FilePart to AI SDK compatible format.
+Resolves a single FileSource to AI SDK compatible format.
 
 ```typescript
-import { resolveFilePart } from '@agtlantis/eval'
+import { resolveFileSource } from '@agtlantis/eval'
 
-const resolved = await resolveFilePart(
+const resolved = await resolveFileSource(
   { type: 'file', source: 'path', path: './doc.pdf' },
   { basePath: __dirname, maxSize: 50 * 1024 * 1024 }
 )
@@ -309,33 +309,33 @@ const resolved = await resolveFilePart(
 ```
 
 **Conversion Rules:**
-- `path` -> FilePartData (reads file into Buffer, infers mediaType from extension)
+- `path` -> FileSourceData (reads file into Buffer, infers mediaType from extension)
 - `data` -> unchanged (returned as-is)
 - `base64` -> unchanged (returned as-is)
 - `url` -> unchanged (returned as-is)
 
-### `resolveFilePartsInInput(input, options?)`
+### `resolveFileSourcesInInput(input, options?)`
 
-Recursively scans an input object and resolves all FileParts found within it.
+Recursively scans an input object and resolves all FileSources found within it.
 
 ```typescript
-import { resolveFilePartsInInput } from '@agtlantis/eval'
+import { resolveFileSourcesInInput } from '@agtlantis/eval'
 
 const input = {
   prompt: 'Analyze this',
   file: { type: 'file', source: 'path', path: './doc.pdf' }
 }
 
-const resolved = await resolveFilePartsInInput(input)
+const resolved = await resolveFileSourcesInInput(input)
 // resolved.file = { type: 'file', source: 'data', data: Buffer, mediaType: 'application/pdf', ... }
 ```
 
-### `scanForFileParts(input)`
+### `scanForFileSources(input)`
 
-Recursively scans an input for FileParts without resolving them. Returns found parts with their JSON paths.
+Recursively scans an input for FileSources without resolving them. Returns found parts with their JSON paths.
 
 ```typescript
-import { scanForFileParts } from '@agtlantis/eval'
+import { scanForFileSources } from '@agtlantis/eval'
 
 const input = {
   prompt: 'Analyze',
@@ -345,65 +345,65 @@ const input = {
   ]
 }
 
-const found = scanForFileParts(input)
+const found = scanForFileSources(input)
 // [
 //   { part: {...}, path: ['files', 0] },
 //   { part: {...}, path: ['files', 1] },
 // ]
 ```
 
-### `inferMimeType(path)`
+### `inferMediaType(path)`
 
 Infers MIME type from file extension.
 
 ```typescript
-import { inferMimeType } from '@agtlantis/eval'
+import { inferMediaType } from '@agtlantis/eval'
 
-inferMimeType('doc.pdf')   // 'application/pdf'
-inferMimeType('image.png') // 'image/png'
-inferMimeType('data.json') // 'application/json'
+inferMediaType('doc.pdf')   // 'application/pdf'
+inferMediaType('image.png') // 'image/png'
+inferMediaType('data.json') // 'application/json'
 ```
 
 ### Display Utilities
 
-#### `getFilePartDisplayInfo(part)`
+#### `getFileSourceDisplayInfo(part)`
 
-Extracts display-friendly information from a FilePart for reporting.
+Extracts display-friendly information from a FileSource for reporting.
 
 ```typescript
-import { getFilePartDisplayInfo } from '@agtlantis/eval'
+import { getFileSourceDisplayInfo } from '@agtlantis/eval'
 
-const info = getFilePartDisplayInfo({ type: 'file', source: 'path', path: './doc.pdf' })
+const info = getFileSourceDisplayInfo({ type: 'file', source: 'path', path: './doc.pdf' })
 // { source: 'path', description: './doc.pdf', mediaType: 'application/pdf', filename: 'doc.pdf' }
 ```
 
-#### `getFilePartsDisplayInfo(input)`
+#### `getFileSourcesDisplayInfo(input)`
 
-Extracts display info for all FileParts found in an input.
+Extracts display info for all FileSources found in an input.
 
 ```typescript
-import { getFilePartsDisplayInfo } from '@agtlantis/eval'
+import { getFileSourcesDisplayInfo } from '@agtlantis/eval'
 
-const infos = getFilePartsDisplayInfo(input)
-// Array of FilePartDisplayInfo objects
+const infos = getFileSourcesDisplayInfo(input)
+// Array of FileSourceDisplayInfo objects
 ```
 
 ### Type Guards
 
 ```typescript
 import {
-  isFilePart,
-  isFilePartPath,
-  isFilePartData,
-  isFilePartBase64,
-  isFilePartUrl,
+  isFileSource,
+  isFileSourcePath,
+  isFileSourceData,
+  isFileSourceBase64,
+  isFileSourceUrl,
 } from '@agtlantis/eval'
 
-if (isFilePart(value)) {
-  // value is FilePart
-  if (isFilePartPath(value)) {
+if (isFileSource(value)) {
+  // value is FileSource
+  if (isFileSourcePath(value)) {
     console.log(value.path)
-  } else if (isFilePartUrl(value)) {
+  } else if (isFileSourceUrl(value)) {
     console.log(value.url)
   }
 }
@@ -413,13 +413,13 @@ if (isFilePart(value)) {
 
 ```typescript
 // Scanner result
-interface FoundFilePart {
-  part: FilePart
+interface FoundFileSource {
+  part: FileSource
   path: (string | number)[]
 }
 
 // Display info for reports
-interface FilePartDisplayInfo {
+interface FileSourceDisplayInfo {
   source: 'path' | 'data' | 'base64' | 'url'
   description: string
   mediaType: string

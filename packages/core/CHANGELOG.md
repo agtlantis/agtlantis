@@ -9,17 +9,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **File Cache Fluent API**: `withFileCache(cache?)` method for providers
+  - `GoogleProvider.withFileCache()` - injects cache into `GoogleFileManager`
+  - `OpenAIProvider.withFileCache()` - no-op for API consistency
+  - If no cache argument provided, creates default `InMemoryFileCache`
+
+---
+
+## [0.2.0] - 2025-01-30
+
+### Added
+
+- **File Caching**: Cache uploaded files to avoid redundant uploads
+  - `FileCache` interface with TTL support
+  - `InMemoryFileCache` default implementation
+  - `computeFileSourceHash()` for content-based cache keys
+  - `FileSource.hash` field for explicit cache keys
+
+- **Type Improvements**:
+  - `FilePart` → `FileSource` rename (avoid AI SDK collision)
+  - `UploadedFile { id, part }` structure for better DX
+  - Removed redundant `type: 'file'` discriminator
+
 - **Execution Cancellation**: Cancel in-progress LLM operations using `execution.cancel()` or external `AbortSignal`
   - `SimpleExecution<T>` interface with `cancel()` method
   - `ExecutionOptions.signal` for external cancellation control
   - Signal combination: both internal `cancel()` and external signals work together
   - `combineSignals()` utility for merging multiple AbortSignals
 
+- `ExecutionResult<T>` type: discriminated union for execution outcomes
+- `StreamingResult<TEvent, T>` type: includes events array
+- `execution.stream()` method: access event stream
+
 - **New Documentation**:
   - `docs/api/execution.md` - Execution API reference
   - `docs/guides/cancellation.md` - Cancellation patterns and best practices
 
 ### Changed
+
+- **BREAKING**: Introduced Execution Result Pattern
+  - Unified `toResult()` + `getSummary()` into single `result()` method
+  - `result()` returns discriminated union: `{ status: 'succeeded' | 'failed' | 'canceled'; summary; ... }`
+  - `summary` is now accessible even on failure/cancellation
+  - **Migration**:
+    - `await execution.toResult()` → `(await execution.result()).value`
+    - `await execution.getSummary()` → `(await execution.result()).summary`
+
+- **BREAKING**: `StreamingExecution` no longer implements `AsyncIterable` directly
+  - **Before**: `for await (const e of execution) { }`
+  - **After**: `for await (const e of execution.stream()) { }`
+  - Internal consumer pattern prevents event loss
+  - All events accessible via `result().events`
 
 - **BREAKING**: `provider.simpleExecution()` return type changed
   - **Before**: Returns `Promise<Execution<T>>` (required `await`)
@@ -33,13 +73,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   // After (v2.x)
   const execution = provider.simpleExecution(fn);  // No await
-  const result = await execution.toResult();
+  const result = await execution.result();
+  console.log(result.value);
   ```
 
 - Session classes (`SimpleSession`, `StreamingSession`) now accept optional `signal` parameter
 - Provider implementations pass signal through to AI SDK for native cancellation support
 
-### Why This Breaking Change?
+### Why These Breaking Changes?
+
+**Execution Result Pattern:**
+
+The previous API had two problems:
+1. Separate `toResult()` and `getSummary()` calls were awkward
+2. On failure, `getSummary()` was unavailable, losing valuable usage data
+
+The new `result()` method returns a discriminated union where `summary` is always accessible:
+
+```typescript
+const result = await execution.result();
+// result.summary is ALWAYS available, even on failure/cancellation
+console.log('Tokens used:', result.summary.totalLLMUsage.totalTokens);
+```
+
+**Explicit stream() Method:**
+
+The previous `AsyncIterable` implementation made it too easy to accidentally iterate multiple times or miss events. The explicit `stream()` method makes the streaming intent clear and enables the internal consumer pattern that captures all events.
+
+**Sync simpleExecution:**
 
 The previous API made early cancellation impossible:
 
@@ -55,7 +116,8 @@ The new API enables true cancellation:
 // New API - can cancel while execution is in progress
 const execution = provider.simpleExecution(fn);
 setTimeout(() => execution.cancel(), 5000); // Actually cancels
-const result = await execution.toResult();  // Throws AbortError if cancelled
+const result = await execution.result();
+// result.status === 'canceled' if cancelled
 ```
 
 ## [0.1.0] - Initial Release

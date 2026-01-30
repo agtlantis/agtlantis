@@ -133,11 +133,18 @@ export function createProviderAgent<TInput, TOutput = string>(
                 return result.text;
             });
 
-            const content = await execution.toResult();
-            const metadata = await execution.getSummary();
+            const executionResult = await execution.result();
+
+            if (executionResult.status !== 'succeeded') {
+                throw executionResult.status === 'failed'
+                    ? executionResult.error
+                    : new Error('Execution was canceled');
+            }
+
+            const content = executionResult.value;
             const latencyMs = Date.now() - startTime;
 
-            const tokenUsage = toEvalTokenUsage(metadata.totalLLMUsage);
+            const tokenUsage = toEvalTokenUsage(executionResult.summary.totalLLMUsage);
 
             let result: TOutput;
             if (config?.parseJson) {

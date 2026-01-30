@@ -14,7 +14,11 @@ describe('MockProvider', () => {
                 return result.text;
             });
 
-            expect(await execution.toResult()).toBe('Hello, world!');
+            const result = await execution.result();
+            expect(result.status).toBe('succeeded');
+            if (result.status === 'succeeded') {
+                expect(result.value).toBe('Hello, world!');
+            }
         });
 
         it('should execute with mock json response', async () => {
@@ -25,17 +29,25 @@ describe('MockProvider', () => {
                 return JSON.parse(result.text);
             });
 
-            expect(await execution.toResult()).toEqual({ name: 'Alice', age: 30 });
+            const result = await execution.result();
+            expect(result.status).toBe('succeeded');
+            if (result.status === 'succeeded') {
+                expect(result.value).toEqual({ name: 'Alice', age: 30 });
+            }
         });
 
-        it('should throw on mock error', async () => {
+        it('should return failed status on mock error', async () => {
             const provider = mock.provider(mock.error(new Error('API Error')));
 
             const execution = provider.simpleExecution(async (session) => {
                 await session.generateText({ prompt: 'Test' });
             });
 
-            await expect(execution.toResult()).rejects.toThrow('API Error');
+            const result = await execution.result();
+            expect(result.status).toBe('failed');
+            if (result.status === 'failed') {
+                expect(result.error.message).toBe('API Error');
+            }
         });
     });
 
@@ -84,7 +96,7 @@ describe('MockProvider', () => {
             const execution = provider.simpleExecution(async (session) => {
                 await session.generateText({ prompt: 'Test prompt' });
             });
-            await execution.toResult();
+            await execution.result();
 
             const calls = provider.getCalls();
             expect(calls).toHaveLength(1);
@@ -101,7 +113,7 @@ describe('MockProvider', () => {
                 await session.generateText({ prompt: 'Second' });
                 await session.generateText({ prompt: 'Third' });
             });
-            await execution.toResult();
+            await execution.result();
 
             expect(provider.getCalls()).toHaveLength(3);
         });
@@ -132,7 +144,7 @@ describe('MockProvider', () => {
             const execution = provider.simpleExecution(async (session) => {
                 await session.generateText({ prompt: 'Test' });
             });
-            await execution.toResult();
+            await execution.result();
 
             const calls1 = provider.getCalls();
             const calls2 = provider.getCalls();
@@ -146,7 +158,7 @@ describe('MockProvider', () => {
             const execution = provider.simpleExecution(async (session) => {
                 await session.generateText({ prompt: 'What is the meaning of life?' });
             });
-            await execution.toResult();
+            await execution.result();
 
             const calls = provider.getCalls();
             expect(calls).toHaveLength(1);
@@ -165,7 +177,7 @@ describe('MockProvider', () => {
                     prompt: 'Hello',
                 });
             });
-            await execution.toResult();
+            await execution.result();
 
             const calls = provider.getCalls();
             const params = calls[0].params as {
@@ -184,11 +196,7 @@ describe('MockProvider', () => {
                 await session.generateText({ prompt: 'This will fail' });
             });
 
-            try {
-                await execution.toResult();
-            } catch {
-                // Expected to throw
-            }
+            await execution.result();
 
             const calls = provider.getCalls();
             expect(calls).toHaveLength(1);
@@ -212,11 +220,7 @@ describe('MockProvider', () => {
                 await session.generateText({ prompt: 'Second - will fail' });
             });
 
-            try {
-                await execution.toResult();
-            } catch {
-                // Expected to throw
-            }
+            await execution.result();
 
             const calls = provider.getCalls();
             expect(calls).toHaveLength(2);
@@ -232,7 +236,7 @@ describe('MockProvider', () => {
             const execution = provider.simpleExecution(async (session) => {
                 await session.generateText({ prompt: 'Test' });
             });
-            await execution.toResult();
+            await execution.result();
 
             expect(provider.getCalls()).toHaveLength(1);
 
@@ -258,7 +262,9 @@ describe('MockProvider', () => {
                 const result2 = await session.generateText({ model: 'other', prompt: 'Test' });
                 return { r1: result1.text, r2: result2.text };
             });
-            await execution.toResult();
+
+            const result = await execution.result();
+            expect(result.status).toBe('succeeded');
 
             expect(factory).toHaveBeenCalledWith('gpt-4');
             expect(factory).toHaveBeenCalledWith('other');
@@ -279,7 +285,7 @@ describe('MockProvider', () => {
             const execution = provider.simpleExecution(async (session) => {
                 await session.generateText({ prompt: 'Test' });
             });
-            await execution.toResult();
+            await execution.result();
 
             const calls = provider.getCalls();
             expect(calls).toHaveLength(1);
@@ -318,7 +324,7 @@ describe('MockProvider', () => {
             const execution = configuredProvider.simpleExecution(async (session) => {
                 await session.generateText({ prompt: 'Test' });
             });
-            await execution.toResult();
+            await execution.result();
 
             expect(baseProvider.getCalls()).toHaveLength(1);
             expect(configuredProvider.getCalls()).toHaveLength(1);
@@ -358,7 +364,11 @@ describe('MockProvider', () => {
                 return (await session.generateText({ prompt: 'Test' })).text;
             });
 
-            expect(await execution.toResult()).toBe('Test response');
+            const result = await execution.result();
+            expect(result.status).toBe('succeeded');
+            if (result.status === 'succeeded') {
+                expect(result.value).toBe('Test response');
+            }
         });
 
         it('should work with mock.json()', async () => {
@@ -370,7 +380,11 @@ describe('MockProvider', () => {
                 return JSON.parse(result.text);
             });
 
-            expect(await execution.toResult()).toEqual(data);
+            const result = await execution.result();
+            expect(result.status).toBe('succeeded');
+            if (result.status === 'succeeded') {
+                expect(result.value).toEqual(data);
+            }
         });
 
         it('should work with mock.stream()', async () => {
@@ -399,7 +413,11 @@ describe('MockProvider', () => {
                 await session.generateText({ prompt: 'Test' });
             });
 
-            await expect(execution.toResult()).rejects.toThrow('Test error');
+            const result = await execution.result();
+            expect(result.status).toBe('failed');
+            if (result.status === 'failed') {
+                expect(result.error.message).toBe('Test error');
+            }
         });
     });
 });

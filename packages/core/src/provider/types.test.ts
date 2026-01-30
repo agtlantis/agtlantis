@@ -1,151 +1,140 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
-  isFilePart,
-  isFilePartPath,
-  isFilePartData,
-  isFilePartBase64,
-  isFilePartUrl,
-  type FilePart,
-  type FilePartPath,
-  type FilePartData,
-  type FilePartBase64,
-  type FilePartUrl,
+    type FileSource,
+    type FileSourceBase64,
+    type FileSourceData,
+    type FileSourcePath,
+    type FileSourceUrl,
+    isFileSource,
+    isFileSourceBase64,
+    isFileSourceData,
+    isFileSourcePath,
+    isFileSourceUrl,
 } from './types';
 
 // ============================================================================
-// FilePart Type Guards
+// FileSource Type Guards
 // ============================================================================
 
-describe('FilePart type guards', () => {
-  describe('isFilePart', () => {
-    it('should return true for valid path FilePart', () => {
-      const part: FilePartPath = {
-        type: 'file',
-        source: 'path',
-        path: '/path/to/file.pdf',
-      };
-      expect(isFilePart(part)).toBe(true);
+describe('FileSource type guards', () => {
+    describe('isFileSource', () => {
+        it('should return true for valid path FileSource', () => {
+            const part: FileSourcePath = {
+                source: 'path',
+                path: '/path/to/file.pdf',
+            };
+            expect(isFileSource(part)).toBe(true);
+        });
+
+        it('should return true for valid data FileSource', () => {
+            const part: FileSourceData = {
+                source: 'data',
+                data: Buffer.from('test'),
+                mediaType: 'text/plain',
+            };
+            expect(isFileSource(part)).toBe(true);
+        });
+
+        it('should return true for valid base64 FileSource', () => {
+            const part: FileSourceBase64 = {
+                source: 'base64',
+                data: 'dGVzdA==',
+                mediaType: 'text/plain',
+            };
+            expect(isFileSource(part)).toBe(true);
+        });
+
+        it('should return true for valid url FileSource', () => {
+            const part: FileSourceUrl = {
+                source: 'url',
+                url: 'https://example.com/file.pdf',
+            };
+            expect(isFileSource(part)).toBe(true);
+        });
+
+        it('should return false for null', () => {
+            expect(isFileSource(null)).toBe(false);
+        });
+
+        it('should return false for undefined', () => {
+            expect(isFileSource(undefined)).toBe(false);
+        });
+
+        it('should return false for non-object', () => {
+            expect(isFileSource('string')).toBe(false);
+            expect(isFileSource(123)).toBe(false);
+        });
+
+        it('should return false for object with invalid source value', () => {
+            expect(isFileSource({ source: 'invalid', path: '/test' })).toBe(false);
+        });
+
+        it('should return false for object without source', () => {
+            expect(isFileSource({ path: '/test' })).toBe(false);
+        });
     });
 
-    it('should return true for valid data FilePart', () => {
-      const part: FilePartData = {
-        type: 'file',
-        source: 'data',
-        data: Buffer.from('test'),
-        mediaType: 'text/plain',
-      };
-      expect(isFilePart(part)).toBe(true);
+    describe('isFileSourcePath', () => {
+        it('should return true for path source', () => {
+            const part: FileSource = { source: 'path', path: '/test.pdf' };
+            expect(isFileSourcePath(part)).toBe(true);
+        });
+
+        it('should return false for non-path sources', () => {
+            const dataPart: FileSource = {
+                source: 'data',
+                data: Buffer.from(''),
+                mediaType: 'text/plain',
+            };
+            expect(isFileSourcePath(dataPart)).toBe(false);
+        });
     });
 
-    it('should return true for valid base64 FilePart', () => {
-      const part: FilePartBase64 = {
-        type: 'file',
-        source: 'base64',
-        data: 'dGVzdA==',
-        mediaType: 'text/plain',
-      };
-      expect(isFilePart(part)).toBe(true);
+    describe('isFileSourceData', () => {
+        it('should return true for data source', () => {
+            const part: FileSource = {
+                source: 'data',
+                data: Buffer.from('test'),
+                mediaType: 'text/plain',
+            };
+            expect(isFileSourceData(part)).toBe(true);
+        });
+
+        it('should return false for non-data sources', () => {
+            const pathPart: FileSource = { source: 'path', path: '/test.pdf' };
+            expect(isFileSourceData(pathPart)).toBe(false);
+        });
     });
 
-    it('should return true for valid url FilePart', () => {
-      const part: FilePartUrl = {
-        type: 'file',
-        source: 'url',
-        url: 'https://example.com/file.pdf',
-      };
-      expect(isFilePart(part)).toBe(true);
+    describe('isFileSourceBase64', () => {
+        it('should return true for base64 source', () => {
+            const part: FileSource = {
+                source: 'base64',
+                data: 'dGVzdA==',
+                mediaType: 'text/plain',
+            };
+            expect(isFileSourceBase64(part)).toBe(true);
+        });
+
+        it('should return false for non-base64 sources', () => {
+            const pathPart: FileSource = { source: 'path', path: '/test.pdf' };
+            expect(isFileSourceBase64(pathPart)).toBe(false);
+        });
     });
 
-    it('should return false for null', () => {
-      expect(isFilePart(null)).toBe(false);
-    });
+    describe('isFileSourceUrl', () => {
+        it('should return true for url source', () => {
+            const part: FileSource = {
+                source: 'url',
+                url: 'https://example.com/file.pdf',
+            };
+            expect(isFileSourceUrl(part)).toBe(true);
+        });
 
-    it('should return false for undefined', () => {
-      expect(isFilePart(undefined)).toBe(false);
+        it('should return false for non-url sources', () => {
+            const pathPart: FileSource = { source: 'path', path: '/test.pdf' };
+            expect(isFileSourceUrl(pathPart)).toBe(false);
+        });
     });
-
-    it('should return false for non-object', () => {
-      expect(isFilePart('string')).toBe(false);
-      expect(isFilePart(123)).toBe(false);
-    });
-
-    it('should return false for object without type field', () => {
-      expect(isFilePart({ source: 'path', path: '/test' })).toBe(false);
-    });
-
-    it('should return false for object with wrong type', () => {
-      expect(isFilePart({ type: 'text', source: 'path', path: '/test' })).toBe(false);
-    });
-
-    it('should return false for object without source', () => {
-      expect(isFilePart({ type: 'file', path: '/test' })).toBe(false);
-    });
-  });
-
-  describe('isFilePartPath', () => {
-    it('should return true for path source', () => {
-      const part: FilePart = { type: 'file', source: 'path', path: '/test.pdf' };
-      expect(isFilePartPath(part)).toBe(true);
-    });
-
-    it('should return false for non-path sources', () => {
-      const dataPart: FilePart = {
-        type: 'file',
-        source: 'data',
-        data: Buffer.from(''),
-        mediaType: 'text/plain',
-      };
-      expect(isFilePartPath(dataPart)).toBe(false);
-    });
-  });
-
-  describe('isFilePartData', () => {
-    it('should return true for data source', () => {
-      const part: FilePart = {
-        type: 'file',
-        source: 'data',
-        data: Buffer.from('test'),
-        mediaType: 'text/plain',
-      };
-      expect(isFilePartData(part)).toBe(true);
-    });
-
-    it('should return false for non-data sources', () => {
-      const pathPart: FilePart = { type: 'file', source: 'path', path: '/test.pdf' };
-      expect(isFilePartData(pathPart)).toBe(false);
-    });
-  });
-
-  describe('isFilePartBase64', () => {
-    it('should return true for base64 source', () => {
-      const part: FilePart = {
-        type: 'file',
-        source: 'base64',
-        data: 'dGVzdA==',
-        mediaType: 'text/plain',
-      };
-      expect(isFilePartBase64(part)).toBe(true);
-    });
-
-    it('should return false for non-base64 sources', () => {
-      const pathPart: FilePart = { type: 'file', source: 'path', path: '/test.pdf' };
-      expect(isFilePartBase64(pathPart)).toBe(false);
-    });
-  });
-
-  describe('isFilePartUrl', () => {
-    it('should return true for url source', () => {
-      const part: FilePart = {
-        type: 'file',
-        source: 'url',
-        url: 'https://example.com/file.pdf',
-      };
-      expect(isFilePartUrl(part)).toBe(true);
-    });
-
-    it('should return false for non-url sources', () => {
-      const pathPart: FilePart = { type: 'file', source: 'path', path: '/test.pdf' };
-      expect(isFilePartUrl(pathPart)).toBe(false);
-    });
-  });
 });

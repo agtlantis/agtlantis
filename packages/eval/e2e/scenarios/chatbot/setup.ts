@@ -139,14 +139,20 @@ function createChatbotAgentWithSchema<TSchema extends z.ZodType>(
                 return result.output;
             });
 
-            const result = await execution.toResult();
-            const metadata = await execution.getSummary();
+            const executionResult = await execution.result();
+
+            if (executionResult.status !== 'succeeded') {
+                throw executionResult.status === 'failed'
+                    ? executionResult.error
+                    : new Error('Execution was canceled');
+            }
+
             const latencyMs = Date.now() - startTime;
 
             return {
-                result: result as z.infer<TSchema>,
+                result: executionResult.value as z.infer<TSchema>,
                 metadata: {
-                    tokenUsage: toEvalTokenUsage(metadata.totalLLMUsage),
+                    tokenUsage: toEvalTokenUsage(executionResult.summary.totalLLMUsage),
                     latencyMs,
                 },
             };

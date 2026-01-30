@@ -87,7 +87,7 @@ IMPORTANT: Call reportProgress for EACH phase before submitting the final result
           });
         });
 
-        for await (const event of execution) {
+        for await (const event of execution.stream()) {
           if (event.type === 'progress' && 'data' in event) {
             const progress = event.data as ComplexProgress;
             progressByPhase[progress.phase]?.push(progress);

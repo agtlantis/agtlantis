@@ -30,13 +30,13 @@ const execution = provider.simpleExecution(async (session) => {
 setTimeout(() => execution.cancel(), 5000);
 
 // Handle result or cancellation
-try {
-  const text = await execution.toResult();
-  console.log(text);
-} catch (error) {
-  if (error.name === 'AbortError') {
-    console.log('Request was cancelled');
-  }
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log(result.value);
+} else if (result.status === 'canceled') {
+  console.log('Request was cancelled');
+} else {
+  console.error('Request failed:', result.error);
 }
 ```
 
@@ -109,21 +109,23 @@ async function generateWithTimeout(prompt: string, timeoutMs: number) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const execution = provider.simpleExecution(
-      async (session) => {
-        const result = await session.generateText({ prompt });
-        return result.text;
-      },
-      { signal: controller.signal }
-    );
+  const execution = provider.simpleExecution(
+    async (session) => {
+      const response = await session.generateText({ prompt });
+      return response.text;
+    },
+    { signal: controller.signal }
+  );
 
-    return await execution.toResult();
-  } catch (error) {
-    if (error.name === 'AbortError') {
+  try {
+    const result = await execution.result();
+    if (result.status === 'succeeded') {
+      return result.value;
+    } else if (result.status === 'canceled') {
       throw new Error(`Request timed out after ${timeoutMs}ms`);
+    } else {
+      throw result.error;
     }
-    throw error;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -157,17 +159,16 @@ function GenerateButton() {
       return response.text;
     });
 
-    try {
-      const text = await executionRef.current.toResult();
-      setResult(text);
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        setResult('Cancelled');
-      }
-    } finally {
-      setLoading(false);
-      executionRef.current = null;
+    const execResult = await executionRef.current.result();
+    if (execResult.status === 'succeeded') {
+      setResult(execResult.value);
+    } else if (execResult.status === 'canceled') {
+      setResult('Cancelled');
+    } else {
+      setResult(`Error: ${execResult.error.message}`);
     }
+    setLoading(false);
+    executionRef.current = null;
   };
 
   const handleCancel = () => {
@@ -204,26 +205,29 @@ async function raceProviders(prompt: string) {
   const openaiProvider = createOpenAIProvider({ apiKey: process.env.OPENAI_API_KEY });
 
   const googleExec = googleProvider.simpleExecution(async (session) => {
-    const result = await session.generateText({ prompt });
-    return { provider: 'google', text: result.text };
+    const response = await session.generateText({ prompt });
+    return { provider: 'google', text: response.text };
   });
 
   const openaiExec = openaiProvider.simpleExecution(async (session) => {
-    const result = await session.generateText({ prompt });
-    return { provider: 'openai', text: result.text };
+    const response = await session.generateText({ prompt });
+    return { provider: 'openai', text: response.text };
   });
 
   // Race the executions
   const winner = await Promise.race([
-    googleExec.toResult(),
-    openaiExec.toResult(),
+    googleExec.result(),
+    openaiExec.result(),
   ]);
 
   // Cancel the loser
   googleExec.cancel();
   openaiExec.cancel();
 
-  return winner;
+  if (winner.status === 'succeeded') {
+    return winner.value;
+  }
+  throw new Error('Both providers failed');
 }
 ```
 
@@ -260,7 +264,7 @@ async function generateUntilEnough() {
 
   let collected = '';
 
-  for await (const event of execution) {
+  for await (const event of execution.stream()) {
     if (event.type === 'chunk' && event.text) {
       collected += event.text;
 
@@ -280,43 +284,47 @@ async function generateUntilEnough() {
 
 ### Detecting Cancellation
 
-Check for `AbortError` to distinguish cancellation from other errors.
+Use the `status` field to distinguish cancellation from other outcomes.
 
 ```typescript
-try {
-  const result = await execution.toResult();
-} catch (error) {
-  if (error instanceof Error) {
-    if (error.name === 'AbortError') {
-      // Cancellation - expected, handle gracefully
-      console.log('Request cancelled');
-    } else {
-      // Other error - may need to retry or report
-      console.error('Request failed:', error.message);
-    }
-  }
+const result = await execution.result();
+
+switch (result.status) {
+  case 'succeeded':
+    console.log('Success:', result.value);
+    break;
+  case 'canceled':
+    // Cancellation - expected, handle gracefully
+    console.log('Request cancelled');
+    break;
+  case 'failed':
+    // Other error - may need to retry or report
+    console.error('Request failed:', result.error.message);
+    break;
 }
+// Summary is always available
+console.log('Tokens used:', result.summary.totalLLMUsage.totalTokens);
 ```
 
-### Getting Partial Data After Cancellation
+### Getting Metadata After Cancellation
 
-Use `getSummary()` to get metadata even after cancellation.
+The `result()` method always includes `summary`, even after cancellation or failure.
 
 ```typescript
 const execution = provider.simpleExecution(async (session) => {
-  const result = await session.generateText({ prompt: 'Hello' });
-  return result.text;
+  const response = await session.generateText({ prompt: 'Hello' });
+  return response.text;
 });
 
 setTimeout(() => execution.cancel(), 1000);
 
-try {
-  await execution.toResult();
-} catch (error) {
-  // Even after error, we can get summary
-  const summary = await execution.getSummary();
-  console.log('Duration before cancel:', summary.totalDuration, 'ms');
-  console.log('Tokens used:', summary.totalLLMUsage.totalTokens);
+const result = await execution.result();
+// Summary is always available, regardless of status
+console.log('Duration:', result.summary.totalDuration, 'ms');
+console.log('Tokens used:', result.summary.totalLLMUsage.totalTokens);
+
+if (result.status === 'canceled') {
+  console.log('Request was cancelled');
 }
 ```
 
@@ -361,13 +369,13 @@ try {
 3. **Signal Passing**: Combined signal flows to `SimpleSession` → AI SDK calls
 4. **Cancellation Trigger**: Either `cancel()` or user signal abort triggers the combined signal
 5. **Abort Propagation**: AI SDK receives abort, terminates the HTTP request
-6. **Error Handling**: `AbortError` bubbles up to `toResult()`
+6. **Result Status**: `result()` returns with `status: 'canceled'`
 
 ### Session Lifecycle
 
 - **onDone hooks**: Always run, even after cancellation
 - **cleanup()**: Safe to call, handles resource cleanup
-- **getSummary()**: Available even after cancellation (may have partial data)
+- **result().summary**: Always available, even after cancellation (may have partial data)
 
 ## Automatic Termination on Terminal Events
 

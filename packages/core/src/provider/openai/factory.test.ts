@@ -130,7 +130,7 @@ describe('createOpenAIProvider', () => {
     });
 
     describe('streamingExecution', () => {
-        it('should create StreamingExecution with AsyncIterable interface', () => {
+        it('should create StreamingExecution with stream() method', () => {
             const provider = createOpenAIProvider({ apiKey: 'test-api-key' }).withDefaultModel(
                 'gpt-4o'
             );
@@ -140,9 +140,8 @@ describe('createOpenAIProvider', () => {
             });
 
             expect(execution).toBeDefined();
-            expect(execution[Symbol.asyncIterator]).toBeTypeOf('function');
-            expect(execution.toResult).toBeTypeOf('function');
-            expect(execution.getSummary).toBeTypeOf('function');
+            expect(execution.stream).toBeTypeOf('function');
+            expect(execution.result).toBeTypeOf('function');
             expect(execution.cleanup).toBeTypeOf('function');
             expect(execution.cancel).toBeTypeOf('function');
         });
@@ -159,7 +158,7 @@ describe('createOpenAIProvider', () => {
                 return session.done('result');
             });
 
-            for await (const event of execution) {
+            for await (const event of execution.stream()) {
                 events.push(event);
             }
 
@@ -168,7 +167,7 @@ describe('createOpenAIProvider', () => {
             expect(events.some((e: any) => e.type === 'complete')).toBe(true);
         });
 
-        it('should return result via toResult()', async () => {
+        it('should return result via result()', async () => {
             const provider = createOpenAIProvider({ apiKey: 'test-api-key' }).withDefaultModel(
                 'gpt-4o'
             );
@@ -177,8 +176,11 @@ describe('createOpenAIProvider', () => {
                 return session.done('my-result');
             });
 
-            const result = await execution.toResult();
-            expect(result).toBe('my-result');
+            const result = await execution.result();
+            expect(result.status).toBe('succeeded');
+            if (result.status === 'succeeded') {
+                expect(result.value).toBe('my-result');
+            }
         });
     });
 
@@ -192,11 +194,14 @@ describe('createOpenAIProvider', () => {
                 return 'simple-result';
             });
 
-            const result = await execution.toResult();
-            expect(result).toBe('simple-result');
+            const result = await execution.result();
+            expect(result.status).toBe('succeeded');
+            if (result.status === 'succeeded') {
+                expect(result.value).toBe('simple-result');
+            }
         });
 
-        it('should have metadata after completion', async () => {
+        it('should have summary after completion', async () => {
             const provider = createOpenAIProvider({ apiKey: 'test-api-key' }).withDefaultModel(
                 'gpt-4o'
             );
@@ -205,9 +210,9 @@ describe('createOpenAIProvider', () => {
                 return 'result';
             });
 
-            const metadata = await execution.getSummary();
-            expect(metadata).toBeDefined();
-            expect(metadata.totalDuration).toBeTypeOf('number');
+            const result = await execution.result();
+            expect(result.summary).toBeDefined();
+            expect(result.summary.totalDuration).toBeTypeOf('number');
         });
     });
 
@@ -223,7 +228,7 @@ describe('createOpenAIProvider', () => {
             });
 
             // Consume to trigger session creation
-            execution.toResult().catch(() => {});
+            execution.result().catch(() => {});
 
             // NoOpFileManager should be created when session is created
             expect(NoOpFileManager).toHaveBeenCalled();
@@ -247,6 +252,46 @@ describe('createOpenAIProvider', () => {
                 apiKey: 'test-api-key',
                 organization: 'org-123',
             });
+
+            expect(provider).toBeDefined();
+        });
+    });
+
+    describe('withFileCache', () => {
+        it('should return new instance on withFileCache()', () => {
+            const provider1 = createOpenAIProvider({ apiKey: 'test-api-key' });
+            const provider2 = provider1.withFileCache();
+
+            expect(provider1).not.toBe(provider2);
+        });
+
+        it('should accept cache without error (no-op)', () => {
+            const mockCache = {
+                get: vi.fn(),
+                set: vi.fn(),
+                delete: vi.fn(),
+                clear: vi.fn(),
+            };
+
+            const provider = createOpenAIProvider({ apiKey: 'test-api-key' }).withFileCache(
+                mockCache
+            );
+
+            expect(provider).toBeDefined();
+        });
+
+        it('should preserve through fluent chain', () => {
+            const mockCache = {
+                get: vi.fn(),
+                set: vi.fn(),
+                delete: vi.fn(),
+                clear: vi.fn(),
+            };
+
+            const provider = createOpenAIProvider({ apiKey: 'test-api-key' })
+                .withFileCache(mockCache)
+                .withDefaultModel('gpt-4o')
+                .withLogger({});
 
             expect(provider).toBeDefined();
         });

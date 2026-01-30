@@ -297,7 +297,7 @@ Every streaming event includes timing metrics:
 | **Abstract Base Class** | `BaseProvider` | Share common execution logic across providers |
 | **Session** | `SimpleSession`, `StreamingSession` | Encapsulate execution lifecycle and state |
 | **Generator** | `streamingExecution(async function* (session) {...})` | Enable streaming with `for await...of` |
-| **Type Guards** | `isFilePart()`, `isFilePartPath()`, etc. | Safe type narrowing for discriminated unions |
+| **Type Guards** | `isFileSource()`, `isFileSourcePath()`, etc. | Safe type narrowing for discriminated unions |
 | **Observer** | `Logger` interface | Decouple monitoring from execution logic |
 
 ### Factory Pattern Example

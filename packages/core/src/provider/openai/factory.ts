@@ -1,5 +1,5 @@
 import { createOpenAI, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
-import type { Provider } from '../types';
+import type { FileCache } from '../types';
 import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
 import type { EventMetrics } from '@/observability';
@@ -27,6 +27,7 @@ class OpenAIProvider extends BaseProvider {
         private readonly organization?: string,
         private readonly pricingConfig?: ProviderPricing,
         private readonly defaultOptions?: OpenAIChatLanguageModelOptions,
+        private readonly fileCache?: FileCache,
     ) {
         super();
         this.openai = createOpenAI({
@@ -36,7 +37,7 @@ class OpenAIProvider extends BaseProvider {
         });
     }
 
-    withDefaultModel(modelId: string): Provider {
+    withDefaultModel(modelId: string): OpenAIProvider {
         return new OpenAIProvider(
             this.apiKey,
             modelId,
@@ -45,10 +46,11 @@ class OpenAIProvider extends BaseProvider {
             this.organization,
             this.pricingConfig,
             this.defaultOptions,
+            this.fileCache,
         );
     }
 
-    withLogger(newLogger: Logger): Provider {
+    withLogger(newLogger: Logger): OpenAIProvider {
         return new OpenAIProvider(
             this.apiKey,
             this.defaultModelId,
@@ -57,10 +59,11 @@ class OpenAIProvider extends BaseProvider {
             this.organization,
             this.pricingConfig,
             this.defaultOptions,
+            this.fileCache,
         );
     }
 
-    withPricing(pricing: ProviderPricing): Provider {
+    withPricing(pricing: ProviderPricing): OpenAIProvider {
         validateProviderPricing(pricing, 'openai');
         return new OpenAIProvider(
             this.apiKey,
@@ -70,13 +73,14 @@ class OpenAIProvider extends BaseProvider {
             this.organization,
             pricing,
             this.defaultOptions,
+            this.fileCache,
         );
     }
 
     /**
      * Set default provider-specific options for all LLM calls.
      * These options will be deep-merged with per-call providerOptions.
-     * 
+     *
      * @example
      * ```typescript
      * createOpenAIProvider({ apiKey: 'xxx' })
@@ -87,7 +91,7 @@ class OpenAIProvider extends BaseProvider {
      *   })
      * ```
      */
-    withDefaultOptions(options: OpenAIChatLanguageModelOptions): Provider {
+    withDefaultOptions(options: OpenAIChatLanguageModelOptions): OpenAIProvider {
         return new OpenAIProvider(
             this.apiKey,
             this.defaultModelId,
@@ -96,6 +100,30 @@ class OpenAIProvider extends BaseProvider {
             this.organization,
             this.pricingConfig,
             options,
+            this.fileCache,
+        );
+    }
+
+    /**
+     * Set a file cache for API consistency with GoogleProvider.
+     * Note: OpenAI does not support file caching, so this is a no-op.
+     *
+     * @example
+     * ```typescript
+     * createOpenAIProvider({ apiKey: 'xxx' })
+     *   .withFileCache()
+     * ```
+     */
+    withFileCache(cache?: FileCache): OpenAIProvider {
+        return new OpenAIProvider(
+            this.apiKey,
+            this.defaultModelId,
+            this.logger,
+            this.baseURL,
+            this.organization,
+            this.pricingConfig,
+            this.defaultOptions,
+            cache,
         );
     }
 
@@ -125,7 +153,7 @@ class OpenAIProvider extends BaseProvider {
     }
 }
 
-export function createOpenAIProvider(config: OpenAIProviderConfig): Provider {
+export function createOpenAIProvider(config: OpenAIProviderConfig): OpenAIProvider {
     return new OpenAIProvider(
         config.apiKey,
         null, // No default model - must be set with withDefaultModel()

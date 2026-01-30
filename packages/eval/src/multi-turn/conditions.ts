@@ -61,7 +61,15 @@ Should the conversation terminate based on the condition above? Answer "yes" or 
                 return result.text;
             });
 
-            const responseText = await execution.toResult();
+            const executionResult = await execution.result();
+
+            if (executionResult.status !== 'succeeded') {
+                throw executionResult.status === 'failed'
+                    ? executionResult.error
+                    : new Error('Execution was canceled');
+            }
+
+            const responseText = executionResult.value;
             const answer = responseText.toLowerCase().trim();
             return answer === 'yes' || answer.startsWith('yes');
         },

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { Execution, StreamingExecution } from './types';
+import type { Execution, StreamingExecution, ExecutionResult, StreamingResult } from './types';
 import type { EventMetrics } from '@/observability';
-import { createMockSessionSummary, collectEvents } from '@/testing';
+import { createMockSessionSummary } from '@/testing';
 
 const mockSummary = createMockSessionSummary({ totalDuration: 100 });
 
@@ -14,76 +14,185 @@ describe('Agent Types', () => {
             }
 
             const execution: Execution<AnalysisResult> = {
-                toResult: async () => ({ score: 85, feedback: ['Good work'] }),
-                getSummary: async () => mockSummary,
+                result: async () => ({
+                    status: 'succeeded',
+                    value: { score: 85, feedback: ['Good work'] },
+                    summary: mockSummary,
+                }),
+                cancel: () => {},
                 cleanup: async () => {},
                 [Symbol.asyncDispose]: async () => {},
             };
 
-            const result = await execution.toResult();
-            expect(result.score).toBe(85);
-            expect(result.feedback).toContain('Good work');
+            const result = await execution.result();
+            expect(result.status).toBe('succeeded');
+            if (result.status === 'succeeded') {
+                expect(result.value.score).toBe(85);
+                expect(result.value.feedback).toContain('Good work');
+            }
         });
 
         it('should support unified handling for any execution type', async () => {
             async function runAgent<T>(execution: Execution<T>) {
                 try {
-                    const result = await execution.toResult();
-                    const metadata = await execution.getSummary();
-                    return { result, metadata };
+                    const result = await execution.result();
+                    return result;
                 } finally {
                     await execution.cleanup();
                 }
             }
 
             const mockExecution: Execution<number> = {
-                toResult: vi.fn().mockResolvedValue(42),
-                getSummary: vi.fn().mockResolvedValue(mockSummary),
+                result: vi.fn().mockResolvedValue({
+                    status: 'succeeded',
+                    value: 42,
+                    summary: mockSummary,
+                } satisfies ExecutionResult<number>),
+                cancel: vi.fn(),
                 cleanup: vi.fn().mockResolvedValue(undefined),
                 [Symbol.asyncDispose]: vi.fn().mockResolvedValue(undefined),
             };
 
-            const { result, metadata } = await runAgent(mockExecution);
-            expect(result).toBe(42);
+            const result = await runAgent(mockExecution);
+            expect(result.status).toBe('succeeded');
+            if (result.status === 'succeeded') {
+                expect(result.value).toBe(42);
+            }
             // totalDuration is computed dynamically, so it will be >= the specified duration
-            expect(metadata.totalDuration).toBeGreaterThanOrEqual(100);
+            expect(result.summary.totalDuration).toBeGreaterThanOrEqual(100);
             expect(mockExecution.cleanup).toHaveBeenCalled();
+        });
+
+        it('should provide summary even on failure', async () => {
+            const error = new Error('Test error');
+            const execution: Execution<number> = {
+                result: async () => ({
+                    status: 'failed',
+                    error,
+                    summary: mockSummary,
+                }),
+                cancel: () => {},
+                cleanup: async () => {},
+                [Symbol.asyncDispose]: async () => {},
+            };
+
+            const result = await execution.result();
+            expect(result.status).toBe('failed');
+            if (result.status === 'failed') {
+                expect(result.error).toBe(error);
+            }
+            expect(result.summary.totalDuration).toBeGreaterThanOrEqual(100);
+        });
+
+        it('should provide summary on cancellation', async () => {
+            const execution: Execution<number> = {
+                result: async () => ({
+                    status: 'canceled',
+                    summary: mockSummary,
+                }),
+                cancel: () => {},
+                cleanup: async () => {},
+                [Symbol.asyncDispose]: async () => {},
+            };
+
+            const result = await execution.result();
+            expect(result.status).toBe('canceled');
+            expect(result.summary.totalDuration).toBeGreaterThanOrEqual(100);
         });
     });
 
     describe('StreamingExecution', () => {
-        it('should be iterable with for await...of', async () => {
+        it('should provide stream() method for event iteration', async () => {
             interface ProgressEvent {
                 type: 'progress' | 'complete';
                 message: string;
                 metrics: EventMetrics;
             }
 
+            const events: ProgressEvent[] = [
+                {
+                    type: 'progress',
+                    message: 'Step 1',
+                    metrics: { timestamp: 1000, elapsedMs: 0, deltaMs: 0 },
+                },
+                {
+                    type: 'complete',
+                    message: 'Done',
+                    metrics: { timestamp: 1100, elapsedMs: 100, deltaMs: 100 },
+                },
+            ];
+
             const streamingExecution: StreamingExecution<ProgressEvent, string> = {
-                toResult: async () => 'done',
-                getSummary: async () => mockSummary,
+                stream: async function* () {
+                    for (const event of events) {
+                        yield event;
+                    }
+                },
+                result: async () => ({
+                    status: 'succeeded',
+                    value: 'done',
+                    summary: mockSummary,
+                    events,
+                } satisfies StreamingResult<ProgressEvent, string>),
+                cancel: () => {},
                 cleanup: async () => {},
                 [Symbol.asyncDispose]: async () => {},
-                cancel: () => {},
-                [Symbol.asyncIterator]: async function* () {
-                    yield {
-                        type: 'progress',
-                        message: 'Step 1',
-                        metrics: { timestamp: 1000, elapsedMs: 0, deltaMs: 0 },
-                    };
-                    yield {
-                        type: 'complete',
-                        message: 'Done',
-                        metrics: { timestamp: 1100, elapsedMs: 100, deltaMs: 100 },
-                    };
-                },
             };
 
-            const events = await collectEvents(streamingExecution);
+            const collectedEvents: ProgressEvent[] = [];
+            for await (const event of streamingExecution.stream()) {
+                collectedEvents.push(event);
+            }
 
-            expect(events).toHaveLength(2);
-            expect(events[0].type).toBe('progress');
-            expect(events[1].type).toBe('complete');
+            expect(collectedEvents).toHaveLength(2);
+            expect(collectedEvents[0].type).toBe('progress');
+            expect(collectedEvents[1].type).toBe('complete');
+        });
+
+        it('should include events in result', async () => {
+            interface ProgressEvent {
+                type: 'progress' | 'complete';
+                message: string;
+                metrics: EventMetrics;
+            }
+
+            const events: ProgressEvent[] = [
+                {
+                    type: 'progress',
+                    message: 'Step 1',
+                    metrics: { timestamp: 1000, elapsedMs: 0, deltaMs: 0 },
+                },
+                {
+                    type: 'complete',
+                    message: 'Done',
+                    metrics: { timestamp: 1100, elapsedMs: 100, deltaMs: 100 },
+                },
+            ];
+
+            const streamingExecution: StreamingExecution<ProgressEvent, string> = {
+                stream: async function* () {
+                    for (const event of events) {
+                        yield event;
+                    }
+                },
+                result: async () => ({
+                    status: 'succeeded',
+                    value: 'done',
+                    summary: mockSummary,
+                    events,
+                }),
+                cancel: () => {},
+                cleanup: async () => {},
+                [Symbol.asyncDispose]: async () => {},
+            };
+
+            // Skip stream(), directly get result
+            const result = await streamingExecution.result();
+
+            expect(result.status).toBe('succeeded');
+            expect(result.events).toHaveLength(2);
+            expect(result.events[0].type).toBe('progress');
+            expect(result.events[1].type).toBe('complete');
         });
     });
 });

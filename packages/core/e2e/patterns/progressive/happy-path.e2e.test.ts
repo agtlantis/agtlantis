@@ -39,7 +39,7 @@ You MUST call reportProgress once, then call submitResult once. Do not skip step
         });
       });
 
-      for await (const event of execution) {
+      for await (const event of execution.stream()) {
         collectedEvents.push({
           type: event.type,
           data: 'data' in event ? event.data : undefined,
@@ -84,7 +84,7 @@ You MUST call reportProgress exactly 2 times, then call submitResult once. Do no
         });
       });
 
-      for await (const event of execution) {
+      for await (const event of execution.stream()) {
         if (event.type === 'progress' && 'data' in event) {
           progressEvents.push(event.data as SimpleProgress);
         }

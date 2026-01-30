@@ -1,11 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   AgtlantisError,
-  ProviderError,
   ExecutionError,
   ConfigurationError,
   FileError,
-  ProviderErrorCode,
   ExecutionErrorCode,
   ConfigurationErrorCode,
   FileErrorCode,
@@ -15,19 +13,19 @@ describe('Error Classes', () => {
   describe('AgtlantisError', () => {
     it('should create error with message and code', () => {
       const error = new AgtlantisError('test message', {
-        code: ProviderErrorCode.API_ERROR,
+        code: ExecutionErrorCode.EXECUTION_ERROR,
       });
 
       expect(error.message).toBe('test message');
       expect(error.name).toBe('AgtlantisError');
-      expect(error.code).toBe(ProviderErrorCode.API_ERROR);
+      expect(error.code).toBe(ExecutionErrorCode.EXECUTION_ERROR);
       expect(error).toBeInstanceOf(Error);
     });
 
     it('should support error chaining with cause', () => {
       const cause = new Error('original error');
       const error = new AgtlantisError('wrapped error', {
-        code: ProviderErrorCode.API_ERROR,
+        code: ExecutionErrorCode.STREAM_ERROR,
         cause,
       });
 
@@ -37,7 +35,7 @@ describe('Error Classes', () => {
 
     it('should support context for debugging', () => {
       const error = new AgtlantisError('api failed', {
-        code: ProviderErrorCode.API_ERROR,
+        code: ExecutionErrorCode.EXECUTION_ERROR,
         context: { endpoint: '/generate', statusCode: 500 },
       });
 
@@ -47,7 +45,7 @@ describe('Error Classes', () => {
     it('should serialize to JSON correctly', () => {
       const cause = new Error('network error');
       const error = new AgtlantisError('request failed', {
-        code: ProviderErrorCode.API_ERROR,
+        code: ExecutionErrorCode.STREAM_ERROR,
         cause,
         context: { retries: 3 },
       });
@@ -56,86 +54,11 @@ describe('Error Classes', () => {
 
       expect(json.name).toBe('AgtlantisError');
       expect(json.message).toBe('request failed');
-      expect(json.code).toBe('API_ERROR');
+      expect(json.code).toBe('STREAM_ERROR');
       expect(json.isRetryable).toBe(false);
       expect(json.context).toEqual({ retries: 3 });
       expect(json.cause).toBe('network error');
       expect(json.stack).toBeDefined();
-    });
-  });
-
-  describe('ProviderError', () => {
-    it('should extend AgtlantisError', () => {
-      const error = new ProviderError('provider failed');
-
-      expect(error.name).toBe('ProviderError');
-      expect(error).toBeInstanceOf(AgtlantisError);
-      expect(error).toBeInstanceOf(Error);
-    });
-
-    it('should default to PROVIDER_ERROR code', () => {
-      const error = new ProviderError('generic error');
-
-      expect(error.code).toBe(ProviderErrorCode.PROVIDER_ERROR);
-    });
-
-    it('should accept specific error code', () => {
-      const error = new ProviderError('rate limited', {
-        code: ProviderErrorCode.RATE_LIMIT,
-      });
-
-      expect(error.code).toBe(ProviderErrorCode.RATE_LIMIT);
-    });
-
-    it('should support context', () => {
-      const error = new ProviderError('api error', {
-        code: ProviderErrorCode.API_ERROR,
-        context: { statusCode: 429, retryAfter: 60 },
-      });
-
-      expect(error.context).toEqual({ statusCode: 429, retryAfter: 60 });
-    });
-
-    describe('static from()', () => {
-      it('should wrap unknown error with code', () => {
-        const original = new Error('something broke');
-        const error = ProviderError.from(original, ProviderErrorCode.API_ERROR);
-
-        expect(error.message).toBe('something broke');
-        expect(error.code).toBe(ProviderErrorCode.API_ERROR);
-        expect(error.cause).toBe(original);
-      });
-
-      it('should wrap non-Error values', () => {
-        const error = ProviderError.from('string error', ProviderErrorCode.API_ERROR);
-
-        expect(error.message).toBe('string error');
-        expect(error.cause).toBeInstanceOf(Error);
-      });
-
-      it('should wrap errors as ProviderError', () => {
-        const error = ProviderError.from(new Error('network fail'), ProviderErrorCode.TIMEOUT);
-
-        expect(error).toBeInstanceOf(ProviderError);
-        expect(error.code).toBe(ProviderErrorCode.TIMEOUT);
-      });
-
-      it('should return existing ProviderError unchanged', () => {
-        const existing = new ProviderError('existing', {
-          code: ProviderErrorCode.AUTH_ERROR,
-        });
-        const result = ProviderError.from(existing);
-
-        expect(result).toBe(existing);
-      });
-
-      it('should include context when provided', () => {
-        const error = ProviderError.from(new Error('fail'), ProviderErrorCode.API_ERROR, {
-          model: 'gpt-4',
-        });
-
-        expect(error.context).toEqual({ model: 'gpt-4' });
-      });
     });
   });
 
@@ -292,82 +215,48 @@ describe('Error Classes', () => {
   });
 
   describe('isRetryable', () => {
-    describe('AgtlantisError', () => {
-      it('should return false by default', () => {
-        const error = new AgtlantisError('test', {
-          code: ProviderErrorCode.API_ERROR,
-        });
+    it('should return false by default for all error types', () => {
+      const errors = [
+        new AgtlantisError('test', { code: ExecutionErrorCode.EXECUTION_ERROR }),
+        new ExecutionError('test'),
+        new ConfigurationError('test'),
+        new FileError('test'),
+      ];
 
+      for (const error of errors) {
         expect(error.isRetryable).toBe(false);
-      });
-    });
-
-    describe('ProviderError', () => {
-      it('should return true for RATE_LIMIT code', () => {
-        const error = new ProviderError('rate limited', {
-          code: ProviderErrorCode.RATE_LIMIT,
-        });
-
-        expect(error.isRetryable).toBe(true);
-      });
-
-      it('should return true for TIMEOUT code', () => {
-        const error = new ProviderError('timed out', {
-          code: ProviderErrorCode.TIMEOUT,
-        });
-
-        expect(error.isRetryable).toBe(true);
-      });
-
-      it('should return false for AUTH_ERROR code', () => {
-        const error = new ProviderError('auth failed', {
-          code: ProviderErrorCode.AUTH_ERROR,
-        });
-
-        expect(error.isRetryable).toBe(false);
-      });
-
-      it('should return false for other codes', () => {
-        const error = new ProviderError('generic', {
-          code: ProviderErrorCode.PROVIDER_ERROR,
-        });
-
-        expect(error.isRetryable).toBe(false);
-      });
+      }
     });
   });
 
   describe('Type-safe error handling', () => {
     it('should allow instanceof checks for specific error types', () => {
       const errors: Error[] = [
-        new ProviderError('provider'),
         new ExecutionError('execution'),
         new ConfigurationError('config'),
         new FileError('file'),
       ];
 
-      const providerErrors = errors.filter((e) => e instanceof ProviderError);
       const executionErrors = errors.filter((e) => e instanceof ExecutionError);
       const configErrors = errors.filter((e) => e instanceof ConfigurationError);
       const fileErrors = errors.filter((e) => e instanceof FileError);
 
-      expect(providerErrors).toHaveLength(1);
       expect(executionErrors).toHaveLength(1);
       expect(configErrors).toHaveLength(1);
       expect(fileErrors).toHaveLength(1);
     });
 
     it('should allow code-based error handling', () => {
-      const error = new ProviderError('rate limited', {
-        code: ProviderErrorCode.RATE_LIMIT,
+      const error = new ExecutionError('stream failed', {
+        code: ExecutionErrorCode.STREAM_ERROR,
       });
 
       switch (error.code) {
-        case ProviderErrorCode.RATE_LIMIT:
+        case ExecutionErrorCode.STREAM_ERROR:
           expect(true).toBe(true);
           break;
-        case ProviderErrorCode.TIMEOUT:
-        case ProviderErrorCode.API_ERROR:
+        case ExecutionErrorCode.CANCELLED:
+        case ExecutionErrorCode.EXECUTION_ERROR:
           expect(true).toBe(false);
           break;
       }

@@ -57,8 +57,15 @@ export function createBookingAgent(provider: Provider): EvalAgent<BookingInput, 
                 });
             });
 
-            const result = await execution.toResult();
-            const responseText = result.text;
+            const executionResult = await execution.result();
+
+            if (executionResult.status !== 'succeeded') {
+                throw executionResult.status === 'failed'
+                    ? executionResult.error
+                    : new Error('Execution was canceled');
+            }
+
+            const responseText = executionResult.value.text;
 
             // Parse JSON response
             let output: BookingOutput;
@@ -82,7 +89,7 @@ export function createBookingAgent(provider: Provider): EvalAgent<BookingInput, 
                 };
             }
 
-            const summary = await execution.getSummary();
+            const summary = executionResult.summary;
 
             return {
                 result: output,

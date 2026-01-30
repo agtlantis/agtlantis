@@ -116,9 +116,16 @@ export function createImprover(config: ImproverConfig): Improver {
                     return result.output!;
                 });
 
-                response = await execution.toResult();
-                const metadata = await execution.getSummary();
-                llmUsage = metadata.totalLLMUsage;
+                const executionResult = await execution.result();
+
+                if (executionResult.status !== 'succeeded') {
+                    throw executionResult.status === 'failed'
+                        ? executionResult.error
+                        : new Error('Execution was canceled');
+                }
+
+                response = executionResult.value;
+                llmUsage = executionResult.summary.totalLLMUsage;
             } catch (cause) {
                 throw EvalError.from(cause, EvalErrorCode.LLM_API_ERROR, {
                     promptId: prompt.id,

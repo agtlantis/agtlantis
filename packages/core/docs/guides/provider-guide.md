@@ -321,7 +321,7 @@ const execution = provider.simpleExecution(async (session) => {
 The Google provider supports file uploads via the `fileManager`. Files are automatically cleaned up when the session ends.
 
 ```typescript
-import { createGoogleProvider, type FilePart } from '@agtlantis/core';
+import { createGoogleProvider, type FileSource } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY!,
@@ -329,9 +329,9 @@ const provider = createGoogleProvider({
 
 const execution = provider.simpleExecution(async (session) => {
   // Upload a file from path
-  const files: FilePart[] = [
+  const files: FileSource[] = [
     {
-      type: 'file',
+      
       source: 'path',
       path: './document.pdf',
       mediaType: 'application/pdf',
@@ -345,9 +345,9 @@ const execution = provider.simpleExecution(async (session) => {
     prompt: [
       { type: 'text', text: 'Summarize this document:' },
       {
-        type: 'file',
+        
         data: new URL(uploaded[0].uri),
-        mimeType: uploaded[0].mimeType,
+        mediaType: uploaded[0].mediaType,
       },
     ],
   });
@@ -357,45 +357,45 @@ const execution = provider.simpleExecution(async (session) => {
 });
 ```
 
-**FilePart Types:**
+**FileSource Types:**
 
 There are four ways to provide files:
 
 ```typescript
 import type {
-  FilePartPath,
-  FilePartData,
-  FilePartBase64,
-  FilePartUrl,
+  FileSourcePath,
+  FileSourceData,
+  FileSourceBase64,
+  FileSourceUrl,
 } from '@agtlantis/core';
 
 // From local path
-const fromPath: FilePartPath = {
-  type: 'file',
+const fromPath: FileSourcePath = {
+  
   source: 'path',
   path: './image.png',
   mediaType: 'image/png', // Optional, inferred from extension
 };
 
 // From binary data
-const fromData: FilePartData = {
-  type: 'file',
+const fromData: FileSourceData = {
+  
   source: 'data',
   data: buffer, // Buffer or Uint8Array
   mediaType: 'image/png', // Required
 };
 
 // From base64 string
-const fromBase64: FilePartBase64 = {
-  type: 'file',
+const fromBase64: FileSourceBase64 = {
+  
   source: 'base64',
   data: 'iVBORw0KGgo...', // Base64 encoded
   mediaType: 'image/png', // Required
 };
 
 // From URL (no upload, passed directly to LLM)
-const fromUrl: FilePartUrl = {
-  type: 'file',
+const fromUrl: FileSourceUrl = {
+  
   source: 'url',
   url: 'https://example.com/image.png',
   mediaType: 'image/png', // Optional
@@ -408,23 +408,50 @@ Use type guards to check file part types:
 
 ```typescript
 import {
-  isFilePart,
-  isFilePartPath,
-  isFilePartData,
-  isFilePartBase64,
-  isFilePartUrl,
+  isFileSource,
+  isFileSourcePath,
+  isFileSourceData,
+  isFileSourceBase64,
+  isFileSourceUrl,
 } from '@agtlantis/core';
 
-if (isFilePart(value)) {
-  if (isFilePartPath(value)) {
+if (isFileSource(value)) {
+  if (isFileSourcePath(value)) {
     console.log('File from path:', value.path);
-  } else if (isFilePartUrl(value)) {
+  } else if (isFileSourceUrl(value)) {
     console.log('File from URL:', value.url);
   }
 }
 ```
 
 > **Note:** OpenAI doesn't support the upload + URI reference pattern. The `fileManager` on OpenAI sessions will throw an error if you try to upload files. Use inline base64 or URL content parts instead.
+
+**File Caching:**
+
+Enable file caching to avoid redundant uploads of identical content. The cache uses content hashes to detect duplicates:
+
+```typescript
+import { createGoogleProvider, InMemoryFileCache } from '@agtlantis/core';
+
+// Use default InMemoryFileCache (no TTL)
+const provider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY!,
+})
+  .withDefaultModel('gemini-2.5-flash')
+  .withFileCache();
+
+// Or provide a custom cache with TTL
+const cache = new InMemoryFileCache({ defaultTTL: 30 * 60 * 1000 }); // 30 min TTL
+const providerWithCache = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY!,
+})
+  .withDefaultModel('gemini-2.5-flash')
+  .withFileCache(cache);
+```
+
+When a file is uploaded, the FileManager computes a hash from its content. If an identical file was previously uploaded and cached, the cached URI is returned immediately without re-uploading.
+
+> **Note:** `withFileCache()` is also available on OpenAI provider for API consistency, but it's a no-op since OpenAI doesn't support file uploads.
 
 ### Google Search and URL Context Grounding
 

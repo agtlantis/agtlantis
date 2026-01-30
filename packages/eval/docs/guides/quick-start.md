@@ -68,13 +68,18 @@ export const qaAgent: EvalAgent<QuestionInput, AnswerOutput> = {
       return result
     })
 
-    const result = await execution.toResult()
-    const summary = await execution.getSummary()
+    const executionResult = await execution.result()
+
+    if (executionResult.status !== 'succeeded') {
+      throw executionResult.status === 'failed'
+        ? executionResult.error
+        : new Error('Execution was canceled')
+    }
 
     return {
-      result: { answer: result.text },
+      result: { answer: executionResult.value.text },
       metadata: {
-        tokenUsage: summary.totalLLMUsage,
+        tokenUsage: executionResult.summary.totalLLMUsage,
       },
     }
   },

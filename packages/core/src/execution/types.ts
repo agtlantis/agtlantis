@@ -2,10 +2,8 @@
  * Agent execution types for @agtlantis/core.
  * Provides abstractions for streaming and non-streaming agent execution.
  */
-
 import type { EventMetrics } from '@/observability';
-import type { SessionSummary } from '../session/types';
-import type { StreamingSession } from '../session/streaming-session';
+import type { SessionSummary, StreamingSession } from '@/session';
 
 // ============================================================================
 // Type Helpers
@@ -32,9 +30,7 @@ import type { StreamingSession } from '../session/streaming-session';
  * // Result: { type: 'a'; foo: string } | { type: 'b'; bar: number }
  * ```
  */
-export type DistributiveOmit<T, K extends keyof any> = T extends any
-    ? Omit<T, K>
-    : never;
+export type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never;
 
 /**
  * Adds `metrics: EventMetrics` to event types.
@@ -72,9 +68,10 @@ export type SessionEvent<T extends { type: string }> = T & {
  * // No casting needed!
  * ```
  */
-export type SessionEventInput<T extends { type: string; metrics: EventMetrics }> =
-    DistributiveOmit<T, 'metrics'>;
-
+export type SessionEventInput<T extends { type: string; metrics: EventMetrics }> = DistributiveOmit<
+    T,
+    'metrics'
+>;
 
 // ============================================================================
 // Reserved Event Types
@@ -112,12 +109,13 @@ export type ReservedEventType = 'complete' | 'error';
  * session.emit({ type: 'complete' }); // TypeScript allows, but throws at runtime!
  * ```
  */
-export type EmittableEventInput<T extends { type: string; metrics: EventMetrics }> =
-    T extends { type: infer Type }
-        ? Type extends ReservedEventType
-            ? never
-            : DistributiveOmit<T, 'metrics'>
-        : never;
+export type EmittableEventInput<T extends { type: string; metrics: EventMetrics }> = T extends {
+    type: infer Type;
+}
+    ? Type extends ReservedEventType
+        ? never
+        : DistributiveOmit<T, 'metrics'>
+    : never;
 
 /**
  * Options for execution.
@@ -145,6 +143,73 @@ export interface ExecutionOptions {
     signal?: AbortSignal;
 }
 
+// ============================================================================
+// Execution Result Types (Breaking Change)
+// ============================================================================
+
+/**
+ * Status of an execution after completion.
+ * - `succeeded`: Execution completed normally with a result
+ * - `failed`: Execution threw an error
+ * - `canceled`: Execution was canceled via cancel() or AbortSignal
+ */
+export type ExecutionStatus = 'succeeded' | 'failed' | 'canceled';
+
+/**
+ * Discriminated union representing the outcome of an execution.
+ * Summary is always available, regardless of execution status.
+ *
+ * @typeParam T - The result type on success
+ *
+ * @example
+ * ```typescript
+ * const result = await execution.result();
+ *
+ * if (result.status === 'succeeded') {
+ *   console.log(result.value);
+ * } else if (result.status === 'failed') {
+ *   console.error(result.error);
+ * }
+ *
+ * // Summary always available
+ * console.log(`Cost: $${result.summary.totalCost}`);
+ * ```
+ */
+export type ExecutionResult<T> =
+    | { status: 'succeeded'; value: T; summary: SessionSummary }
+    | { status: 'failed'; error: Error; summary: SessionSummary }
+    | { status: 'canceled'; summary: SessionSummary };
+
+/**
+ * Result type for SimpleExecution.
+ * Alias for ExecutionResult for clarity in type annotations.
+ */
+export type SimpleResult<T> = ExecutionResult<T>;
+
+/**
+ * Result type for StreamingExecution.
+ * Extends ExecutionResult with readonly events array.
+ * Events are always available, even on failure or cancellation.
+ *
+ * @typeParam TEvent - Event type
+ * @typeParam T - Result type on success
+ *
+ * @example
+ * ```typescript
+ * const result = await execution.result();
+ *
+ * // Events always available, regardless of status
+ * console.log(`Received ${result.events.length} events`);
+ *
+ * if (result.status === 'succeeded') {
+ *   console.log(result.value);
+ * }
+ * ```
+ */
+export type StreamingResult<TEvent, T> = ExecutionResult<T> & {
+    readonly events: readonly TEvent[];
+};
+
 /**
  * Base interface for all execution types.
  * Both streaming and non-streaming executions implement this interface,
@@ -155,15 +220,17 @@ export interface ExecutionOptions {
  * @example
  * ```typescript
  * // Option 1: Automatic cleanup with await using (recommended)
- * await using execution = await agent.execute(input);
- * const result = await execution.toResult();
- * const metadata = await execution.getSummary();
+ * await using execution = agent.execute(input);
+ * const result = await execution.result();
+ * if (result.status === 'succeeded') {
+ *   console.log(result.value, result.summary.totalCost);
+ * }
  * // cleanup() called automatically on scope exit
  *
  * // Option 2: Manual cleanup with try/finally
- * const execution = await agent.execute(input);
+ * const execution = agent.execute(input);
  * try {
- *   const result = await execution.toResult();
+ *   const result = await execution.result();
  * } finally {
  *   await execution.cleanup();
  * }
@@ -171,20 +238,36 @@ export interface ExecutionOptions {
  */
 export interface Execution<TResult> extends AsyncDisposable {
     /**
-     * Consume the execution and return the final result.
-     * For streaming executions, this consumes all events first.
+     * Get the execution result with status and summary.
+     * Returns a discriminated union that always includes the summary,
+     * regardless of whether execution succeeded, failed, or was canceled.
      *
-     * @throws Error if execution fails
+     * For streaming executions, this waits for all events to complete.
+     *
+     * @example
+     * ```typescript
+     * const result = await execution.result();
+     *
+     * if (result.status === 'succeeded') {
+     *   console.log(result.value);
+     * } else if (result.status === 'failed') {
+     *   console.error(result.error);
+     * }
+     *
+     * // Summary always available
+     * console.log(`Cost: $${result.summary.totalCost}`);
+     * ```
      */
-    toResult(): Promise<TResult>;
+    result(): Promise<ExecutionResult<TResult>>;
 
     /**
-     * Get execution summary (token usage, duration, costs, call records, etc.).
-     * Only available after execution completes.
+     * Request cancellation of the execution.
+     * Aborts the current operation if in progress.
+     * Works even if custom signal was provided (signals are combined).
      *
-     * @throws Error if called before completion
+     * No-op if execution already completed.
      */
-    getSummary(): Promise<SessionSummary>;
+    cancel(): void;
 
     /**
      * Cleanup resources (uploaded files, connections, etc.).
@@ -201,14 +284,14 @@ export interface Execution<TResult> extends AsyncDisposable {
 }
 
 /**
- * Simple (non-streaming) execution with cancellation support.
- * Extends base Execution with a cancel() method.
+ * Simple (non-streaming) execution.
+ * Starts eagerly on construction - execution begins immediately.
  *
  * @typeParam TResult - The final result type
  *
  * @example
  * ```typescript
- * // Start execution (sync - no await)
+ * // Start execution (sync - no await, starts immediately)
  * const execution = provider.simpleExecution(async (session) => {
  *   const response = await session.generateText({ prompt: 'Hello' });
  *   return response.text;
@@ -217,31 +300,48 @@ export interface Execution<TResult> extends AsyncDisposable {
  * // Cancel if needed
  * setTimeout(() => execution.cancel(), 5000);
  *
- * // Wait for result
- * try {
- *   const result = await execution.toResult();
- *   console.log(result);
- * } catch (error) {
- *   if (error.name === 'AbortError') {
- *     console.log('Cancelled');
- *   }
+ * // Get result (status-based, never throws)
+ * const result = await execution.result();
+ *
+ * if (result.status === 'succeeded') {
+ *   console.log(result.value);
+ * } else if (result.status === 'canceled') {
+ *   console.log('Execution was canceled');
  * }
+ *
+ * // Summary always available
+ * console.log(`Cost: $${result.summary.totalCost}`);
  * ```
  */
 export interface SimpleExecution<TResult> extends Execution<TResult> {
     /**
-     * Request cancellation of the execution.
-     * Aborts the current LLM call if in progress.
-     * Works even if custom signal was provided (signals are combined).
+     * Get the execution result with status and summary.
      *
-     * No-op if execution already completed.
+     * @example
+     * ```typescript
+     * const execution = provider.simpleExecution(async (session) => {
+     *   const response = await session.generateText({ prompt: 'Hello' });
+     *   return response.text;
+     * });
+     *
+     * const result = await execution.result();
+     *
+     * if (result.status === 'succeeded') {
+     *   console.log(result.value);
+     * } else if (result.status === 'failed') {
+     *   console.error(result.error);
+     * }
+     *
+     * // Summary always available
+     * console.log(`Cost: $${result.summary.totalCost}`);
+     * ```
      */
-    cancel(): void;
+    result(): Promise<SimpleResult<TResult>>;
 }
 
 /**
- * Streaming execution that yields events during execution.
- * Extends AsyncIterable for `for await...of` consumption.
+ * Streaming execution that yields events via stream() method.
+ * Starts eagerly on construction - execution and event buffering begin immediately.
  *
  * @typeParam TEvent - Event type yielded during streaming
  * @typeParam TResult - Final result type
@@ -249,46 +349,65 @@ export interface SimpleExecution<TResult> extends Execution<TResult> {
  * @example
  * ```typescript
  * const execution = agent.execute(input);
+ * // ↑ Already executing, events being buffered
  *
- * // Option 1: Stream events
- * for await (const event of execution) {
+ * // Option 1: Stream events (buffered + real-time)
+ * for await (const event of execution.stream()) {
  *   console.log(`[${event.metrics.elapsedMs}ms] ${event.type}`);
  * }
+ * const result = await execution.result();
  *
- * // Option 2: Get result directly (consumes events internally)
- * const result = await execution.toResult();
+ * // Option 2: Get result only (events available in result.events)
+ * const result = await execution.result();
+ * console.log(`Received ${result.events.length} events`);
  *
  * // Always cleanup
  * await execution.cleanup();
  * ```
  */
-export interface StreamingExecution<TEvent, TResult>
-    extends Execution<TResult>, AsyncIterable<TEvent> {
+export interface StreamingExecution<TEvent, TResult> extends Execution<TResult> {
     /**
-     * Request cancellation (cooperative).
+     * Get the event stream.
+     * Returns an AsyncIterable that yields all events:
+     * - Events already in the buffer (from eager execution)
+     * - Real-time events as they occur
      *
-     * Cancellation is **not** automatic - the generator must check the abort signal
-     * and stop gracefully. If the generator doesn't check, cancellation is ignored.
+     * Can be called multiple times - each call replays buffered events.
+     * After execution completes, replays all events from buffer.
      *
      * @example
      * ```typescript
-     * // In your generator, check for cancellation:
-     * async function* myGenerator({ emit, done }) {
-     *   const controller = new AbortController();
+     * const execution = provider.streamingExecution(...);
      *
-     *   while (!controller.signal.aborted) {
-     *     yield emit({ type: 'progress', ... });
-     *     await doSomeWork();
-     *   }
-     *
-     *   return done(result, usage);
+     * // Stream events
+     * for await (const event of execution.stream()) {
+     *   console.log(`[${event.metrics.elapsedMs}ms] ${event.type}`);
      * }
      *
-     * // The consumer can request cancellation:
-     * execution.cancel();
+     * // Get final result
+     * const result = await execution.result();
      * ```
      */
-    cancel(): void;
+    stream(): AsyncIterable<TEvent>;
+
+    /**
+     * Get the execution result with status, summary, and all events.
+     *
+     * @example
+     * ```typescript
+     * const result = await execution.result();
+     *
+     * // Events always available
+     * console.log(`Received ${result.events.length} events`);
+     *
+     * if (result.status === 'succeeded') {
+     *   console.log(result.value);
+     * }
+     *
+     * console.log(`Cost: $${result.summary.totalCost}`);
+     * ```
+     */
+    result(): Promise<StreamingResult<TEvent, TResult>>;
 }
 
 /**

@@ -36,7 +36,7 @@ describeEachProvider('Progressive Pattern - Edge Cases', (providerType) => {
         });
       });
 
-      for await (const event of execution) {
+      for await (const event of execution.stream()) {
         if (event.type === 'progress') {
           progressCount++;
         } else if (event.type === 'complete' && 'data' in event) {
@@ -67,7 +67,7 @@ describeEachProvider('Progressive Pattern - Edge Cases', (providerType) => {
         });
       });
 
-      for await (const event of execution) {
+      for await (const event of execution.stream()) {
         if (event.type === 'complete') {
           completed = true;
         }

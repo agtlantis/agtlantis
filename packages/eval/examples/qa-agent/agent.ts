@@ -51,8 +51,16 @@ export function createQAAgent(provider: Provider): EvalAgent<QAInput, QAOutput> 
                 return result.text;
             });
 
-            const responseText = await execution.toResult();
-            const summary = await execution.getSummary();
+            const executionResult = await execution.result();
+
+            if (executionResult.status !== 'succeeded') {
+                throw executionResult.status === 'failed'
+                    ? executionResult.error
+                    : new Error('Execution was canceled');
+            }
+
+            const responseText = executionResult.value;
+            const summary = executionResult.summary;
 
             // JSON 파싱 (LLM이 JSON을 반환하도록 프롬프트에서 지시)
             let output: QAOutput;

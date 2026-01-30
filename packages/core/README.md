@@ -112,6 +112,7 @@ LLM APIs (Google, OpenAI, Anthropic)
 | Module | Description | Key Exports |
 |--------|-------------|-------------|
 | **Provider** | Unified LLM interface with session management | `createGoogleProvider`, `createOpenAIProvider` |
+| **File Management** | File upload with caching support | `FileManager`, `FileCache`, `InMemoryFileCache` |
 | **Patterns** | Reusable execution patterns for streaming | `defineProgressivePattern` |
 | **Observability** | Structured logging and metrics collection | `createLogger`, `EventMetrics` |
 | **Validation** | Output validation with automatic retries | `withValidation`, `ValidationHistory` |
@@ -130,6 +131,35 @@ const openai = createOpenAIProvider({ apiKey: process.env.OPENAI_API_KEY });
 
 // Override default model
 const flashProvider = google.withDefaultModel('gemini-2.0-flash-exp');
+```
+
+### File Management Module
+
+Upload files with automatic caching to avoid redundant uploads:
+
+```typescript
+import { createGoogleProvider, InMemoryFileCache } from '@agtlantis/core';
+
+// Create provider with file caching (30 min TTL)
+const provider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY,
+})
+  .withDefaultModel('gemini-2.5-flash')
+  .withFileCache(new InMemoryFileCache({ defaultTTL: 30 * 60 * 1000 }));
+
+const execution = provider.simpleExecution(async (session) => {
+  // Files are cached by content hash - identical files won't be re-uploaded
+  const uploaded = await session.fileManager.upload([
+    { source: 'path', path: './document.pdf' },
+  ]);
+
+  return session.generateText({
+    prompt: [
+      { type: 'text', text: 'Summarize this document:' },
+      uploaded[0].part,
+    ],
+  });
+});
 ```
 
 ### Validation Module

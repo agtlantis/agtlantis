@@ -1,103 +1,114 @@
+import type { FilePart, ImagePart, ToolSet } from 'ai';
+
+import type {
+    EmittableEventInput,
+    ExecutionOptions,
+    SimpleExecution,
+    StreamingExecution,
+} from '@/execution';
+import type { EventMetrics } from '@/observability';
+import type { Logger } from '@/observability/logger';
+import type { ProviderPricing } from '@/pricing';
+import { SimpleSession, StreamingSession } from '@/session';
 import type {
     GenerateTextParams,
+    GenerateTextResultTyped,
+    OutputSpec,
     StreamTextParams,
-    SessionSummary,
+    StreamTextResultTyped,
     ToolCallSummary,
-} from '../session';
-import type { StreamingExecution, SimpleExecution, ExecutionOptions, EmittableEventInput } from '../execution';
-import type { EventMetrics } from '@/observability';
-import type { ProviderPricing } from '@/pricing';
-import type { ToolSet } from 'ai';
-import type { OutputSpec, GenerateTextResultTyped, StreamTextResultTyped } from '../session/types';
+} from '@/session';
 
 type DefaultOutput = OutputSpec<string, string>;
 
 /** Result of uploading a file to a provider's file storage */
 export interface UploadedFile {
-    /** Unique identifier from the provider (used for deletion) */
-    id: string;
-    /** URI to reference the file in subsequent API calls */
-    uri: string;
-    /** MIME type of the uploaded file */
-    mimeType: string;
-    /** Display name or original filename */
-    name: string;
-    /**
-     * Whether this file is an external URL reference (not uploaded to provider storage).
-     * External files are not tracked for cleanup - they're passed directly to LLM.
-     */
-    isExternal?: boolean;
+    /** Unique identifier from the provider (used for deletion, null for external URLs) */
+    id: string | null;
+    /** AI SDK part ready for use in prompts */
+    part: FilePart | ImagePart;
 }
 
 /** Provider-agnostic file manager interface for upload/delete operations */
 export interface FileManager {
-    upload(files: FilePart[]): Promise<UploadedFile[]>;
+    upload(files: FileSource[]): Promise<UploadedFile[]>;
     delete(fileId: string): Promise<void>;
     clear(): Promise<void>;
     getUploadedFiles(): UploadedFile[];
 }
 
-export interface FilePartPath {
-    type: 'file';
+/** Cache for uploaded files to prevent duplicate uploads */
+export interface FileCache {
+    get(hash: string): UploadedFile | null;
+    set(hash: string, file: UploadedFile, ttl?: number): void;
+    delete(hash: string): void;
+    clear(): void;
+}
+
+export interface FileManagerOptions {
+    cache?: FileCache;
+}
+
+export interface FileSourcePath {
     source: 'path';
     path: string;
     mediaType?: string;
     filename?: string;
+    hash?: string;
 }
 
-export interface FilePartData {
-    type: 'file';
+export interface FileSourceData {
     source: 'data';
     data: Buffer | Uint8Array;
     mediaType: string;
     filename?: string;
+    hash?: string;
 }
 
-export interface FilePartBase64 {
-    type: 'file';
+export interface FileSourceBase64 {
     source: 'base64';
     data: string;
     mediaType: string;
     filename?: string;
+    hash?: string;
 }
 
-export interface FilePartUrl {
-    type: 'file';
+export interface FileSourceUrl {
     source: 'url';
     url: string;
     mediaType?: string;
     filename?: string;
+    hash?: string;
 }
 
 /** Union of all file part types. Use `source` to discriminate. */
-export type FilePart = FilePartPath | FilePartData | FilePartBase64 | FilePartUrl;
+export type FileSource = FileSourcePath | FileSourceData | FileSourceBase64 | FileSourceUrl;
 
-export function isFilePart(v: unknown): v is FilePart {
+const FILE_SOURCE_TYPES = new Set(['path', 'data', 'base64', 'url']);
+
+export function isFileSource(v: unknown): v is FileSource {
     return (
         typeof v === 'object' &&
         v !== null &&
-        (v as Record<string, unknown>).type === 'file' &&
-        typeof (v as Record<string, unknown>).source === 'string'
+        FILE_SOURCE_TYPES.has((v as Record<string, unknown>).source as string)
     );
 }
 
-export function isFilePartPath(v: FilePart): v is FilePartPath {
+export function isFileSourcePath(v: FileSource): v is FileSourcePath {
     return v.source === 'path';
 }
 
-export function isFilePartData(v: FilePart): v is FilePartData {
+export function isFileSourceData(v: FileSource): v is FileSourceData {
     return v.source === 'data';
 }
 
-export function isFilePartBase64(v: FilePart): v is FilePartBase64 {
+export function isFileSourceBase64(v: FileSource): v is FileSourceBase64 {
     return v.source === 'base64';
 }
 
-export function isFilePartUrl(v: FilePart): v is FilePartUrl {
+export function isFileSourceUrl(v: FileSource): v is FileSourceUrl {
     return v.source === 'url';
 }
-
-import type { Logger } from '@/observability/logger';
 
 /** Provider interface with fluent configuration for AI model operations */
 export interface Provider {
@@ -140,53 +151,4 @@ export interface Provider {
         fn: (session: SimpleSession) => Promise<TResult>,
         options?: ExecutionOptions
     ): SimpleExecution<TResult>;
-}
-
-/** Session interface for streaming executions with AI SDK wrappers and stream control */
-export interface StreamingSession<TEvent extends { type: string; metrics: EventMetrics }, TResult> {
-    generateText<TOOLS extends ToolSet = {}, OUTPUT extends OutputSpec = DefaultOutput>(
-        params: GenerateTextParams<TOOLS, OUTPUT>
-    ): Promise<GenerateTextResultTyped<TOOLS, OUTPUT>>;
-
-    streamText<TOOLS extends ToolSet = {}, OUTPUT extends OutputSpec = DefaultOutput>(
-        params: StreamTextParams<TOOLS, OUTPUT>
-    ): StreamTextResultTyped<TOOLS, OUTPUT>;
-
-    readonly fileManager: FileManager;
-
-    /** Register cleanup function (LIFO order) */
-    onDone(fn: () => Promise<void> | void): void;
-
-    /**
-     * Emit intermediate event with auto-added metrics.
-     *
-     * Reserved types ('complete', 'error') throw at runtime.
-     * Use session.done() for completion or session.fail() for errors.
-     */
-    emit(event: EmittableEventInput<TEvent>): TEvent;
-
-    /** Signal successful completion */
-    done(data: TResult): Promise<TEvent>;
-
-    /** Signal failure with optional partial result */
-    fail(error: Error, data?: TResult): Promise<TEvent>;
-
-    record(data: Record<string, unknown>): void;
-    recordToolCall(summary: ToolCallSummary): void;
-}
-
-/** Session interface for non-streaming executions */
-export interface SimpleSession {
-    generateText<TOOLS extends ToolSet = {}, OUTPUT extends OutputSpec = DefaultOutput>(
-        params: GenerateTextParams<TOOLS, OUTPUT>
-    ): Promise<GenerateTextResultTyped<TOOLS, OUTPUT>>;
-
-    streamText<TOOLS extends ToolSet = {}, OUTPUT extends OutputSpec = DefaultOutput>(
-        params: StreamTextParams<TOOLS, OUTPUT>
-    ): StreamTextResultTyped<TOOLS, OUTPUT>;
-
-    readonly fileManager: FileManager;
-    onDone(fn: () => Promise<void> | void): void;
-    record(data: Record<string, unknown>): void;
-    recordToolCall(summary: ToolCallSummary): void;
 }

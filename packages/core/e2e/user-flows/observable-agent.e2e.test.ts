@@ -33,7 +33,7 @@ describeEachProvider('Observable Agent', (providerType) => {
                     return session.generateText({ prompt: 'Say hi' });
                 });
 
-                await execution.toResult();
+                await execution.result();
 
                 expect(eventOrder).toEqual(['llm-start', 'llm-end']);
             },
@@ -62,7 +62,7 @@ describeEachProvider('Observable Agent', (providerType) => {
                     return { first: first.text, second: second.text };
                 });
 
-                await execution.toResult();
+                await execution.result();
 
                 expect(eventOrder).toEqual(['llm-start', 'llm-end', 'llm-start', 'llm-end']);
             },
@@ -99,7 +99,7 @@ describeEachProvider('Observable Agent', (providerType) => {
                     return session.done(result.text);
                 });
 
-                for await (const _event of execution) {
+                for await (const _event of execution.stream()) {
                     // Consume stream to trigger execution lifecycle
                 }
 
@@ -140,7 +140,7 @@ describeEachProvider('Observable Agent', (providerType) => {
                 });
 
                 const events: Array<{ type: string; error?: Error }> = [];
-                for await (const event of execution) {
+                for await (const event of execution.stream()) {
                     events.push(event);
                 }
 
@@ -180,7 +180,7 @@ describeEachProvider('Observable Agent', (providerType) => {
                     return session.generateText({ prompt: 'Say hello' });
                 });
 
-                await execution.toResult();
+                await execution.result();
 
                 expect(llmEndEvent).not.toBeNull();
                 expect(llmEndEvent!.type).toBe('llm_call_end');

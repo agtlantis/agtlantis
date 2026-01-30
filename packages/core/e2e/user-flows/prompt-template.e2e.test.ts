@@ -30,10 +30,13 @@ describeEachProvider('Prompt Template', (providerType) => {
                     });
                 });
 
-                const result = await execution.toResult();
+                const result = await execution.result();
 
-                expect(result.text).toBeTruthy();
-                expect(result.text.length).toBeGreaterThan(0);
+                expect(result.status).toBe('succeeded');
+                if (result.status === 'succeeded') {
+                    expect(result.value.text).toBeTruthy();
+                    expect(result.value.text.length).toBeGreaterThan(0);
+                }
             },
             E2E_CONFIG.timeout
         );

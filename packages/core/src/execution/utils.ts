@@ -46,3 +46,53 @@ export function combineSignals(...signals: AbortSignal[]): AbortSignal {
 
   return controller.signal;
 }
+
+/**
+ * A Promise that can be resolved or rejected externally.
+ *
+ * Useful for bridging callback-based APIs to async/await patterns.
+ * The resolve/reject functions are exposed as instance properties,
+ * allowing external code to control when the promise settles.
+ *
+ * @typeParam T - The type of the resolved value (defaults to void)
+ *
+ * @example
+ * ```typescript
+ * const deferred = new Deferred<string>();
+ *
+ * // Later, in a callback:
+ * someApi.onData((data) => deferred.resolve(data));
+ * someApi.onError((err) => deferred.reject(err));
+ *
+ * // Await the result:
+ * const result = await deferred.promise;
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // In async generator for event notification:
+ * let pending = new Deferred<void>();
+ * const subscriber = () => pending.resolve();
+ *
+ * while (!done) {
+ *   await pending.promise;
+ *   pending = new Deferred<void>(); // Reset for next wait
+ * }
+ * ```
+ */
+export class Deferred<T = void> {
+  readonly promise: Promise<T>;
+  readonly resolve: (value: T) => void;
+  readonly reject: (error: Error) => void;
+
+  constructor() {
+    let res!: (value: T) => void;
+    let rej!: (error: Error) => void;
+    this.promise = new Promise<T>((resolve, reject) => {
+      res = resolve;
+      rej = reject;
+    });
+    this.resolve = res;
+    this.reject = rej;
+  }
+}

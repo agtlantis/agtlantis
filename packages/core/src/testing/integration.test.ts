@@ -36,9 +36,12 @@ describe('Multi-Model Integration', () => {
             return { gpt4: gpt4.text, claude: claude.text };
         });
 
-        const result = await execution.toResult();
-        expect(result.gpt4).toBe('GPT-4 response');
-        expect(result.claude).toBe('Claude response');
+        const result = await execution.result();
+        expect(result.status).toBe('succeeded');
+        if (result.status === 'succeeded') {
+            expect(result.value.gpt4).toBe('GPT-4 response');
+            expect(result.value.claude).toBe('Claude response');
+        }
 
         const calls = provider.getCalls();
         expect(calls).toHaveLength(2);
@@ -88,11 +91,9 @@ describe('Multi-Model Integration', () => {
             return 'done';
         });
 
-        await execution.toResult();
-
-        const metadata = await execution.getSummary();
-        expect(metadata.totalLLMUsage.inputTokens).toBe(1100);
-        expect(metadata.totalLLMUsage.outputTokens).toBe(550);
+        const result = await execution.result();
+        expect(result.summary.totalLLMUsage.inputTokens).toBe(1100);
+        expect(result.summary.totalLLMUsage.outputTokens).toBe(550);
     });
 
     it('should support default model with override per call', async () => {
@@ -109,9 +110,12 @@ describe('Multi-Model Integration', () => {
             return { default: defaultResult.text, override: overrideResult.text };
         });
 
-        const result = await execution.toResult();
-        expect(result.default).toBe('Response from gpt-3.5');
-        expect(result.override).toBe('Response from gpt-4-turbo');
+        const result = await execution.result();
+        expect(result.status).toBe('succeeded');
+        if (result.status === 'succeeded') {
+            expect(result.value.default).toBe('Response from gpt-3.5');
+            expect(result.value.override).toBe('Response from gpt-4-turbo');
+        }
 
         const calls = provider.getCalls();
         expect(calls).toHaveLength(2);
@@ -136,7 +140,11 @@ describe('Error Recovery Integration', () => {
             return 'done';
         });
 
-        await expect(execution.toResult()).rejects.toThrow('Second call failed');
+        const result = await execution.result();
+        expect(result.status).toBe('failed');
+        if (result.status === 'failed') {
+            expect(result.error.message).toBe('Second call failed');
+        }
 
         const calls = provider.getCalls();
         expect(calls).toHaveLength(2);
@@ -154,11 +162,7 @@ describe('Error Recovery Integration', () => {
             return 'never reached';
         });
 
-        try {
-            await execution.toResult();
-        } catch {
-            // Expected to throw
-        }
+        await execution.result();
 
         expect(cleanupFn).toHaveBeenCalledTimes(1);
     });
@@ -174,11 +178,7 @@ describe('Error Recovery Integration', () => {
             return 'never reached';
         });
 
-        try {
-            await execution.toResult();
-        } catch {
-            // Expected
-        }
+        await execution.result();
 
         const calls = provider.getCalls();
         expect(calls).toHaveLength(1);
@@ -198,7 +198,7 @@ describe('Provider Configuration Integration', () => {
             await session.generateText({ prompt: 'Test' });
             return 'done';
         });
-        await execution.toResult();
+        await execution.result();
 
         expect(baseProvider.getCalls()).toHaveLength(1);
         expect(configuredProvider.getCalls()).toHaveLength(1);
@@ -226,7 +226,7 @@ describe('Provider Configuration Integration', () => {
             await session.generateText({ prompt: 'Log this' });
             return 'done';
         });
-        await execution.toResult();
+        await execution.result();
 
         expect(logEvents).toContain('llm:start');
         expect(logEvents).toContain('llm:end');
@@ -254,7 +254,7 @@ describe('Streaming Lifecycle Integration', () => {
             return session.done(text);
         });
 
-        for await (const event of execution) {
+        for await (const event of execution.stream()) {
             emittedEvents.push(event);
         }
 
@@ -288,14 +288,14 @@ describe('Streaming Lifecycle Integration', () => {
             return session.done('result');
         });
 
-        for await (const _event of execution) {
+        for await (const _event of execution.stream()) {
             // drain the iterator
         }
 
         expect(hookOrder).toEqual(['after-emit', 'hook2', 'hook1']);
     });
 
-    it('should provide complete metadata after stream consumption', async () => {
+    it('should provide complete summary after stream consumption', async () => {
         const provider = mock.provider(
             mock.text('Answer', {
                 usage: {
@@ -317,14 +317,14 @@ describe('Streaming Lifecycle Integration', () => {
             return session.done('final');
         });
 
-        for await (const _event of execution) {
+        for await (const _event of execution.stream()) {
             // drain the iterator
         }
 
-        const metadata = await execution.getSummary();
-        expect(metadata.totalLLMUsage.inputTokens).toBe(50);
-        expect(metadata.totalLLMUsage.outputTokens).toBe(25);
-        expect(metadata.totalDuration).toBeGreaterThanOrEqual(0);
+        const result = await execution.result();
+        expect(result.summary.totalLLMUsage.inputTokens).toBe(50);
+        expect(result.summary.totalLLMUsage.outputTokens).toBe(25);
+        expect(result.summary.totalDuration).toBeGreaterThanOrEqual(0);
     });
 
     it('should track streaming LLM calls with mock.stream()', async () => {
@@ -339,7 +339,11 @@ describe('Streaming Lifecycle Integration', () => {
             return text;
         });
 
-        expect(await execution.toResult()).toBe('Hello, world!');
+        const result = await execution.result();
+        expect(result.status).toBe('succeeded');
+        if (result.status === 'succeeded') {
+            expect(result.value).toBe('Hello, world!');
+        }
         expect(provider.getCalls()).toHaveLength(1);
         expect(provider.getCalls()[0]!.type).toBe('stream');
     });

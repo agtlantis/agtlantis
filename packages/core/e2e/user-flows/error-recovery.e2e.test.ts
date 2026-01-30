@@ -5,12 +5,7 @@ import {
   E2E_CONFIG,
 } from '@e2e/helpers';
 import { createLogger } from '@/observability/logger';
-import {
-  ProviderError,
-  ExecutionError,
-  ProviderErrorCode,
-  ExecutionErrorCode,
-} from '@/errors';
+import { ExecutionError, ExecutionErrorCode } from '@/errors';
 import type { ExecutionErrorEvent } from '@/observability';
 
 describeEachProvider('Error Recovery', (providerType) => {
@@ -24,17 +19,15 @@ describeEachProvider('Error Recovery', (providerType) => {
           return session.generateText({ prompt: 'Hello' });
         });
 
-        try {
-          await execution.toResult();
-          expect.fail('Expected an error to be thrown');
-        } catch (error: unknown) {
-          expect(error).toBeInstanceOf(Error);
+        const result = await execution.result();
 
-          const err = error as Error;
-          expect(err.name).toBeTruthy();
-          expect(err.message).toBeTruthy();
+        expect(result.status).toBe('failed');
+        if (result.status === 'failed') {
+          expect(result.error).toBeInstanceOf(Error);
+          expect(result.error.name).toBeTruthy();
+          expect(result.error.message).toBeTruthy();
 
-          const message = err.message.toLowerCase();
+          const message = result.error.message.toLowerCase();
           const isAuthError =
             message.includes('api key') ||
             message.includes('invalid') ||
@@ -70,7 +63,7 @@ describeEachProvider('Error Recovery', (providerType) => {
         });
 
         const events: Array<{ type: string; error?: Error }> = [];
-        for await (const event of execution) {
+        for await (const event of execution.stream()) {
           events.push(event);
         }
 
@@ -118,7 +111,7 @@ describeEachProvider('Error Recovery', (providerType) => {
         });
 
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for await (const _event of execution) {
+        for await (const _event of execution.stream()) {
           // Consume stream to trigger execution lifecycle
         }
 
@@ -168,46 +161,4 @@ describe('Error Recovery - Error Class API', () => {
     });
   });
 
-  describe('ProviderError Context', () => {
-    it('should include context in ProviderError', () => {
-      const error = new ProviderError('API rate limit exceeded', {
-        code: ProviderErrorCode.RATE_LIMIT,
-        context: {
-          model: 'gpt-4o-mini',
-          retryAfter: 60,
-          requestId: 'req_123',
-        },
-      });
-
-      expect(error.context).toBeDefined();
-      expect(error.context).toEqual({
-        model: 'gpt-4o-mini',
-        retryAfter: 60,
-        requestId: 'req_123',
-      });
-
-      const json = error.toJSON();
-      expect(json.context).toEqual({
-        model: 'gpt-4o-mini',
-        retryAfter: 60,
-        requestId: 'req_123',
-      });
-      expect(json.code).toBe(ProviderErrorCode.RATE_LIMIT);
-    });
-
-    it('should include cause in error chain', () => {
-      const originalError = new Error('Network timeout');
-      const providerError = new ProviderError('Failed to call API', {
-        code: ProviderErrorCode.TIMEOUT,
-        cause: originalError,
-        context: { endpoint: '/v1/chat/completions' },
-      });
-
-      expect(providerError.cause).toBe(originalError);
-      expect(providerError.cause?.message).toBe('Network timeout');
-
-      const json = providerError.toJSON();
-      expect(json.cause).toBe('Network timeout');
-    });
-  });
 });

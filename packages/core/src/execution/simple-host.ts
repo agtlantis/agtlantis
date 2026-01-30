@@ -1,29 +1,49 @@
 import { SessionSummary } from '../session/types';
 import type { SimpleSession } from '../session/simple-session';
-import type { SimpleExecution } from './types';
+import type { SimpleExecution, SimpleResult } from './types';
 import { combineSignals } from './utils';
+import { isAbortError, normalizeError, createHookRunner } from './shared';
+
+/**
+ * Internal result structure for tracking execution outcome.
+ * Used to avoid throwing errors in the execution flow.
+ */
+type InternalResult<T> =
+  | { success: true; result: T; summary: SessionSummary }
+  | { success: false; error: Error; aborted: boolean; summary: SessionSummary };
 
 /**
  * SimpleExecutionHost implements the SimpleExecution interface for eager execution.
  *
- * Unlike StreamingExecutionHost which is lazy (starts on iteration), SimpleExecutionHost
- * starts execution immediately on construction. This enables cancel() to abort in-progress
- * LLM calls.
+ * Execution starts immediately on construction (eager evaluation).
+ * Use result() to get the execution outcome with status and summary.
  *
  * Signal combination:
  * - If userSignal is provided, it's combined with internal AbortController
  * - Both cancel() and userSignal abort will trigger cancellation
  * - The combined signal is passed to SimpleSession for AI SDK calls
+ *
+ * @example
+ * ```typescript
+ * const execution = new SimpleExecutionHost(createSession, async (session) => {
+ *   return await session.generateText({ prompt: 'Hello' });
+ * });
+ *
+ * const result = await execution.result();
+ *
+ * if (result.status === 'succeeded') {
+ *   console.log(result.value);
+ * }
+ * console.log(`Cost: $${result.summary.totalCost}`);
+ * ```
  */
 export class SimpleExecutionHost<TResult> implements SimpleExecution<TResult> {
   private readonly abortController = new AbortController();
   private readonly effectiveSignal: AbortSignal;
-  private readonly promise: Promise<{ result: TResult; session: SimpleSession }>;
-  private cachedResult?: TResult;
+  private readonly consumerPromise: Promise<InternalResult<TResult>>;
   private cachedSession?: SimpleSession;
-  private completed = false;
-  private hooksRan = false;
   private readonly startTime = Date.now();
+  private cancelRequested = false;
 
   constructor(
     createSession: (signal?: AbortSignal) => SimpleSession,
@@ -36,42 +56,48 @@ export class SimpleExecutionHost<TResult> implements SimpleExecution<TResult> {
       : this.abortController.signal;
 
     // Start execution immediately (eager evaluation)
-    this.promise = this.execute(createSession, fn);
+    this.consumerPromise = this.execute(createSession, fn);
   }
 
   private async execute(
     createSession: (signal?: AbortSignal) => SimpleSession,
     fn: (session: SimpleSession) => Promise<TResult>
-  ): Promise<{ result: TResult; session: SimpleSession }> {
+  ): Promise<InternalResult<TResult>> {
     const session = createSession(this.effectiveSignal);
     this.cachedSession = session;
+    const hookRunner = createHookRunner(() => session.runOnDoneHooks());
 
     // Notify execution start
     session.notifyExecutionStart();
 
     try {
       const result = await fn(session);
-      this.completed = true;
 
       // Notify execution done
       await session.notifyExecutionDone(result, this.startTime);
 
-      return { result, session };
+      return {
+        success: true,
+        result,
+        summary: await session.getSummary(),
+      };
     } catch (error) {
-      const errorObj = error instanceof Error ? error : new Error(String(error));
+      const errorObj = normalizeError(error);
+      const isCancellation = isAbortError(error, this.abortController.signal);
 
       // Notify execution error (AbortError excluded - treated as normal cancellation)
-      if (errorObj.name !== 'AbortError' && !this.abortController.signal.aborted) {
+      if (!isCancellation) {
         await session.notifyExecutionError(errorObj, this.startTime);
       }
 
-      throw error;
+      return {
+        success: false,
+        error: errorObj,
+        aborted: isCancellation,
+        summary: await session.getSummary(),
+      };
     } finally {
-      // Always run hooks, even on error/abort
-      if (!this.hooksRan) {
-        this.hooksRan = true;
-        await session.runOnDoneHooks();
-      }
+      await hookRunner.ensureRun();
     }
   }
 
@@ -81,38 +107,40 @@ export class SimpleExecutionHost<TResult> implements SimpleExecution<TResult> {
    * No-op if execution already completed.
    */
   cancel(): void {
+    this.cancelRequested = true;
     this.abortController.abort();
   }
 
   /**
-   * Get the final result of the execution.
-   * @throws AbortError if execution was cancelled
-   * @throws Error if execution failed
+   * Get the execution result with status and summary.
+   * Never throws - returns a discriminated union with status.
    */
-  async toResult(): Promise<TResult> {
-    if (this.cachedResult !== undefined) {
-      return this.cachedResult;
+  async result(): Promise<SimpleResult<TResult>> {
+    const internal = await this.consumerPromise;
+
+    // Success state
+    if (internal.success) {
+      return {
+        status: 'succeeded',
+        value: internal.result,
+        summary: internal.summary,
+      };
     }
 
-    const { result } = await this.promise;
-    this.cachedResult = result;
-    return result;
-  }
-
-  /**
-   * Get execution summary (token usage, duration, costs, etc.).
-   * Waits for execution to complete (success or error) before returning.
-   */
-  async getSummary(): Promise<SessionSummary> {
-    // Wait for completion, ignore errors (we still want summary on failure)
-    await this.promise.catch(() => {});
-
-    if (this.cachedSession) {
-      return this.cachedSession.getSummary();
+    // Canceled state (user called cancel() or external signal aborted)
+    if (this.cancelRequested || internal.aborted) {
+      return {
+        status: 'canceled',
+        summary: internal.summary,
+      };
     }
 
-    // Fallback if session creation itself failed
-    return SessionSummary.empty(Date.now());
+    // Failed state
+    return {
+      status: 'failed',
+      error: internal.error,
+      summary: internal.summary,
+    };
   }
 
   /**

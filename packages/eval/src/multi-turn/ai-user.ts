@@ -89,7 +89,15 @@ export function aiUser<TInput, TOutput>(
             return result.text;
         });
 
-        const responseText = await execution.toResult();
+        const executionResult = await execution.result();
+
+        if (executionResult.status !== 'succeeded') {
+            throw executionResult.status === 'failed'
+                ? executionResult.error
+                : new Error('Execution was canceled');
+        }
+
+        const responseText = executionResult.value;
         return buildInput(responseText, context);
     };
 }

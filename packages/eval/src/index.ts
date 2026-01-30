@@ -111,34 +111,34 @@ export {
 } from '@/core/types';
 
 // ============================================================================
-// FilePart (Embedded Files in Input)
+// FileSource (Embedded Files in Input)
 // ============================================================================
 
 export {
     // Resolver
-    resolveFilePart,
-    resolveFilePartsInInput,
+    resolveFileSource,
+    resolveFileSourcesInInput,
     // Scanner
-    scanForFileParts,
+    scanForFileSources,
     // Display info
-    getFilePartDisplayInfo,
-    getFilePartsDisplayInfo,
+    getFileSourceDisplayInfo,
+    getFileSourcesDisplayInfo,
     // Utilities
-    inferMimeType,
+    inferMediaType,
     // Type guards
-    isFilePart,
-    isFilePartPath,
-    isFilePartData,
-    isFilePartBase64,
-    isFilePartUrl,
+    isFileSource,
+    isFileSourcePath,
+    isFileSourceData,
+    isFileSourceBase64,
+    isFileSourceUrl,
     // Types
-    type FilePart,
-    type FilePartPath,
-    type FilePartData,
-    type FilePartBase64,
-    type FilePartUrl,
-    type FoundFilePart,
-    type FilePartDisplayInfo,
+    type FileSource,
+    type FileSourcePath,
+    type FileSourceData,
+    type FileSourceBase64,
+    type FileSourceUrl,
+    type FoundFileSource,
+    type FileSourceDisplayInfo,
     type ResolveOptions,
 } from '@agtlantis/core';
 
