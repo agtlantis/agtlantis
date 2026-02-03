@@ -1,15 +1,25 @@
-import { vi } from 'vitest';
+/**
+ * Test fixtures for execution module tests.
+ * Provides mock factories and session factories for testing.
+ *
+ * These fixtures are framework-agnostic (no vitest/jest dependency).
+ * Pass your own mock function (vi.fn, jest.fn, etc.) or use the noop default.
+ */
+
 import type { LanguageModel, LanguageModelUsage } from 'ai';
+
 import type { EventMetrics } from '@/observability';
 import type { FileManager } from '@/provider/types';
 import type { Logger } from '@/observability/logger';
 import { SimpleSession } from '../../session/simple-session';
 import { StreamingSession } from '../../session/streaming-session';
-import type { MockLogger } from './helpers';
 
 // ============================================================================
-// Constants
+// Types
 // ============================================================================
+
+export type MockFn = (...args: unknown[]) => unknown;
+export type MockFnFactory = () => MockFn;
 
 export const TEST_PROVIDER_TYPE = 'google' as const;
 
@@ -23,38 +33,81 @@ export interface TestEvent {
 }
 
 // ============================================================================
+// Default noop mock factory
+// ============================================================================
+
+const noop: MockFn = () => {};
+const noopFactory: MockFnFactory = () => noop;
+
+function createNoopWithReturn<T>(value: T): MockFn {
+  return () => value;
+}
+
+function createNoopAsync<T>(value: T): MockFn {
+  return () => Promise.resolve(value);
+}
+
+// ============================================================================
 // Mock Factories
 // ============================================================================
 
-export function createMockModel(): LanguageModel {
+export interface CreateMockModelOptions {
+  mockFn?: MockFnFactory;
+}
+
+export function createMockModel(options: CreateMockModelOptions = {}): LanguageModel {
+  const { mockFn = noopFactory } = options;
   return {
     specificationVersion: 'v1',
     provider: 'test-provider',
     modelId: 'test-model',
     defaultObjectGenerationMode: 'json',
-    doGenerate: vi.fn(),
-    doStream: vi.fn(),
+    doGenerate: mockFn(),
+    doStream: mockFn(),
   } as unknown as LanguageModel;
 }
 
-export function createMockFileManager(): FileManager {
-  return {
-    upload: vi.fn().mockResolvedValue([]),
-    delete: vi.fn().mockResolvedValue(undefined),
-    clear: vi.fn().mockResolvedValue(undefined),
-    getUploadedFiles: vi.fn().mockReturnValue([]),
-  };
+export interface CreateMockFileManagerOptions {
+  mockFn?: MockFnFactory;
 }
 
-export function createMockLogger(): MockLogger {
+export function createMockFileManager(
+  options: CreateMockFileManagerOptions = {}
+): FileManager {
+  const { mockFn } = options;
+
+  if (mockFn) {
+    return {
+      upload: mockFn(),
+      delete: mockFn(),
+      clear: mockFn(),
+      getUploadedFiles: mockFn(),
+    } as FileManager;
+  }
+
+  // Default noop implementation with proper return values
   return {
-    onLLMCallStart: vi.fn(),
-    onLLMCallEnd: vi.fn(),
-    onExecutionStart: vi.fn(),
-    onExecutionEmit: vi.fn(),
-    onExecutionDone: vi.fn(),
-    onExecutionError: vi.fn(),
-  } as MockLogger;
+    upload: createNoopAsync([]),
+    delete: createNoopAsync(undefined),
+    clear: createNoopAsync(undefined),
+    getUploadedFiles: createNoopWithReturn([]),
+  } as FileManager;
+}
+
+export interface CreateMockLoggerOptions {
+  mockFn?: MockFnFactory;
+}
+
+export function createMockLogger(options: CreateMockLoggerOptions = {}): Logger {
+  const { mockFn = noopFactory } = options;
+  return {
+    onLLMCallStart: mockFn(),
+    onLLMCallEnd: mockFn(),
+    onExecutionStart: mockFn(),
+    onExecutionEmit: mockFn(),
+    onExecutionDone: mockFn(),
+    onExecutionError: mockFn(),
+  };
 }
 
 export function createMockUsage(
@@ -81,16 +134,22 @@ export function createMockUsage(
 // Session Factories
 // ============================================================================
 
+export interface CreateSessionFactoryOptions {
+  mockFn?: MockFnFactory;
+  logger?: Logger;
+}
+
 export function createSimpleSessionFactory(
-  signal?: AbortSignal,
-  logger?: Logger
+  options: CreateSessionFactoryOptions = {}
 ): (signal?: AbortSignal) => SimpleSession {
-  return (providedSignal?: AbortSignal) =>
+  const { mockFn, logger } = options;
+
+  return (signal?: AbortSignal) =>
     new SimpleSession({
-      defaultLanguageModel: createMockModel(),
+      defaultLanguageModel: createMockModel({ mockFn }),
       providerType: TEST_PROVIDER_TYPE,
-      fileManager: createMockFileManager(),
-      signal: providedSignal ?? signal,
+      fileManager: createMockFileManager({ mockFn }),
+      signal,
       logger,
     });
 }
@@ -98,28 +157,39 @@ export function createSimpleSessionFactory(
 export function createStreamingSessionFactory<
   TEvent extends { type: string; metrics: EventMetrics } = TestEvent,
   TResult = string,
->(): () => StreamingSession<TEvent, TResult> {
+>(options: CreateSessionFactoryOptions = {}): () => StreamingSession<TEvent, TResult> {
+  const { mockFn, logger } = options;
+
   return () =>
     new StreamingSession<TEvent, TResult>({
-      defaultLanguageModel: createMockModel(),
+      defaultLanguageModel: createMockModel({ mockFn }),
       providerType: TEST_PROVIDER_TYPE,
-      fileManager: createMockFileManager(),
+      fileManager: createMockFileManager({ mockFn }),
+      logger,
     });
+}
+
+export interface CreateStreamingSessionFactoryWithSignalOptions
+  extends CreateSessionFactoryOptions {
+  onSignalCapture?: (signal: AbortSignal | undefined) => void;
 }
 
 export function createStreamingSessionFactoryWithSignal<
   TEvent extends { type: string; metrics: EventMetrics } = TestEvent,
   TResult = string,
 >(
-  onSignalCapture?: (signal: AbortSignal | undefined) => void
+  options: CreateStreamingSessionFactoryWithSignalOptions = {}
 ): (signal?: AbortSignal) => StreamingSession<TEvent, TResult> {
+  const { mockFn, logger, onSignalCapture } = options;
+
   return (signal?: AbortSignal) => {
     onSignalCapture?.(signal);
     return new StreamingSession<TEvent, TResult>({
-      defaultLanguageModel: createMockModel(),
+      defaultLanguageModel: createMockModel({ mockFn }),
       providerType: TEST_PROVIDER_TYPE,
-      fileManager: createMockFileManager(),
+      fileManager: createMockFileManager({ mockFn }),
       signal,
+      logger,
     });
   };
 }
@@ -158,13 +228,6 @@ export function createControllablePromise<T = void>(): {
 // ============================================================================
 
 export {
-  // Types
-  type MockLogger,
-  // Result assertions
-  expectSuccessResult,
-  expectFailedResult,
-  expectCanceledResult,
-  expectStreamingSuccessResult,
   // Abort/Signal helpers
   createAbortScenario,
   createAlreadyAbortedSignal,
@@ -180,6 +243,6 @@ export {
   collectStreamAsync,
   createNeverEndingGenerator,
   // Logger helpers
-  verifyLoggerSequence,
   createOrderTrackingLogger,
+  type LoggerEventType,
 } from './helpers';

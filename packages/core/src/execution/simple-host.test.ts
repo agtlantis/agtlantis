@@ -3,7 +3,8 @@ import type { Logger } from '@/observability/logger';
 import { SimpleSession } from '../session/simple-session';
 import { SessionSummary } from '../session/types';
 import { SimpleExecutionHost } from './simple-host';
-import { createMockLogger, createSimpleSessionFactory } from './testing/fixtures';
+import { createSimpleSessionFactory } from './testing/fixtures';
+import { createMockLogger } from './testing/vitest-assertions';
 
 vi.mock('ai', () => ({
   generateText: vi.fn(),
@@ -128,7 +129,7 @@ describe('SimpleExecutionHost', () => {
       const logger = createMockLogger();
       const fn = vi.fn().mockResolvedValue('test-result');
       const execution = new SimpleExecutionHost(
-        createSimpleSessionFactory(undefined, logger),
+        createSimpleSessionFactory({ logger }),
         fn
       );
 
@@ -168,7 +169,7 @@ describe('SimpleExecutionHost', () => {
 
       const fn = vi.fn().mockResolvedValue('result');
       const execution = new SimpleExecutionHost(
-        createSimpleSessionFactory(undefined, logger),
+        createSimpleSessionFactory({ logger }),
         fn
       );
 
@@ -182,7 +183,7 @@ describe('SimpleExecutionHost', () => {
       const error = new Error('Test execution error');
       const fn = vi.fn().mockRejectedValue(error);
       const execution = new SimpleExecutionHost(
-        createSimpleSessionFactory(undefined, logger),
+        createSimpleSessionFactory({ logger }),
         fn
       );
 
@@ -221,7 +222,7 @@ describe('SimpleExecutionHost', () => {
       });
 
       const execution = new SimpleExecutionHost(
-        createSimpleSessionFactory(undefined, logger),
+        createSimpleSessionFactory({ logger }),
         fn
       );
 
@@ -248,7 +249,7 @@ describe('SimpleExecutionHost', () => {
       });
 
       const execution = new SimpleExecutionHost(
-        createSimpleSessionFactory(undefined, logger),
+        createSimpleSessionFactory({ logger }),
         fn
       );
 
@@ -270,7 +271,7 @@ describe('SimpleExecutionHost', () => {
       });
 
       const execution = new SimpleExecutionHost(
-        createSimpleSessionFactory(undefined, logger),
+        createSimpleSessionFactory({ logger }),
         fn
       );
 

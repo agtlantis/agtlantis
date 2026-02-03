@@ -572,6 +572,189 @@ describe('UserProfileGenerator', () => {
 });
 ```
 
+## Execution Host Testing
+
+When building custom execution logic or testing the `StreamingExecutionHost` / `SimpleExecutionHost` directly (rather than through a Provider), you can use the low-level execution testing helpers. These are **framework-agnostic** — they work with vitest, Jest, or any testing library.
+
+### Session Factories
+
+Create mock sessions for testing execution hosts:
+
+```typescript
+import {
+  createStreamingSessionFactory,
+  createSimpleSessionFactory,
+} from '@agtlantis/core/testing';
+
+// Basic factory (uses noop mocks)
+const streamingFactory = createStreamingSessionFactory();
+const simpleFactory = createSimpleSessionFactory();
+
+// With custom logger
+import type { Logger } from '@agtlantis/core';
+const logger: Logger = { /* ... */ };
+const factoryWithLogger = createStreamingSessionFactory({ logger });
+
+// With vitest mocks for verification
+import { vi } from 'vitest';
+const factoryWithMocks = createStreamingSessionFactory({ mockFn: vi.fn });
+
+// With Jest mocks
+const factoryWithJest = createStreamingSessionFactory({ mockFn: jest.fn });
+```
+
+### Generator Helpers
+
+Create generator functions for streaming execution tests:
+
+```typescript
+import {
+  createSimpleGenerator,
+  createErrorGenerator,
+  createSlowGenerator,
+  createNeverEndingGenerator,
+} from '@agtlantis/core/testing';
+
+// Simple success case
+const generator = createSimpleGenerator('my result', [
+  { type: 'progress', message: 'Step 1' },
+  { type: 'progress', message: 'Step 2' },
+]);
+
+// Error case
+const errorGenerator = createErrorGenerator(
+  new Error('Something went wrong'),
+  [{ type: 'progress', message: 'Before error' }]  // events emitted before error
+);
+
+// Slow generator for timing tests
+const slowGenerator = createSlowGenerator(
+  [{ type: 'chunk', content: 'A' }, { type: 'chunk', content: 'B' }],
+  100  // 100ms delay between events
+);
+
+// Never-ending generator for cancel/cleanup tests
+const infiniteGenerator = createNeverEndingGenerator([
+  { type: 'start' },
+]);
+```
+
+### Abort/Cancel Testing
+
+Test cancellation flows with abort helpers:
+
+```typescript
+import {
+  createAbortScenario,
+  createAlreadyAbortedSignal,
+  createCancelableGenerator,
+} from '@agtlantis/core/testing';
+import { StreamingExecutionHost } from '@agtlantis/core';
+
+// Create abort controller and helpers
+const { signal, abort, isAborted } = createAbortScenario();
+
+// Create generator that waits for cancellation
+const generator = createCancelableGenerator(
+  createAbortScenario(),
+  () => console.log('Canceled!')  // optional callback
+);
+
+// Test pre-aborted scenario
+const alreadyAborted = createAlreadyAbortedSignal('User navigated away');
+```
+
+### Complete Example
+
+Here's a full example testing `StreamingExecutionHost` directly:
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { StreamingExecutionHost } from '@agtlantis/core';
+import {
+  createStreamingSessionFactory,
+  createSimpleGenerator,
+  createAbortScenario,
+  collectStreamAsync,
+} from '@agtlantis/core/testing';
+
+describe('StreamingExecutionHost', () => {
+  it('should complete successfully with events', async () => {
+    const factory = createStreamingSessionFactory();
+    const generator = createSimpleGenerator('final result', [
+      { type: 'progress', message: 'Working...' },
+    ]);
+
+    const execution = new StreamingExecutionHost(factory, generator);
+
+    // Collect all events
+    const events = await collectStreamAsync(execution.stream());
+    expect(events).toHaveLength(2); // progress + complete
+
+    // Check final result
+    const result = await execution.result();
+    expect(result.status).toBe('succeeded');
+    if (result.status === 'succeeded') {
+      expect(result.value).toBe('final result');
+    }
+  });
+
+  it('should handle cancellation', async () => {
+    const factory = createStreamingSessionFactory();
+    const { signal, abort } = createAbortScenario();
+    const generator = createSimpleGenerator('result', []);
+
+    const execution = new StreamingExecutionHost(factory, generator, signal);
+
+    // Cancel immediately
+    abort();
+
+    const result = await execution.result();
+    expect(result.status).toBe('canceled');
+  });
+});
+```
+
+### Using with Jest
+
+The helpers work with any test framework. For Jest:
+
+```typescript
+import {
+  createStreamingSessionFactory,
+  createMockLogger,
+} from '@agtlantis/core/testing';
+
+// Pass jest.fn as mock function factory
+const factory = createStreamingSessionFactory({ mockFn: jest.fn });
+const logger = createMockLogger({ mockFn: jest.fn });
+
+// Now logger methods are jest spies
+expect(logger.onExecutionStart).toHaveBeenCalled();
+```
+
+### Available Helpers
+
+| Helper | Description |
+|--------|-------------|
+| `createStreamingSessionFactory()` | Creates factory for `StreamingSession` |
+| `createSimpleSessionFactory()` | Creates factory for `SimpleSession` |
+| `createSimpleGenerator()` | Generator that emits events and returns result |
+| `createErrorGenerator()` | Generator that throws after optional events |
+| `createSlowGenerator()` | Generator with delay between events |
+| `createNeverEndingGenerator()` | Generator that waits forever (for cancel tests) |
+| `createCancelableGenerator()` | Generator that responds to abort signal |
+| `createCancelableFunction()` | Function version for `SimpleExecutionHost` |
+| `createDelayedGenerator()` | Generator with initial delay before result |
+| `createAbortScenario()` | Creates controller + signal + helpers |
+| `createAlreadyAbortedSignal()` | Pre-aborted signal for immediate cancel |
+| `collectStreamAsync()` | Collects all events from async iterable |
+| `createControllablePromise()` | Promise with external resolve/reject |
+| `createOrderTrackingLogger()` | Logger that tracks call order |
+| `createMockModel()` | Creates mock `LanguageModel` |
+| `createMockFileManager()` | Creates mock `FileManager` |
+| `createMockLogger()` | Creates mock `Logger` |
+
 ## See Also
 
 - [API Reference: Testing](../api/testing.md) - Complete API documentation

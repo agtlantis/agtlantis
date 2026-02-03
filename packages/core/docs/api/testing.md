@@ -37,6 +37,34 @@ import {
   // Re-exports from AI SDK
   MockLanguageModelV3,
   simulateReadableStream,
+
+  // Execution Host Testing (framework-agnostic)
+  createStreamingSessionFactory,
+  createSimpleSessionFactory,
+  createStreamingSessionFactoryWithSignal,
+  createMockModel,
+  createMockFileManager,
+  createMockLogger,
+  createMockLanguageModelUsage,
+  createSimpleGenerator,
+  createErrorGenerator,
+  createSlowGenerator,
+  createNeverEndingGenerator,
+  createCancelableGenerator,
+  createCancelableFunction,
+  createDelayedGenerator,
+  createAbortScenario,
+  createAlreadyAbortedSignal,
+  collectStreamAsync,
+  collectExecutionEvents,
+  createControllablePromise,
+  createOrderTrackingLogger,
+  type AbortScenario,
+  type MockFn,
+  type MockFnFactory,
+  type CreateMockModelOptions,
+  type CreateSessionFactoryOptions,
+  type LoggerEventType,
 } from '@agtlantis/core/testing';
 ```
 
@@ -536,6 +564,289 @@ describe('fluentConfiguration', () => {
     expect(configuredProvider.getCalls()[0].modelId).toBe('test-model');
   });
 });
+```
+
+## Execution Host Testing
+
+These helpers are **framework-agnostic** and work with any test framework (vitest, Jest, etc.).
+
+### Types
+
+#### MockFn
+
+```typescript
+type MockFn = (...args: unknown[]) => unknown;
+```
+
+#### MockFnFactory
+
+```typescript
+type MockFnFactory = () => MockFn;
+```
+
+#### AbortScenario
+
+```typescript
+interface AbortScenario {
+  controller: AbortController;
+  signal: AbortSignal;
+  abort: (reason?: string) => void;
+  isAborted: () => boolean;
+}
+```
+
+#### CreateMockModelOptions
+
+```typescript
+interface CreateMockModelOptions {
+  mockFn?: MockFnFactory;  // e.g., () => vi.fn() or () => jest.fn()
+}
+```
+
+#### CreateSessionFactoryOptions
+
+```typescript
+interface CreateSessionFactoryOptions {
+  mockFn?: MockFnFactory;
+  logger?: Logger;
+}
+```
+
+### Session Factories
+
+#### createStreamingSessionFactory()
+
+Creates a factory function for StreamingSession instances.
+
+```typescript
+function createStreamingSessionFactory<TEvent, TResult>(
+  options?: CreateSessionFactoryOptions
+): () => StreamingSession<TEvent, TResult>
+```
+
+**Example:**
+
+```typescript
+import { createStreamingSessionFactory } from '@agtlantis/core/testing';
+
+// Basic usage (noop mocks)
+const factory = createStreamingSessionFactory();
+
+// With vitest mocks
+import { vi } from 'vitest';
+const factory = createStreamingSessionFactory({ mockFn: vi.fn });
+
+// With logger
+const factory = createStreamingSessionFactory({ logger: myLogger });
+```
+
+#### createSimpleSessionFactory()
+
+Creates a factory function for SimpleSession instances.
+
+```typescript
+function createSimpleSessionFactory(
+  options?: CreateSessionFactoryOptions
+): (signal?: AbortSignal) => SimpleSession
+```
+
+#### createStreamingSessionFactoryWithSignal()
+
+Creates a factory that captures the signal passed to it.
+
+```typescript
+function createStreamingSessionFactoryWithSignal<TEvent, TResult>(
+  options?: CreateStreamingSessionFactoryWithSignalOptions
+): (signal?: AbortSignal) => StreamingSession<TEvent, TResult>
+```
+
+### Mock Factories
+
+#### createMockModel()
+
+Creates a mock LanguageModel.
+
+```typescript
+function createMockModel(options?: CreateMockModelOptions): LanguageModel
+```
+
+#### createMockFileManager()
+
+Creates a mock FileManager.
+
+```typescript
+function createMockFileManager(options?: CreateMockFileManagerOptions): FileManager
+```
+
+#### createMockLogger()
+
+Creates a mock Logger.
+
+```typescript
+function createMockLogger(options?: CreateMockLoggerOptions): Logger
+```
+
+### Generator Helpers
+
+#### createSimpleGenerator()
+
+Creates a generator that emits events and returns a result.
+
+```typescript
+function createSimpleGenerator<TEvent, TResult>(
+  result: TResult,
+  events?: Array<Omit<TEvent, 'metrics'>>
+): SessionStreamGeneratorFn<TEvent, TResult>
+```
+
+**Example:**
+
+```typescript
+const generator = createSimpleGenerator('final result', [
+  { type: 'progress', message: 'Step 1' },
+  { type: 'progress', message: 'Step 2' },
+]);
+```
+
+#### createErrorGenerator()
+
+Creates a generator that throws an error after emitting optional events.
+
+```typescript
+function createErrorGenerator<TEvent>(
+  error: Error,
+  eventsBeforeError?: Array<Omit<TEvent, 'metrics'>>
+): SessionStreamGeneratorFn<TEvent, never>
+```
+
+#### createSlowGenerator()
+
+Creates a generator with delays between events.
+
+```typescript
+function createSlowGenerator<TEvent>(
+  events: Array<Omit<TEvent, 'metrics'>>,
+  delayBetweenEventsMs: number,
+  abortScenario?: AbortScenario
+): SessionStreamGeneratorFn<TEvent, undefined>
+```
+
+#### createNeverEndingGenerator()
+
+Creates a generator that waits forever (for cancel/cleanup tests).
+
+```typescript
+function createNeverEndingGenerator<TEvent>(
+  eventsBeforeWait?: Array<Omit<TEvent, 'metrics'>>,
+  abortScenario?: AbortScenario
+): SessionStreamGeneratorFn<TEvent, undefined>
+```
+
+#### createCancelableGenerator()
+
+Creates a generator that responds to abort signals.
+
+```typescript
+function createCancelableGenerator<TEvent>(
+  abortScenario: AbortScenario,
+  onCancel?: () => void,
+  eventsBeforeWait?: Array<Omit<TEvent, 'metrics'>>
+): SessionStreamGeneratorFn<TEvent, void>
+```
+
+#### createCancelableFunction()
+
+Creates a function that responds to abort signals (for SimpleExecutionHost).
+
+```typescript
+function createCancelableFunction(
+  abortScenario: AbortScenario,
+  onCancel?: () => void
+): (session: SimpleSession) => Promise<unknown>
+```
+
+#### createDelayedGenerator()
+
+Creates a generator with an initial delay before returning result.
+
+```typescript
+function createDelayedGenerator<TEvent, TResult>(
+  delayMs: number,
+  result: TResult,
+  abortScenario?: AbortScenario
+): SessionStreamGeneratorFn<TEvent, TResult>
+```
+
+### Abort Helpers
+
+#### createAbortScenario()
+
+Creates an abort controller with convenience methods.
+
+```typescript
+function createAbortScenario(): AbortScenario
+```
+
+**Example:**
+
+```typescript
+const { signal, abort, isAborted } = createAbortScenario();
+
+// Pass signal to execution
+const execution = new StreamingExecutionHost(factory, generator, signal);
+
+// Cancel later
+abort('User canceled');
+expect(isAborted()).toBe(true);
+```
+
+#### createAlreadyAbortedSignal()
+
+Creates a pre-aborted signal for testing immediate cancellation.
+
+```typescript
+function createAlreadyAbortedSignal(reason?: string): AbortSignal
+```
+
+### Utility Functions
+
+#### collectStreamAsync()
+
+Collects all events from an async iterable.
+
+```typescript
+function collectStreamAsync<T>(stream: AsyncIterable<T>): Promise<T[]>
+```
+
+#### createControllablePromise()
+
+Creates a promise with external resolve/reject controls.
+
+```typescript
+function createControllablePromise<T = void>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (error: Error) => void;
+}
+```
+
+#### createOrderTrackingLogger()
+
+Creates a logger that tracks the order of calls.
+
+```typescript
+function createOrderTrackingLogger(): {
+  logger: Logger;
+  getCallOrder: () => LoggerEventType[];
+}
+```
+
+**Example:**
+
+```typescript
+const { logger, getCallOrder } = createOrderTrackingLogger();
+// ... run execution with logger
+expect(getCallOrder()).toEqual(['start', 'emit', 'done']);
 ```
 
 ## See Also

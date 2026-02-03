@@ -1,121 +1,20 @@
 /**
  * Test helpers for execution module tests.
- * Provides reusable utilities for result assertions, abort scenarios,
- * generator creation, and logger verification.
+ * Provides reusable utilities for abort scenarios, generator creation,
+ * and logger tracking.
+ *
+ * These helpers are framework-agnostic (no vitest/jest dependency).
  */
 
-import { vi } from 'vitest';
-import { expect } from 'vitest';
 import type { EventMetrics } from '@/observability';
 import type { Logger } from '@/observability/logger';
-import type { ExecutionResult, StreamingResult } from '../types';
 import type { SimpleSession } from '../../session/simple-session';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type MockLogger = Logger & {
-  onLLMCallStart: ReturnType<typeof vi.fn>;
-  onLLMCallEnd: ReturnType<typeof vi.fn>;
-  onExecutionStart: ReturnType<typeof vi.fn>;
-  onExecutionEmit: ReturnType<typeof vi.fn>;
-  onExecutionDone: ReturnType<typeof vi.fn>;
-  onExecutionError: ReturnType<typeof vi.fn>;
-};
-
-// ============================================================================
-// Result Assertion Helpers
-// ============================================================================
-
-/**
- * Assert that an execution result is successful and optionally check the value.
- *
- * @example
- * ```typescript
- * const result = await execution.result();
- * expectSuccessResult(result, 'expected-value');
- * // result is now narrowed to succeeded type
- * console.log(result.value);
- * ```
- */
-export function expectSuccessResult<T>(
-  result: ExecutionResult<T>,
-  expectedValue?: T
-): asserts result is Extract<ExecutionResult<T>, { status: 'succeeded' }> {
-  expect(result.status).toBe('succeeded');
-  if (result.status !== 'succeeded') {
-    throw new Error('Result is not succeeded');
-  }
-  if (expectedValue !== undefined) {
-    expect(result.value).toBe(expectedValue);
-  }
-}
-
-/**
- * Assert that an execution result is failed and optionally check the error.
- *
- * @example
- * ```typescript
- * const result = await execution.result();
- * expectFailedResult(result, 'Expected error message');
- * // or with regex
- * expectFailedResult(result, /timeout/i);
- * ```
- */
-export function expectFailedResult<T>(
-  result: ExecutionResult<T>,
-  errorMatcher?: string | RegExp | Error
-): asserts result is Extract<ExecutionResult<T>, { status: 'failed' }> {
-  expect(result.status).toBe('failed');
-  if (result.status !== 'failed') {
-    throw new Error('Result is not failed');
-  }
-  if (errorMatcher !== undefined) {
-    if (typeof errorMatcher === 'string') {
-      expect(result.error.message).toBe(errorMatcher);
-    } else if (errorMatcher instanceof RegExp) {
-      expect(result.error.message).toMatch(errorMatcher);
-    } else {
-      expect(result.error).toBe(errorMatcher);
-    }
-  }
-}
-
-/**
- * Assert that an execution result is canceled.
- *
- * @example
- * ```typescript
- * const result = await execution.result();
- * expectCanceledResult(result);
- * ```
- */
-export function expectCanceledResult<T>(
-  result: ExecutionResult<T>
-): asserts result is Extract<ExecutionResult<T>, { status: 'canceled' }> {
-  expect(result.status).toBe('canceled');
-}
-
-/**
- * Assert streaming result status and optionally check events count.
- *
- * @example
- * ```typescript
- * const result = await execution.result();
- * expectStreamingSuccessResult(result, 'value', 3);
- * ```
- */
-export function expectStreamingSuccessResult<TEvent, T>(
-  result: StreamingResult<TEvent, T>,
-  expectedValue?: T,
-  expectedEventCount?: number
-): asserts result is Extract<StreamingResult<TEvent, T>, { status: 'succeeded' }> {
-  expectSuccessResult(result, expectedValue);
-  if (expectedEventCount !== undefined) {
-    expect(result.events).toHaveLength(expectedEventCount);
-  }
-}
+export type LoggerEventType = 'start' | 'emit' | 'done' | 'error';
 
 // ============================================================================
 // Abort/Signal Helpers
@@ -496,51 +395,12 @@ export function createNeverEndingGenerator<
 }
 
 // ============================================================================
-// Logger Verification Helpers
+// Logger Tracking Helpers (framework-agnostic)
 // ============================================================================
-
-type LoggerEventType = 'start' | 'emit' | 'done' | 'error';
-
-/**
- * Verify that logger was called in the expected sequence.
- *
- * @example
- * ```typescript
- * const logger = createMockLogger();
- * // ... run execution ...
- *
- * verifyLoggerSequence(logger, ['start', 'emit', 'emit', 'done']);
- * ```
- */
-export function verifyLoggerSequence(
-  logger: MockLogger,
-  expectedSequence: LoggerEventType[]
-): void {
-  const eventMap: Record<LoggerEventType, keyof MockLogger> = {
-    start: 'onExecutionStart',
-    emit: 'onExecutionEmit',
-    done: 'onExecutionDone',
-    error: 'onExecutionError',
-  };
-
-  // Count expected occurrences
-  const expectedCounts = expectedSequence.reduce(
-    (acc, event) => {
-      acc[event] = (acc[event] || 0) + 1;
-      return acc;
-    },
-    {} as Record<LoggerEventType, number>
-  );
-
-  // Verify each event type was called the expected number of times
-  for (const [event, count] of Object.entries(expectedCounts)) {
-    const methodName = eventMap[event as LoggerEventType];
-    expect(logger[methodName]).toHaveBeenCalledTimes(count);
-  }
-}
 
 /**
  * Create a logger that tracks call order for sequence verification.
+ * This version is framework-agnostic (no vitest/jest dependency).
  *
  * @example
  * ```typescript
@@ -551,12 +411,12 @@ export function verifyLoggerSequence(
  * ```
  */
 export function createOrderTrackingLogger(): {
-  logger: MockLogger;
+  logger: Logger;
   getCallOrder: () => LoggerEventType[];
 } {
   const callOrder: LoggerEventType[] = [];
 
-  const logger = {
+  const logger: Logger = {
     onLLMCallStart: () => {},
     onLLMCallEnd: () => {},
     onExecutionStart: () => {
@@ -571,7 +431,7 @@ export function createOrderTrackingLogger(): {
     onExecutionError: () => {
       callOrder.push('error');
     },
-  } as MockLogger;
+  };
 
   return {
     logger,
