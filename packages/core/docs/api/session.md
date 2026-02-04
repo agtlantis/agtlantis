@@ -57,32 +57,34 @@ type Good = DistributiveOmit<Union, 'metrics'>;
 
 ### SessionEvent<T>
 
-Adds `metrics: EventMetrics` to event types. Define events without metrics, then wrap with `SessionEvent`:
+Adds `metrics: EventMetrics` to your event type. The framework uses this internally to include timing information with each event.
+
+**For most cases, you don't need this** - the framework automatically wraps your events with `SessionEvent<T>` internally. Just define your event types without metrics:
 
 ```typescript
-// Step 1: Define events WITHOUT metrics
-type ProgressEvent = { type: 'progress'; step: string; message: string };
-type CompleteEvent = { type: 'complete'; data: AnalysisResult };
-type ErrorEvent = { type: 'error'; error: Error };
-
-// Step 2: Wrap with SessionEvent - metrics added automatically
-type AnalyzerEvent = SessionEvent<ProgressEvent | CompleteEvent | ErrorEvent>;
-
-// Step 3: Extract individual types if needed
-type AnalyzerProgressEvent = Extract<AnalyzerEvent, { type: 'progress' }>;
+// Recommended: Pure event types (framework adds metrics)
+type MyEvent =
+  | { type: 'progress'; message: string }
+  | { type: 'complete'; data: string };
 ```
 
-### SessionEventInput<T>
-
-Input type for `session.emit()` - removes metrics from event types using `DistributiveOmit`:
+**When you need SessionEvent<T>:**
+- Creating mock/stub streaming executions for testing
+- Explicitly typing variables that hold emitted events (e.g., `StreamingResult.events`)
 
 ```typescript
-yield session.emit({
-  type: 'progress',
-  step: 'reading',
-  message: 'Loading documents...',
-});
+import type { SessionEvent, StreamingResult } from '@agtlantis/core';
+
+// Example: Creating a stub execution for testing
+const events: SessionEvent<MyEvent>[] = [
+  { type: 'progress', message: 'Working...', metrics: { timestamp: Date.now(), elapsedMs: 0, deltaMs: 0 } },
+  { type: 'complete', data: 'Result', metrics: { timestamp: Date.now(), elapsedMs: 100, deltaMs: 100 } },
+];
 ```
+
+### SessionEventInput<T> *(Deprecated)*
+
+> **⚠️ Deprecated**: With the simplified event generic, `SessionEventInput<T>` is no longer needed. The `session.emit()` method now accepts your event type directly.
 
 ---
 
@@ -171,17 +173,17 @@ interface StreamingExecution<TEvent, TResult>
 **Example:**
 
 ```typescript
-import { createGoogleProvider, SessionEvent } from '@agtlantis/core';
+import { createGoogleProvider } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-type MyEvent = SessionEvent<
+// Define event types - metrics are added automatically by the framework
+type MyEvent =
   | { type: 'progress'; message: string }
   | { type: 'complete'; data: string }
-  | { type: 'error'; error: Error }
->;
+  | { type: 'error'; error: Error };
 
 const execution = provider.streamingExecution<MyEvent, string>(
   async function* (session) {
@@ -191,13 +193,13 @@ const execution = provider.streamingExecution<MyEvent, string>(
   }
 );
 
-// Consume events
-for await (const event of execution) {
+// Consume events (metrics available on each event)
+for await (const event of execution.stream()) {
   console.log(`[${event.metrics.elapsedMs}ms] ${event.type}`);
 }
 
 // Or skip to result
-const result = await execution.toResult();
+const result = await execution.result();
 
 // Cancel if needed
 execution.cancel();
@@ -214,7 +216,7 @@ Session interface for streaming executions. Provides AI SDK wrappers, file manag
 
 ```typescript
 interface StreamingSession<
-  TEvent extends { type: string; metrics: EventMetrics },
+  TEvent extends { type: string },  // metrics handled internally
   TResult,
 > {
   // AI SDK Wrappers
@@ -233,9 +235,9 @@ interface StreamingSession<
   onDone(fn: () => Promise<void> | void): void;
 
   // Stream Control
-  emit(event: SessionEventInput<TEvent>): TEvent;
-  done(data: TResult): Promise<TEvent>;
-  fail(error: Error, data?: TResult): Promise<TEvent>;
+  emit(event: TEvent): SessionEvent<TEvent>;  // returns event with metrics added
+  done(data: TResult): Promise<SessionEvent<TEvent>>;
+  fail(error: Error, data?: TResult): Promise<SessionEvent<TEvent>>;
 
   // Recording
   record(data: Record<string, unknown>): void;
@@ -251,7 +253,7 @@ interface StreamingSession<
 | `streamText(params)` | AI SDK streaming wrapper with usage tracking |
 | `fileManager` | Upload/delete files with auto-cleanup |
 | `onDone(fn)` | Register cleanup hook (LIFO order) |
-| `emit(event)` | Create intermediate event with metrics |
+| `emit(event)` | Create intermediate event (metrics added automatically) |
 | `done(data)` | Signal successful completion |
 | `fail(error, data?)` | Signal failure with optional partial result |
 | `record(data)` | Record custom data for session summary |
@@ -260,18 +262,18 @@ interface StreamingSession<
 **Example:**
 
 ```typescript
-import { createGoogleProvider, SessionEvent } from '@agtlantis/core';
+import { createGoogleProvider } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-type AnalysisEvent = SessionEvent<
+// Define event types - metrics are added automatically by the framework
+type AnalysisEvent =
   | { type: 'analyzing' }
   | { type: 'found'; data: { items: string[] } }
   | { type: 'complete'; data: AnalysisResult }
-  | { type: 'error'; error: Error }
->;
+  | { type: 'error'; error: Error };
 
 type AnalysisResult = { items: string[]; count: number };
 
@@ -657,18 +659,18 @@ type StreamTextParams<TOOLS, OUTPUT> = Omit<AISDKStreamTextParams<TOOLS>, 'model
 ### Streaming Execution with Events
 
 ```typescript
-import { createGoogleProvider, SessionEvent, SessionSummary } from '@agtlantis/core';
+import { createGoogleProvider, SessionSummary } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-type TaskEvent = SessionEvent<
+// Define event types - metrics are added automatically by the framework
+type TaskEvent =
   | { type: 'started'; message: string }
   | { type: 'progress'; message: string }
   | { type: 'complete'; data: string; summary: SessionSummary }
-  | { type: 'error'; error: Error }
->;
+  | { type: 'error'; error: Error };
 
 const execution = provider.streamingExecution<TaskEvent, string>(
   async function* (session) {
@@ -686,7 +688,7 @@ const execution = provider.streamingExecution<TaskEvent, string>(
   }
 );
 
-for await (const event of execution) {
+for await (const event of execution.stream()) {
   console.log(`[${event.metrics.elapsedMs}ms] ${event.type}: ${event.message || event.data || ''}`);
 
   if (event.type === 'complete' && event.summary) {
@@ -724,7 +726,7 @@ console.log(translated); // "Hola, mundo!"
 ### Multiple LLM Calls with Different Models
 
 ```typescript
-import { createGoogleProvider, SessionEvent } from '@agtlantis/core';
+import { createGoogleProvider } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
@@ -732,11 +734,11 @@ const provider = createGoogleProvider({
 
 type StepResult = { draft: string; refined: string };
 
-type StepEvent = SessionEvent<
+// Define event types - metrics are added automatically by the framework
+type StepEvent =
   | { type: 'step'; step: string }
   | { type: 'complete'; data: StepResult }
-  | { type: 'error'; error: Error }
->;
+  | { type: 'error'; error: Error };
 
 const execution = provider.streamingExecution<StepEvent, StepResult>(
   async function* (session) {
@@ -759,7 +761,7 @@ const execution = provider.streamingExecution<StepEvent, StepResult>(
   }
 );
 
-for await (const event of execution) {
+for await (const event of execution.stream()) {
   if (event.type === 'step') {
     console.log('Step:', event.step);
   } else if (event.type === 'complete') {

@@ -1,10 +1,9 @@
 import { tool, hasToolCall, type ToolSet, type StopCondition } from 'ai';
 import { z } from 'zod';
-import type { EventMetrics } from '@/observability';
 import type { StreamingSession } from '@/session/streaming-session';
 import type { StreamTextParams } from '@/session/types';
 import type { BaseProvider } from '@/provider/base-provider';
-import type { EmittableEventInput } from '@/execution/types';
+import type { EmittableEventInput, SessionEvent } from '@/execution/types';
 
 export type ProgressiveStreamOptions<TUserTools extends ToolSet = {}> = Omit<
     StreamTextParams<TUserTools>,
@@ -23,17 +22,23 @@ export type ProgressiveStreamOptions<TUserTools extends ToolSet = {}> = Omit<
     protocol?: string;
 };
 
+/**
+ * Progress event - pure domain event without metrics.
+ * Framework automatically wraps with SessionEvent at runtime.
+ */
 export interface ProgressEvent<TProgress> {
     type: 'progress';
     data: TProgress;
-    metrics: EventMetrics;
 }
 
+/**
+ * Complete event - pure domain event without metrics.
+ * Framework automatically wraps with SessionEvent at runtime.
+ */
 export interface CompleteEvent<TResult> {
     type: 'complete';
     data: TResult;
     summary: unknown;
-    metrics: EventMetrics;
 }
 
 const TOOL_DESCRIPTIONS = {
@@ -126,10 +131,7 @@ export class ProgressivePattern<
     TResultSchema extends z.ZodType,
     TProgress = z.infer<TProgressSchema>,
     TResult = z.infer<TResultSchema>,
-    TEvent extends { type: string; metrics: EventMetrics } = {
-        type: string;
-        metrics: EventMetrics;
-    },
+    TEvent extends { type: string } = { type: string },
 > {
     constructor(
         readonly progressSchema: TProgressSchema,
@@ -169,7 +171,7 @@ export class ProgressivePattern<
     async *runInSession<TUserTools extends ToolSet = {}>(
         session: StreamingSession<TEvent, TResult>,
         options: ProgressiveStreamOptions<TUserTools>
-    ): AsyncGenerator<TEvent, TEvent, undefined> {
+    ): AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent>, undefined> {
         const { tools: userTools, system, stopWhen: userStopWhen, protocol, ...restOptions } =
             options;
 
@@ -260,7 +262,7 @@ export class ProgressivePattern<
     run<TUserTools extends ToolSet = {}>(
         provider: BaseProvider,
         options: ProgressiveStreamOptions<TUserTools>
-    ): AsyncIterable<TEvent> {
+    ): AsyncIterable<SessionEvent<TEvent>> {
         const self = this;
         const execution = provider.streamingExecution<TEvent, TResult>(async function* (session) {
             return yield* self.runInSession(session, options);

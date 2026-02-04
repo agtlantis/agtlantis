@@ -1,8 +1,6 @@
-import type { LanguageModel, LanguageModelUsage } from 'ai';
+import type { LanguageModelUsage } from 'ai';
 import { generateText, streamText } from 'ai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import type { EventMetrics } from '@/observability';
 
 import { StreamingSession, createStreamingSession } from './streaming-session';
 import {
@@ -21,9 +19,12 @@ vi.mock('ai', () => ({
 const mockGenerateText = generateText as ReturnType<typeof vi.fn>;
 const mockStreamText = streamText as ReturnType<typeof vi.fn>;
 
+/**
+ * Test event type - pure domain event without metrics.
+ * Framework automatically wraps with SessionEvent<TestEvent> at runtime.
+ */
 interface TestEvent {
     type: string;
-    metrics: EventMetrics;
     message?: string;
     data?: string;
     summary?: unknown;

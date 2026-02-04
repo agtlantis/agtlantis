@@ -1,7 +1,6 @@
-import type { EventMetrics } from '@/observability';
 import type { Logger } from '@/observability/logger';
 import type { ProviderPricing } from '@/pricing';
-import type { StreamingExecution, SimpleExecution, ExecutionOptions } from '../execution/types';
+import type { SessionEvent, StreamingExecution, SimpleExecution, ExecutionOptions } from '../execution/types';
 import { StreamingExecutionHost } from '../execution/streaming-host';
 import { SimpleExecutionHost } from '../execution/simple-host';
 import type { SimpleSession } from '../session/simple-session';
@@ -26,7 +25,7 @@ export abstract class BaseProvider implements Provider {
      * @param signal - AbortSignal for cancellation support
      */
     protected abstract createStreamingSession<
-        TEvent extends { type: string; metrics: EventMetrics },
+        TEvent extends { type: string },
         TResult,
     >(signal?: AbortSignal): StreamingSession<TEvent, TResult>;
 
@@ -38,10 +37,10 @@ export abstract class BaseProvider implements Provider {
 
     abstract withDefaultOptions(options: Record<string, unknown>): Provider;
 
-    streamingExecution<TEvent extends { type: string; metrics: EventMetrics }, TResult>(
+    streamingExecution<TEvent extends { type: string }, TResult>(
         generator: (
             session: StreamingSession<TEvent, TResult>
-        ) => AsyncGenerator<TEvent, TEvent | Promise<TEvent>>,
+        ) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | Promise<SessionEvent<TEvent>>>,
         options?: ExecutionOptions
     ): StreamingExecution<TEvent, TResult> {
         return new StreamingExecutionHost(

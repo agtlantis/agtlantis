@@ -49,18 +49,17 @@ Choose streaming when you need to show progress to users. Choose simple when you
 Here's a minimal streaming execution that emits progress events:
 
 ```typescript
-import { createGoogleProvider, SessionEvent } from '@agtlantis/core';
+import { createGoogleProvider } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-// Define your event type using SessionEvent (metrics added automatically)
-type MyEvent = SessionEvent<
+// Define your event types - metrics are added automatically by the framework
+type MyEvent =
   | { type: 'progress'; message: string }
   | { type: 'complete'; data: string }
-  | { type: 'error'; error: Error }
->;
+  | { type: 'error'; error: Error };
 
 // Create a streaming execution
 const execution = provider.streamingExecution<MyEvent, string>(
@@ -100,19 +99,18 @@ await execution.cleanup();
 Use `provider.streamingExecution()` to create executions that yield events:
 
 ```typescript
-import { createGoogleProvider, SessionEvent } from '@agtlantis/core';
+import { createGoogleProvider } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-// Define event variants, wrap with SessionEvent (metrics added automatically)
-type AnalysisEvent = SessionEvent<
+// Define your event variants - metrics are added automatically by the framework
+type AnalysisEvent =
   | { type: 'analyzing' }
   | { type: 'found'; data: { findings: string[] } }
   | { type: 'complete'; data: AnalysisResult }
-  | { type: 'error'; error: Error }
->;
+  | { type: 'error'; error: Error };
 
 type AnalysisResult = { findings: string[]; summary: string };
 
@@ -452,18 +450,16 @@ const execution = provider.streamingExecution<MyEvent, string>(
 
 ### Type Your Events
 
-Define explicit event types for better type safety. Use `SessionEvent` to add metrics automatically:
+Define explicit event types for better type safety. The framework automatically adds `metrics` to each event:
 
 ```typescript
-import { SessionEvent } from '@agtlantis/core';
-
 type MyResult = { answer: string; confidence: number };
 
-type MyEvent = SessionEvent<
+// Define event types without metrics - framework adds them automatically
+type MyEvent =
   | { type: 'progress'; message: string }
   | { type: 'complete'; data: MyResult }
-  | { type: 'error'; error: Error }
->;
+  | { type: 'error'; error: Error };
 
 const execution = provider.streamingExecution<MyEvent, MyResult>(
   async function* (session) {

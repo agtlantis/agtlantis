@@ -8,7 +8,6 @@
 
 import type { LanguageModel, LanguageModelUsage } from 'ai';
 
-import type { EventMetrics } from '@/observability';
 import type { FileManager } from '@/provider/types';
 import type { Logger } from '@/observability/logger';
 import { SimpleSession } from '../../session/simple-session';
@@ -23,9 +22,12 @@ export type MockFnFactory = () => MockFn;
 
 export const TEST_PROVIDER_TYPE = 'google' as const;
 
+/**
+ * Test event type - pure domain event without metrics.
+ * Framework automatically wraps with SessionEvent<TestEvent> at runtime.
+ */
 export interface TestEvent {
   type: string;
-  metrics: EventMetrics;
   message?: string;
   data?: string;
   summary?: unknown;
@@ -155,7 +157,7 @@ export function createSimpleSessionFactory(
 }
 
 export function createStreamingSessionFactory<
-  TEvent extends { type: string; metrics: EventMetrics } = TestEvent,
+  TEvent extends { type: string } = TestEvent,
   TResult = string,
 >(options: CreateSessionFactoryOptions = {}): () => StreamingSession<TEvent, TResult> {
   const { mockFn, logger } = options;
@@ -175,7 +177,7 @@ export interface CreateStreamingSessionFactoryWithSignalOptions
 }
 
 export function createStreamingSessionFactoryWithSignal<
-  TEvent extends { type: string; metrics: EventMetrics } = TestEvent,
+  TEvent extends { type: string } = TestEvent,
   TResult = string,
 >(
   options: CreateStreamingSessionFactoryWithSignalOptions = {}

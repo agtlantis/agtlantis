@@ -22,9 +22,9 @@ import {
   type ExecutionResult,
   type StreamingResult,
   type ExecutionOptions,
-  // Type helpers for event definitions
-  type SessionEvent,
-  type SessionEventInput,
+  // Type helpers for event definitions (deprecated - no longer needed)
+  // type SessionEvent,      // deprecated: framework adds metrics automatically
+  // type SessionEventInput, // deprecated: use event type directly
 } from '@agtlantis/core';
 ```
 
@@ -235,17 +235,17 @@ interface StreamingExecution<TEvent, T> extends Execution<T> {
 **Example:**
 
 ```typescript
-import { createGoogleProvider, SessionEvent } from '@agtlantis/core';
+import { createGoogleProvider } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-type MyEvent = SessionEvent<
+// Define event types - metrics are added automatically by the framework
+type MyEvent =
   | { type: 'progress'; message: string }
   | { type: 'complete'; data: string }
-  | { type: 'error'; error: Error }
->;
+  | { type: 'error'; error: Error };
 
 const execution = provider.streamingExecution<MyEvent, string>(
   async function* (session) {

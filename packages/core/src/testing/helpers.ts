@@ -1,20 +1,20 @@
 import type { FileManager } from '@/provider';
-import type { StreamingExecution } from '@/execution/types';
+import type { SessionEvent, StreamingExecution } from '@/execution/types';
 
 /**
  * Collects all events from a StreamingExecution into an array.
  * Works with both StreamingExecution (via .stream()) and raw AsyncIterable.
  */
-export async function collectEvents<T>(
-    execution: StreamingExecution<T, unknown> | AsyncIterable<T>
-): Promise<T[]> {
-    const events: T[] = [];
+export async function collectEvents<T extends { type: string }>(
+    execution: StreamingExecution<T, unknown> | AsyncIterable<SessionEvent<T>>
+): Promise<SessionEvent<T>[]> {
+    const events: SessionEvent<T>[] = [];
 
     // Check if it's a StreamingExecution (has stream method)
     const iterable =
         'stream' in execution && typeof execution.stream === 'function'
             ? execution.stream()
-            : (execution as AsyncIterable<T>);
+            : (execution as AsyncIterable<SessionEvent<T>>);
 
     for await (const event of iterable) {
         events.push(event);
@@ -25,13 +25,13 @@ export async function collectEvents<T>(
 /**
  * Drains a StreamingExecution or AsyncIterable without storing events.
  */
-export async function consumeExecution<T>(
-    execution: StreamingExecution<T, unknown> | AsyncIterable<T>
+export async function consumeExecution<T extends { type: string }>(
+    execution: StreamingExecution<T, unknown> | AsyncIterable<SessionEvent<T>>
 ): Promise<void> {
     const iterable =
         'stream' in execution && typeof execution.stream === 'function'
             ? execution.stream()
-            : (execution as AsyncIterable<T>);
+            : (execution as AsyncIterable<SessionEvent<T>>);
 
     for await (const _event of iterable) {
         // intentionally empty - drains the async iterator

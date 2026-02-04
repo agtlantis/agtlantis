@@ -14,6 +14,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `OpenAIProvider.withFileCache()` - no-op for API consistency
   - If no cache argument provided, creates default `InMemoryFileCache`
 
+### Changed
+
+- **BREAKING**: Simplified `TEvent` generic constraint for streaming executions
+  - **Before**: `TEvent extends { type: string; metrics: EventMetrics }`
+  - **After**: `TEvent extends { type: string }`
+  - Framework now automatically wraps events with `SessionEvent<TEvent>` internally
+  - Users no longer need to wrap event types with `SessionEvent<>`
+
+  ```typescript
+  // Before (deprecated)
+  type MyEvent = SessionEvent<
+    | { type: 'progress'; message: string }
+    | { type: 'complete'; data: string }
+  >;
+
+  // After (recommended)
+  type MyEvent =
+    | { type: 'progress'; message: string }
+    | { type: 'complete'; data: string };
+  ```
+
+### Deprecated
+
+- `SessionEventInput<T>` type helper: No longer needed, `emit()` accepts event type directly
+
+### Notes
+
+- `SessionEvent<T>` is **no longer required** for defining event types - the framework adds metrics automatically. However, it's still useful for testing/mocking scenarios where you need to create events with explicit metrics.
+
 ---
 
 ## [0.2.0] - 2025-01-30

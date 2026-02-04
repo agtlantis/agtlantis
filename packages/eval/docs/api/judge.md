@@ -270,17 +270,20 @@ interface Provider {
   withDefaultModel(modelId: string): Provider
   withLogger(logger: Logger): Provider
   withPricing(pricing: ProviderPricing): Provider
+  withDefaultOptions(options: Record<string, unknown>): Provider
 
   simpleExecution<TResult>(
     fn: (session: SimpleSession) => Promise<TResult>,
     options?: ExecutionOptions
   ): SimpleExecution<TResult>
 
-  streamingExecution<TEvent, TResult>(
+  streamingExecution<TEvent extends { type: string }, TResult>(
     generator: (session: StreamingSession<TEvent, TResult>) => AsyncGenerator<TEvent, TEvent>
   ): StreamingExecution<TEvent, TResult>
 }
 ```
+
+> **Note:** For `streamingExecution`, define your event types with just `{ type: string }` - the framework automatically adds `metrics` via `SessionEvent<TEvent>` internally.
 
 ---
 

@@ -1,12 +1,11 @@
 import type { FilePart, ImagePart, ToolSet } from 'ai';
 
 import type {
-    EmittableEventInput,
     ExecutionOptions,
+    SessionEvent,
     SimpleExecution,
     StreamingExecution,
 } from '@/execution';
-import type { EventMetrics } from '@/observability';
 import type { Logger } from '@/observability/logger';
 import type { ProviderPricing } from '@/pricing';
 import { SimpleSession, StreamingSession } from '@/session';
@@ -122,10 +121,10 @@ export interface Provider {
      */
     withDefaultOptions(options: Record<string, unknown>): Provider;
 
-    streamingExecution<TEvent extends { type: string; metrics: EventMetrics }, TResult>(
+    streamingExecution<TEvent extends { type: string }, TResult>(
         generator: (
             session: StreamingSession<TEvent, TResult>
-        ) => AsyncGenerator<TEvent, TEvent | Promise<TEvent>>,
+        ) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | Promise<SessionEvent<TEvent>>>,
         options?: ExecutionOptions
     ): StreamingExecution<TEvent, TResult>;
 

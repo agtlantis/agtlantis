@@ -2,7 +2,6 @@ import type { LanguageModel } from 'ai';
 import { createGoogleGenerativeAI, type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
-import type { EventMetrics } from '@/observability';
 import type { ProviderPricing } from '@/pricing';
 import { validateProviderPricing } from '@/pricing';
 import { GoogleFileManager } from './file-manager';
@@ -229,7 +228,7 @@ export class GoogleProvider extends BaseProvider {
     }
 
     protected createStreamingSession<
-        TEvent extends { type: string; metrics: EventMetrics },
+        TEvent extends { type: string },
         TResult,
     >(signal?: AbortSignal): StreamingSession<TEvent, TResult> {
         return new StreamingSession<TEvent, TResult>({ ...this.getSessionConfig(), signal });

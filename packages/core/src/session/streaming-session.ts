@@ -6,7 +6,7 @@ import type { FileManager } from '@/provider/types';
 import type { ProviderType, ProviderPricing } from '@/pricing/types';
 import type { SessionSummary } from './types';
 import { SimpleSession } from './simple-session';
-import type { SessionEventInput, EmittableEventInput } from '@/execution/types';
+import type { SessionEvent, EmittableEventInput } from '@/execution/types';
 
 type ProviderOptions = Record<string, Record<string, unknown>>;
 
@@ -24,7 +24,7 @@ export interface StreamingSessionOptions {
 }
 
 export class StreamingSession<
-  TEvent extends { type: string; metrics: EventMetrics },
+  TEvent extends { type: string },
   TResult,
 > extends SimpleSession {
   private lastEventTime: number;
@@ -61,7 +61,7 @@ export class StreamingSession<
    * @returns The complete event with metrics attached
    * @throws Error when attempting to emit reserved types ('complete', 'error')
    */
-  emit(event: EmittableEventInput<TEvent>): TEvent {
+  emit(event: EmittableEventInput<TEvent>): SessionEvent<TEvent> {
     // Runtime check: prevent reserved types even when TypeScript is bypassed
     const eventType = (event as { type: string }).type;
     if (eventType === 'complete' || eventType === 'error') {
@@ -71,16 +71,16 @@ export class StreamingSession<
       );
     }
 
-    return this.emitInternal(event as SessionEventInput<TEvent>);
+    return this.emitInternal(event as TEvent);
   }
 
   /**
    * Internal emit method - bypasses reserved type check.
    * Used by done() and fail() to emit terminal events.
    */
-  private emitInternal(event: SessionEventInput<TEvent>): TEvent {
+  private emitInternal(event: TEvent): SessionEvent<TEvent> {
     const metrics = this.createMetrics();
-    const fullEvent = { ...event, metrics } as TEvent;
+    const fullEvent = { ...event, metrics } as SessionEvent<TEvent>;
 
     this._logger.onExecutionEmit?.({
       type: 'execution_emit',
@@ -97,7 +97,7 @@ export class StreamingSession<
    * @param data - The final result data
    * @returns The complete event with data and summary
    */
-  async done(data: TResult): Promise<TEvent> {
+  async done(data: TResult): Promise<SessionEvent<TEvent>> {
     const summary = await this.getSummary();
 
     this._logger.onExecutionDone?.({
@@ -114,7 +114,7 @@ export class StreamingSession<
       type: 'complete',
       data,
       summary,
-    } as unknown as SessionEventInput<TEvent>);
+    } as unknown as TEvent);
   }
 
   /**
@@ -125,7 +125,7 @@ export class StreamingSession<
    * @param data - Optional partial result data (if any was produced before failure)
    * @returns The error event
    */
-  async fail(error: Error, data?: TResult): Promise<TEvent> {
+  async fail(error: Error, data?: TResult): Promise<SessionEvent<TEvent>> {
     let summary: SessionSummary | undefined;
     try {
       summary = await this.getSummary();
@@ -157,7 +157,7 @@ export class StreamingSession<
 
     // Use emitInternal to bypass reserved type check (internal only)
     // Cast required: TypeScript can't know that TEvent includes an 'error' variant
-    return this.emitInternal(errorEvent as unknown as SessionEventInput<TEvent>);
+    return this.emitInternal(errorEvent as unknown as TEvent);
   }
 
   private createMetrics(): EventMetrics {
@@ -173,7 +173,7 @@ export class StreamingSession<
 }
 
 export interface StreamingSessionInternal<
-  TEvent extends { type: string; metrics: EventMetrics },
+  TEvent extends { type: string },
   TResult,
 > {
   generateText: SimpleSession['generateText'];
@@ -183,9 +183,9 @@ export interface StreamingSessionInternal<
   record: SimpleSession['record'];
   recordToolCall: SimpleSession['recordToolCall'];
 
-  emit(event: EmittableEventInput<TEvent>): TEvent;
-  done(data: TResult): Promise<TEvent>;
-  fail(error: Error, data?: TResult): Promise<TEvent>;
+  emit(event: EmittableEventInput<TEvent>): SessionEvent<TEvent>;
+  done(data: TResult): Promise<SessionEvent<TEvent>>;
+  fail(error: Error, data?: TResult): Promise<SessionEvent<TEvent>>;
 
   runOnDoneHooks(): Promise<void>;
   getSummary(): Promise<SessionSummary>;
@@ -201,7 +201,7 @@ export interface CreateStreamingSessionOptions {
 }
 
 export function createStreamingSession<
-  TEvent extends { type: string; metrics: EventMetrics },
+  TEvent extends { type: string },
   TResult,
 >(
   options: CreateStreamingSessionOptions

@@ -6,7 +6,7 @@
  * These helpers are framework-agnostic (no vitest/jest dependency).
  */
 
-import type { EventMetrics } from '@/observability';
+import type { SessionEvent } from '@/execution/types';
 import type { Logger } from '@/observability/logger';
 import type { SimpleSession } from '../../session/simple-session';
 
@@ -94,15 +94,15 @@ export function createAlreadyAbortedSignal(reason = 'Already aborted'): AbortSig
  * ```
  */
 export function createSimpleGenerator<
-  TEvent extends { type: string; metrics: EventMetrics },
+  TEvent extends { type: string },
   TResult,
 >(
   result: TResult,
-  events: Array<Omit<TEvent, 'metrics'>> = []
+  events: TEvent[] = []
 ): (session: {
-  emit: (event: Omit<TEvent, 'metrics'>) => TEvent;
-  done: (value: TResult) => Promise<TEvent>;
-}) => AsyncGenerator<TEvent, TEvent | Promise<TEvent>, unknown> {
+  emit: (event: TEvent) => SessionEvent<TEvent>;
+  done: (value: TResult) => Promise<SessionEvent<TEvent>>;
+}) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | Promise<SessionEvent<TEvent>>, unknown> {
   return async function* (session) {
     for (const event of events) {
       yield session.emit(event);
@@ -124,13 +124,13 @@ export function createSimpleGenerator<
  * ```
  */
 export function createErrorGenerator<
-  TEvent extends { type: string; metrics: EventMetrics },
+  TEvent extends { type: string },
 >(
   error: Error,
-  eventsBeforeError: Array<Omit<TEvent, 'metrics'>> = []
+  eventsBeforeError: TEvent[] = []
 ): (session: {
-  emit: (event: Omit<TEvent, 'metrics'>) => TEvent;
-}) => AsyncGenerator<TEvent, never, unknown> {
+  emit: (event: TEvent) => SessionEvent<TEvent>;
+}) => AsyncGenerator<SessionEvent<TEvent>, never, unknown> {
   return async function* (session) {
     for (const event of eventsBeforeError) {
       yield session.emit(event);
@@ -158,14 +158,14 @@ export function createErrorGenerator<
  * ```
  */
 export function createCancelableGenerator<
-  TEvent extends { type: string; metrics: EventMetrics },
+  TEvent extends { type: string },
 >(
   abortScenario: AbortScenario,
   onCancel?: () => void,
-  eventsBeforeWait: Array<Omit<TEvent, 'metrics'>> = []
+  eventsBeforeWait: TEvent[] = []
 ): (session: {
-  emit: (event: Omit<TEvent, 'metrics'>) => TEvent;
-}) => AsyncGenerator<TEvent, void, unknown> {
+  emit: (event: TEvent) => SessionEvent<TEvent>;
+}) => AsyncGenerator<SessionEvent<TEvent>, void, unknown> {
   return async function* (session) {
     for (const event of eventsBeforeWait) {
       yield session.emit(event);
@@ -243,16 +243,16 @@ export function createCancelableFunction(
  * ```
  */
 export function createDelayedGenerator<
-  TEvent extends { type: string; metrics: EventMetrics },
+  TEvent extends { type: string },
   TResult,
 >(
   delayMs: number,
   result: TResult,
   abortScenario?: AbortScenario
 ): (session: {
-  emit: (event: Omit<TEvent, 'metrics'>) => TEvent;
-  done: (value: TResult) => Promise<TEvent>;
-}) => AsyncGenerator<TEvent, TEvent | Promise<TEvent>, unknown> {
+  emit: (event: TEvent) => SessionEvent<TEvent>;
+  done: (value: TResult) => Promise<SessionEvent<TEvent>>;
+}) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | Promise<SessionEvent<TEvent>>, unknown> {
   return async function* (session) {
     await new Promise<void>((resolve, reject) => {
       const timeoutId = setTimeout(resolve, delayMs);
@@ -289,14 +289,14 @@ export function createDelayedGenerator<
  * ```
  */
 export function createSlowGenerator<
-  TEvent extends { type: string; metrics: EventMetrics },
+  TEvent extends { type: string },
 >(
-  events: Array<Omit<TEvent, 'metrics'>>,
+  events: TEvent[],
   delayBetweenEventsMs: number,
   abortScenario?: AbortScenario
 ): (session: {
-  emit: (event: Omit<TEvent, 'metrics'>) => TEvent;
-}) => AsyncGenerator<TEvent, TEvent | undefined, unknown> {
+  emit: (event: TEvent) => SessionEvent<TEvent>;
+}) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | undefined, unknown> {
   return async function* (session) {
     for (const event of events) {
       // Check abort before each event
@@ -363,13 +363,13 @@ export async function collectStreamAsync<T>(stream: AsyncIterable<T>): Promise<T
  * ```
  */
 export function createNeverEndingGenerator<
-  TEvent extends { type: string; metrics: EventMetrics },
+  TEvent extends { type: string },
 >(
-  eventsBeforeWait: Array<Omit<TEvent, 'metrics'>> = [],
+  eventsBeforeWait: TEvent[] = [],
   abortScenario?: AbortScenario
 ): (session: {
-  emit: (event: Omit<TEvent, 'metrics'>) => TEvent;
-}) => AsyncGenerator<TEvent, TEvent | undefined, unknown> {
+  emit: (event: TEvent) => SessionEvent<TEvent>;
+}) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | undefined, unknown> {
   return async function* (session) {
     for (const event of eventsBeforeWait) {
       yield session.emit(event);

@@ -1,7 +1,6 @@
-import type { EventMetrics } from '@/observability';
 import { SessionSummary } from '../session/types';
 import type { StreamingSession } from '../session/streaming-session';
-import type { SessionStreamGeneratorFn, StreamingExecution, StreamingResult } from './types';
+import type { SessionEvent, SessionStreamGeneratorFn, StreamingExecution, StreamingResult } from './types';
 import { ERRORS } from './constants';
 import { combineSignals, Deferred } from './utils';
 import { isAbortError, normalizeError, createHookRunner, type HookRunner } from './shared';
@@ -17,7 +16,7 @@ type InternalStreamingResult<T> =
  * Streaming execution host that uses StreamingSession.
  * Starts execution eagerly on construction - events are buffered automatically.
  *
- * @typeParam TEvent - Event type with required `type` and `metrics` fields
+ * @typeParam TEvent - User's pure domain event type with required `type` field (metrics added automatically)
  * @typeParam TResult - Final result type
  *
  * @example
@@ -52,14 +51,14 @@ type InternalStreamingResult<T> =
  * ```
  */
 export class StreamingExecutionHost<
-    TEvent extends { type: string; metrics: EventMetrics },
+    TEvent extends { type: string },
     TResult,
 > implements StreamingExecution<TEvent, TResult> {
     private readonly abortController = new AbortController();
     private readonly effectiveSignal: AbortSignal;
     private readonly consumerPromise: Promise<InternalStreamingResult<TResult>>;
-    private readonly eventBuffer: TEvent[] = [];
-    private readonly subscribers = new Set<(event: TEvent) => void>();
+    private readonly eventBuffer: SessionEvent<TEvent>[] = [];
+    private readonly subscribers = new Set<(event: SessionEvent<TEvent>) => void>();
     private completed = false;
     private cleaned = false;
     private hookRunner: HookRunner | null = null;
@@ -85,19 +84,19 @@ export class StreamingExecutionHost<
         this.consumerPromise = this.startConsuming();
     }
 
-    private hasDataField(event: TEvent): event is TEvent & { data: TResult } {
+    private hasDataField(event: SessionEvent<TEvent>): event is SessionEvent<TEvent> & { data: TResult } {
         return 'data' in event && (event as { data?: unknown }).data !== undefined;
     }
 
-    private hasSummaryField(event: TEvent): event is TEvent & { summary: SessionSummary } {
+    private hasSummaryField(event: SessionEvent<TEvent>): event is SessionEvent<TEvent> & { summary: SessionSummary } {
         return 'summary' in event && (event as { summary?: unknown }).summary !== undefined;
     }
 
-    private hasErrorField(event: TEvent): event is TEvent & { error: Error } {
+    private hasErrorField(event: SessionEvent<TEvent>): event is SessionEvent<TEvent> & { error: Error } {
         return 'error' in event && (event as { error?: unknown }).error instanceof Error;
     }
 
-    private extractResultAndMetadata(event: TEvent): void {
+    private extractResultAndMetadata(event: SessionEvent<TEvent>): void {
         const isCompleteOrError = event.type === 'complete' || event.type === 'error';
 
         if (!isCompleteOrError) {
@@ -116,7 +115,7 @@ export class StreamingExecutionHost<
         }
     }
 
-    private notifySubscribers(event: TEvent): void {
+    private notifySubscribers(event: SessionEvent<TEvent>): void {
         this.subscribers.forEach(fn => fn(event));
     }
 
@@ -233,7 +232,7 @@ export class StreamingExecutionHost<
      * Returns buffered events first, then real-time events.
      * Can be called multiple times - replays buffer each time.
      */
-    async *stream(): AsyncIterable<TEvent> {
+    async *stream(): AsyncIterable<SessionEvent<TEvent>> {
         // 1. Yield buffered events first
         let index = 0;
         while (index < this.eventBuffer.length) {
@@ -246,10 +245,10 @@ export class StreamingExecutionHost<
         }
 
         // 3. Subscribe for real-time events using Deferred for clean async coordination
-        const queue: TEvent[] = [];
+        const queue: SessionEvent<TEvent>[] = [];
         let pending = new Deferred<void>();
 
-        const subscriber = (event: TEvent) => {
+        const subscriber = (event: SessionEvent<TEvent>) => {
             queue.push(event);
             pending.resolve();
         };
@@ -300,9 +299,9 @@ export class StreamingExecutionHost<
      * Get the execution result with status, summary, and all events.
      * Never throws - returns a discriminated union with status.
      */
-    async result(): Promise<StreamingResult<TEvent, TResult>> {
+    async result(): Promise<StreamingResult<SessionEvent<TEvent>, TResult>> {
         const internal = await this.consumerPromise;
-        const events = Object.freeze([...this.eventBuffer]) as readonly TEvent[];
+        const events = Object.freeze([...this.eventBuffer]) as readonly SessionEvent<TEvent>[];
 
         // Success state
         if (internal.success) {

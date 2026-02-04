@@ -21,7 +21,6 @@
 
 import type { LanguageModel } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import type { EventMetrics } from '@/observability';
 import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
 import type { ProviderPricing } from '@/pricing';
@@ -155,7 +154,7 @@ export class MockProvider extends BaseProvider {
     }
 
     protected createStreamingSession<
-        TEvent extends { type: string; metrics: EventMetrics },
+        TEvent extends { type: string },
         TResult,
     >(signal?: AbortSignal): StreamingSession<TEvent, TResult> {
         return new StreamingSession<TEvent, TResult>({ ...this.buildSessionConfig(), signal });

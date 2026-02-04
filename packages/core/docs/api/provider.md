@@ -596,11 +596,12 @@ console.log(answer); // "Paris"
 ### Streaming with Progress Events
 
 ```typescript
-import { createGoogleProvider, type EventMetrics } from '@agtlantis/core';
+import { createGoogleProvider } from '@agtlantis/core';
 
+// Define event types - metrics are added automatically by the framework
 type MyEvent =
-  | { type: 'thinking'; metrics: EventMetrics }
-  | { type: 'complete'; result: string; metrics: EventMetrics };
+  | { type: 'thinking' }
+  | { type: 'complete'; result: string };
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY!,
@@ -618,8 +619,8 @@ const execution = provider.streamingExecution<MyEvent, string>(
   }
 );
 
-for await (const event of execution) {
-  console.log(event.type);
+for await (const event of execution.stream()) {
+  console.log(event.type);  // metrics available via event.metrics
 }
 ```
 

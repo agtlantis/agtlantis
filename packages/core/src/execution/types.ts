@@ -34,18 +34,29 @@ export type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K
 
 /**
  * Adds `metrics: EventMetrics` to event types.
- * Use this to define streaming events without manually adding metrics to each variant.
+ * The framework uses this internally to wrap user-defined events with timing info.
+ *
+ * **For most use cases, you don't need this type.** Simply define your events
+ * without metrics, and the framework handles the wrapping automatically.
+ *
+ * **When you need SessionEvent:**
+ * - Creating mock/stub streaming executions for testing
+ * - Explicitly typing `StreamingResult.events` arrays
  *
  * @example
  * ```typescript
- * // Define events without metrics
- * type ProgressEvent = { type: 'progress'; step: string; message: string };
- * type CompleteEvent = { type: 'complete'; data: AnalysisResult };
- * type ErrorEvent = { type: 'error'; error: Error };
+ * // User defines pure event types (recommended)
+ * type MyEvent =
+ *   | { type: 'progress'; step: string }
+ *   | { type: 'complete'; data: string };
  *
- * // SessionEvent adds metrics to all variants
- * type MyAgentEvent = SessionEvent<ProgressEvent | CompleteEvent | ErrorEvent>;
- * // Result: Each variant now includes { metrics: EventMetrics }
+ * // Framework internally wraps as SessionEvent<MyEvent>
+ * // StreamingResult.events returns SessionEvent<MyEvent>[]
+ *
+ * // Testing: Create mock events with explicit metrics
+ * const mockEvents: SessionEvent<MyEvent>[] = [
+ *   { type: 'progress', step: 'loading', metrics: { timestamp: Date.now(), elapsedMs: 0, deltaMs: 0 } },
+ * ];
  * ```
  */
 export type SessionEvent<T extends { type: string }> = T & {
@@ -68,10 +79,11 @@ export type SessionEvent<T extends { type: string }> = T & {
  * // No casting needed!
  * ```
  */
-export type SessionEventInput<T extends { type: string; metrics: EventMetrics }> = DistributiveOmit<
-    T,
-    'metrics'
->;
+/**
+ * @deprecated TEvent no longer requires metrics constraint - use TEvent directly
+ * This type is kept for backwards compatibility during migration
+ */
+export type SessionEventInput<T extends { type: string }> = T;
 
 // ============================================================================
 // Reserved Event Types
@@ -109,13 +121,12 @@ export type ReservedEventType = 'complete' | 'error';
  * session.emit({ type: 'complete' }); // TypeScript allows, but throws at runtime!
  * ```
  */
-export type EmittableEventInput<T extends { type: string; metrics: EventMetrics }> = T extends {
-    type: infer Type;
-}
-    ? Type extends ReservedEventType
-        ? never
-        : DistributiveOmit<T, 'metrics'>
-    : never;
+/**
+ * Input type for emit() - excludes reserved event types.
+ * Users define pure domain events; framework adds metrics wrapper.
+ */
+export type EmittableEventInput<T extends { type: string }> =
+    T extends { type: ReservedEventType } ? never : T;
 
 /**
  * Options for execution.
@@ -365,10 +376,15 @@ export interface SimpleExecution<TResult> extends Execution<TResult> {
  * await execution.cleanup();
  * ```
  */
-export interface StreamingExecution<TEvent, TResult> extends Execution<TResult> {
+/**
+ * Represents a streaming execution that emits events as they occur.
+ * TEvent is the user's pure domain event type (without metrics).
+ * stream() and result() return SessionEvent<TEvent> which includes metrics.
+ */
+export interface StreamingExecution<TEvent extends { type: string }, TResult> extends Execution<TResult> {
     /**
      * Get the event stream.
-     * Returns an AsyncIterable that yields all events:
+     * Returns an AsyncIterable that yields all events with metrics:
      * - Events already in the buffer (from eager execution)
      * - Real-time events as they occur
      *
@@ -388,7 +404,7 @@ export interface StreamingExecution<TEvent, TResult> extends Execution<TResult> 
      * const result = await execution.result();
      * ```
      */
-    stream(): AsyncIterable<TEvent>;
+    stream(): AsyncIterable<SessionEvent<TEvent>>;
 
     /**
      * Get the execution result with status, summary, and all events.
@@ -407,7 +423,7 @@ export interface StreamingExecution<TEvent, TResult> extends Execution<TResult> 
      * console.log(`Cost: $${result.summary.totalCost}`);
      * ```
      */
-    result(): Promise<StreamingResult<TEvent, TResult>>;
+    result(): Promise<StreamingResult<SessionEvent<TEvent>, TResult>>;
 }
 
 /**
@@ -439,9 +455,14 @@ export interface StreamingExecution<TEvent, TResult> extends Execution<TResult> 
  *   };
  * ```
  */
+/**
+ * Generator function type for streaming executions.
+ * TEvent is the user's pure domain event type (without metrics).
+ * The generator yields SessionEvent<TEvent> which includes metrics.
+ */
 export type SessionStreamGeneratorFn<
-    TEvent extends { type: string; metrics: EventMetrics },
+    TEvent extends { type: string },
     TResult,
 > = (
     session: StreamingSession<TEvent, TResult>
-) => AsyncGenerator<TEvent, TEvent | Promise<TEvent> | undefined, unknown>;
+) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | Promise<SessionEvent<TEvent>> | undefined, unknown>;
