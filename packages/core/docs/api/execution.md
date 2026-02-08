@@ -22,9 +22,15 @@ import {
   type ExecutionResult,
   type StreamingResult,
   type ExecutionOptions,
-  // Type helpers for event definitions (deprecated - no longer needed)
-  // type SessionEvent,      // deprecated: framework adds metrics automatically
-  // type SessionEventInput, // deprecated: use event type directly
+  // Event type helpers
+  type CompletionEvent,
+  type ErrorEvent,
+  type ExtractResult,
+  type SessionEvent,
+  // Execution mapping
+  mapExecution,
+  mapExecutionResult,
+  type ReplaceResult,
 } from '@agtlantis/core';
 ```
 
@@ -100,7 +106,7 @@ type ExecutionResult<T> =
   | { status: 'canceled'; summary: SessionSummary };
 ```
 
-**Key benefit:** Unlike the previous API where `getSummary()` was only available on success, this pattern guarantees `summary` access even on failures or cancellations.
+**Key benefit:** `summary` is always accessible regardless of execution status (succeeded, failed, or canceled).
 
 ---
 
@@ -213,41 +219,45 @@ type StreamingResult<TEvent, T> = ExecutionResult<T> & {
 
 ---
 
-### StreamingExecution<TEvent, T>
+### StreamingExecution\<TEvent\>
 
 Streaming execution that yields events during execution. Uses explicit `stream()` method for event access.
 
+- `TEvent` — your event union type (must include `CompletionEvent<TResult>`)
+- Result type is automatically extracted via `ExtractResult<TEvent>`
+- `ErrorEvent` is auto-included in `stream()` and `result()` return types
+
 ```typescript
-interface StreamingExecution<TEvent, T> extends Execution<T> {
+interface StreamingExecution<TEvent extends { type: string }>
+  extends Execution<ExtractResult<TEvent>> {
   /**
    * Access the event stream.
-   * Events are yielded as they are emitted by the generator.
+   * Events are yielded with metrics. ErrorEvent is auto-included.
    */
-  stream(): AsyncIterable<TEvent>;
+  stream(): AsyncIterable<SessionEvent<TEvent | ErrorEvent>>;
 
   /**
    * Get the result with all collected events.
    */
-  result(): Promise<StreamingResult<TEvent, T>>;
+  result(): Promise<StreamingResult<SessionEvent<TEvent | ErrorEvent>, ExtractResult<TEvent>>>;
 }
 ```
 
 **Example:**
 
 ```typescript
-import { createGoogleProvider } from '@agtlantis/core';
+import { createGoogleProvider, type CompletionEvent } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-// Define event types - metrics are added automatically by the framework
+// Define event types — CompletionEvent defines the result type
 type MyEvent =
   | { type: 'progress'; message: string }
-  | { type: 'complete'; data: string }
-  | { type: 'error'; error: Error };
+  | CompletionEvent<string>;
 
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     yield session.emit({ type: 'progress', message: 'Working...' });
     const result = await session.generateText({ prompt: 'Hello' });
@@ -280,7 +290,7 @@ When a streaming execution yields a `complete` or `error` event, the internal ab
 
 ```typescript
 // Safe: auto-abort protects against forgotten returns
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     const result = await session.generateText({ prompt: 'Hello' });
     yield session.done(result.text);  // complete event → auto-abort
@@ -359,81 +369,142 @@ console.log('Tokens used:', result.summary.totalLLMUsage.totalTokens);
 
 ---
 
-## Breaking Changes (v0.2)
+## Execution Mapping
 
-### Execution Result Pattern
+Standalone functions for transforming execution results and events. Useful at agent→service boundaries where internal types need to be mapped to public domain types.
 
-**Core Changes:**
+### ReplaceResult\<TEvent, U\>
 
-1. `toResult()` + `getSummary()` → `result()` 통합
-2. `StreamingExecution`이 더 이상 `AsyncIterable`을 직접 구현하지 않음
-3. 실패/취소 시에도 summary 접근 가능
+Type helper that replaces the `CompletionEvent` data type in an event union while preserving all other event types.
 
-**Before:**
 ```typescript
-try {
-  for await (const event of execution) {
-    console.log(event);
-  }
-  const value = await execution.toResult();
-  const summary = await execution.getSummary();
-} catch (error) {
-  // summary 접근 불가
-}
+type ReplaceResult<TEvent extends { type: string }, U> =
+  | Exclude<TEvent, { type: 'complete' }>
+  | CompletionEvent<U>;
 ```
 
-**After:**
+**Example:**
+
 ```typescript
-for await (const event of execution.stream()) {
-  console.log(event);
-}
-const result = await execution.result();
-// result.status: 'succeeded' | 'failed' | 'canceled'
-// result.summary: 항상 접근 가능
-// result.events: 모든 이벤트 (StreamingExecution)
+type AgentEvent =
+  | { type: 'thinking'; content: string }
+  | CompletionEvent<RawOutput>;
+
+// ReplaceResult<AgentEvent, DomainOutput> =
+//   | { type: 'thinking'; content: string }
+//   | CompletionEvent<DomainOutput>
 ```
-
-**Migration Steps:**
-
-| Before | After |
-|--------|-------|
-| `await execution.toResult()` | `await execution.result()` → `result.value` |
-| `await execution.getSummary()` | `await execution.result()` → `result.summary` |
-| `for await (const e of execution)` | `for await (const e of execution.stream())` |
-| `try/catch` for error handling | `result.status === 'failed'` check |
 
 ---
 
-### simpleExecution Return Type Change
+### mapExecutionResult()
 
-**Before (v0.1):**
-```typescript
-// simpleExecution returned Promise<Execution<T>>
-const execution = await provider.simpleExecution(fn);
-const result = await execution.toResult();
-```
+Transforms only the result (CompletionEvent data) of an execution, passing all other events through unchanged. This is the most common use case — mapping agent output to domain types at service boundaries.
 
-**After (v0.2):**
-```typescript
-// simpleExecution returns SimpleExecution<T> directly (sync)
-const execution = provider.simpleExecution(fn);
-const result = await execution.result();
-console.log(result.value);
-```
-
-**Migration:** Remove the first `await` when calling `simpleExecution()`.
-
-### Why This Change?
-
-The new API enables cancellation of in-progress LLM calls:
+**Streaming overload:**
 
 ```typescript
-// Now possible - cancel before completion
-const execution = provider.simpleExecution(fn);
-execution.cancel(); // Can cancel immediately
+function mapExecutionResult<TEvent extends { type: string }, U>(
+  execution: StreamingExecution<TEvent>,
+  fn: (result: ExtractResult<TEvent>) => U | Promise<U>,
+): StreamingExecution<ReplaceResult<TEvent, U>>;
 ```
 
-Previously, the `await` blocked until execution completed, making early cancellation impossible.
+**Simple overload:**
+
+```typescript
+function mapExecutionResult<A, B>(
+  execution: SimpleExecution<A>,
+  fn: (result: A) => B | Promise<B>,
+): SimpleExecution<B>;
+```
+
+**Behavior:**
+
+| Aspect | Behavior |
+|--------|----------|
+| Intermediate events | Passed through unchanged |
+| CompletionEvent data | Transformed via `fn` |
+| `cancel()` / `cleanup()` / `[Symbol.asyncDispose]()` | Delegated to original |
+| `fn` throws | Result becomes `{ status: 'failed' }` |
+| Error events | Passed through unchanged |
+
+**Example — Agent→Service boundary:**
+
+```typescript
+// Before: Manual reconstruction (21 lines + 3 `as` casts)
+createQuestionExecution(interview: Interview): StreamingExecution<InterviewStreamEvent> {
+  const agentExecution = this.interviewer.execute(input);
+  return {
+    stream() { /* manual re-mapping */ },
+    result() { /* manual re-mapping */ },
+    cancel: () => agentExecution.cancel(),
+    cleanup: () => agentExecution.cleanup(),
+    [Symbol.asyncDispose]: () => agentExecution[Symbol.asyncDispose](),
+  };
+}
+
+// After: One-liner with mapExecutionResult
+createQuestionExecution(interview: Interview): StreamingExecution<InterviewStreamEvent> {
+  const agentExecution = this.interviewer.execute(input);
+  return mapExecutionResult(agentExecution, (raw) =>
+    this.transformOutput(raw, interview.getQuestionCount() + 1),
+  );
+}
+```
+
+---
+
+### mapExecution()
+
+Transforms every event in a streaming execution, or the result of a simple execution. Use this when you need to map the entire event union (not just the result).
+
+**Streaming overload:**
+
+```typescript
+function mapExecution<TEvent extends { type: string }, UEvent extends { type: string }>(
+  execution: StreamingExecution<TEvent>,
+  fn: (event: TEvent) => UEvent | Promise<UEvent>,
+): StreamingExecution<UEvent>;
+```
+
+**Simple overload:**
+
+```typescript
+function mapExecution<A, B>(
+  execution: SimpleExecution<A>,
+  fn: (result: A) => B | Promise<B>,
+): SimpleExecution<B>;
+```
+
+**Behavior:**
+
+| Aspect | Behavior |
+|--------|----------|
+| All events (including `complete`) | Transformed via `fn` |
+| `cancel()` / `cleanup()` / `[Symbol.asyncDispose]()` | Delegated to original |
+| `fn` throws | Result becomes `{ status: 'failed' }` |
+| Error events | Passed through unchanged (not passed to `fn`) |
+
+**Example:**
+
+```typescript
+type InternalEvent =
+  | { type: 'step'; detail: string }
+  | CompletionEvent<{ raw: string }>;
+
+type PublicEvent =
+  | { type: 'progress'; message: string }
+  | CompletionEvent<string>;
+
+const publicExecution = mapExecution(internalExecution, (event) => {
+  if (event.type === 'step') {
+    return { type: 'progress', message: event.detail } as PublicEvent;
+  }
+  // event.type === 'complete'
+  return { type: 'complete', data: event.data.raw } as PublicEvent;
+});
+```
 
 ---
 

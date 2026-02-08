@@ -224,6 +224,23 @@ export function createExecutionHostContractTests(
         await execution[Symbol.asyncDispose]();
       });
     });
+
+    // ========================================================================
+    // result() idempotency tests
+    // ========================================================================
+
+    describe('result() idempotency', () => {
+      it('should return deeply equal results on multiple calls', async () => {
+        const workload = config.createSuccessWorkload('result');
+        const factory = config.createSessionFactory();
+        const execution = config.createHost(factory, workload);
+
+        const r1 = await execution.result();
+        const r2 = await execution.result();
+
+        expect(r1).toEqual(r2);
+      });
+    });
   });
 }
 

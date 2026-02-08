@@ -31,8 +31,12 @@ import {
   createMockUsage,
   createMockSessionSummary,
   createTestEvent,
-  type TestEvent,
-  type TestResult,
+  type TestEvent,     // Union: TestBaseEvent | CompletionEvent<string>
+  type TestBaseEvent, // Domain events only (progress, etc.)
+
+  // Test Execution Helpers
+  createTestExecution,
+  createTestErrorExecution,
 
   // Re-exports from AI SDK
   MockLanguageModelV3,
@@ -115,19 +119,21 @@ type ResponseOptions = Partial<Omit<DoGenerateResult, 'content'>>;
 
 ### TestEvent
 
-Generic test event interface for streaming execution tests.
+Union type for streaming execution tests. Includes domain events and `CompletionEvent<string>`.
 
 ```typescript
-interface TestEvent {
+interface TestBaseEvent {
   type: string;
-  metrics: EventMetrics;  // { timestamp, elapsedMs, deltaMs }
   message?: string;
-  data?: unknown;
-  error?: Error;
+  data?: string;
 }
+
+type TestEvent = TestBaseEvent | CompletionEvent<string>;
+// ExtractResult<TestEvent> = string
+// EmittableEventInput<TestEvent> = TestBaseEvent
 ```
 
-> **Note:** `EventMetrics` is imported from `@agtlantis/core`. See [Observability API](./observability.md).
+> **Note:** `TestEvent` is a union type. `TestBaseEvent` represents domain events (emitted via `session.emit()`), while `CompletionEvent<string>` represents the completion event (emitted via `session.done()`).
 
 ## mock Factory
 
@@ -297,12 +303,13 @@ withPricing(pricing: ProviderPricing): MockProvider
 
 ### simpleExecution()
 
-Creates a simple Promise-based execution (inherited from BaseProvider).
+Creates a simple execution (inherited from BaseProvider).
 
 ```typescript
 simpleExecution<TResult>(
-  fn: (session: SimpleSession) => Promise<TResult>
-): Promise<Execution<TResult>>
+  fn: (session: SimpleSession) => Promise<TResult>,
+  options?: ExecutionOptions
+): SimpleExecution<TResult>
 ```
 
 ### streamingExecution()
@@ -310,9 +317,13 @@ simpleExecution<TResult>(
 Creates a streaming execution with event emission (inherited from BaseProvider).
 
 ```typescript
-streamingExecution<TEvent, TResult>(
-  generator: (session: StreamingSession<TEvent, TResult>) => AsyncGenerator<TEvent, TEvent>
-): StreamingExecution<TEvent, TResult>
+streamingExecution<TEvent extends { type: string }>(
+  generator: (session: StreamingSession<TEvent>) => AsyncGenerator<
+    SessionEvent<TEvent>,
+    SessionEvent<TEvent> | Promise<SessionEvent<TEvent>>
+  >,
+  options?: ExecutionOptions
+): StreamingExecution<TEvent>
 ```
 
 ## createMockProvider()
@@ -457,7 +468,11 @@ describe('generateGreeting', () => {
       return result.text;
     });
 
-    expect(await execution.toResult()).toBe('Hello, Alice!');
+    const result = await execution.result();
+    expect(result.status).toBe('succeeded');
+    if (result.status === 'succeeded') {
+      expect(result.value).toBe('Hello, Alice!');
+    }
   });
 });
 ```
@@ -467,19 +482,17 @@ describe('generateGreeting', () => {
 ```typescript
 import { describe, it, expect } from 'vitest';
 import { mock, collectEvents } from '@agtlantis/core/testing';
-import type { EventMetrics } from '@agtlantis/core';
+import type { CompletionEvent } from '@agtlantis/core';
 
-interface ProcessEvent {
-  type: string;
-  metrics: EventMetrics;
-  data?: string;
-}
+type ProcessEvent =
+  | { type: 'progress'; data: string }
+  | CompletionEvent<string>;
 
 describe('streamingProcessor', () => {
   it('should emit progress events', async () => {
     const provider = mock.provider(mock.text('Done!'));
 
-    const execution = provider.streamingExecution<ProcessEvent, string>(
+    const execution = provider.streamingExecution<ProcessEvent>(
       async function* (session) {
         yield session.emit({ type: 'progress', data: 'Working...' });
         await session.generateText({ prompt: 'Test' });
@@ -487,8 +500,11 @@ describe('streamingProcessor', () => {
       }
     );
 
-    const events = await collectEvents(execution);
-    const progressEvents = events.filter((e) => e.type === 'progress');
+    const events: unknown[] = [];
+    for await (const event of execution.stream()) {
+      events.push(event);
+    }
+    const progressEvents = events.filter((e: any) => e.type === 'progress');
     expect(progressEvents).toHaveLength(1);
   });
 });
@@ -619,9 +635,9 @@ interface CreateSessionFactoryOptions {
 Creates a factory function for StreamingSession instances.
 
 ```typescript
-function createStreamingSessionFactory<TEvent, TResult>(
+function createStreamingSessionFactory<TEvent extends { type: string } = TestEvent>(
   options?: CreateSessionFactoryOptions
-): () => StreamingSession<TEvent, TResult>
+): () => StreamingSession<TEvent>
 ```
 
 **Example:**
@@ -655,9 +671,9 @@ function createSimpleSessionFactory(
 Creates a factory that captures the signal passed to it.
 
 ```typescript
-function createStreamingSessionFactoryWithSignal<TEvent, TResult>(
+function createStreamingSessionFactoryWithSignal<TEvent extends { type: string } = TestEvent>(
   options?: CreateStreamingSessionFactoryWithSignalOptions
-): (signal?: AbortSignal) => StreamingSession<TEvent, TResult>
+): (signal?: AbortSignal) => StreamingSession<TEvent>
 ```
 
 ### Mock Factories
@@ -693,10 +709,10 @@ function createMockLogger(options?: CreateMockLoggerOptions): Logger
 Creates a generator that emits events and returns a result.
 
 ```typescript
-function createSimpleGenerator<TEvent, TResult>(
-  result: TResult,
-  events?: Array<Omit<TEvent, 'metrics'>>
-): SessionStreamGeneratorFn<TEvent, TResult>
+function createSimpleGenerator<TEvent extends { type: string }>(
+  result: ExtractResult<TEvent>,
+  events?: EmittableEventInput<TEvent>[]
+): SessionStreamGeneratorFn<TEvent>
 ```
 
 **Example:**
@@ -713,10 +729,10 @@ const generator = createSimpleGenerator('final result', [
 Creates a generator that throws an error after emitting optional events.
 
 ```typescript
-function createErrorGenerator<TEvent>(
+function createErrorGenerator<TEvent extends { type: string }>(
   error: Error,
-  eventsBeforeError?: Array<Omit<TEvent, 'metrics'>>
-): SessionStreamGeneratorFn<TEvent, never>
+  eventsBeforeError?: EmittableEventInput<TEvent>[]
+): SessionStreamGeneratorFn<TEvent>
 ```
 
 #### createSlowGenerator()
@@ -724,11 +740,11 @@ function createErrorGenerator<TEvent>(
 Creates a generator with delays between events.
 
 ```typescript
-function createSlowGenerator<TEvent>(
-  events: Array<Omit<TEvent, 'metrics'>>,
+function createSlowGenerator<TEvent extends { type: string }>(
+  events: EmittableEventInput<TEvent>[],
   delayBetweenEventsMs: number,
   abortScenario?: AbortScenario
-): SessionStreamGeneratorFn<TEvent, undefined>
+): SessionStreamGeneratorFn<TEvent>
 ```
 
 #### createNeverEndingGenerator()
@@ -736,10 +752,10 @@ function createSlowGenerator<TEvent>(
 Creates a generator that waits forever (for cancel/cleanup tests).
 
 ```typescript
-function createNeverEndingGenerator<TEvent>(
-  eventsBeforeWait?: Array<Omit<TEvent, 'metrics'>>,
+function createNeverEndingGenerator<TEvent extends { type: string }>(
+  eventsBeforeWait?: EmittableEventInput<TEvent>[],
   abortScenario?: AbortScenario
-): SessionStreamGeneratorFn<TEvent, undefined>
+): SessionStreamGeneratorFn<TEvent>
 ```
 
 #### createCancelableGenerator()
@@ -747,11 +763,11 @@ function createNeverEndingGenerator<TEvent>(
 Creates a generator that responds to abort signals.
 
 ```typescript
-function createCancelableGenerator<TEvent>(
+function createCancelableGenerator<TEvent extends { type: string }>(
   abortScenario: AbortScenario,
   onCancel?: () => void,
-  eventsBeforeWait?: Array<Omit<TEvent, 'metrics'>>
-): SessionStreamGeneratorFn<TEvent, void>
+  eventsBeforeWait?: EmittableEventInput<TEvent>[]
+): SessionStreamGeneratorFn<TEvent>
 ```
 
 #### createCancelableFunction()
@@ -770,12 +786,70 @@ function createCancelableFunction(
 Creates a generator with an initial delay before returning result.
 
 ```typescript
-function createDelayedGenerator<TEvent, TResult>(
+function createDelayedGenerator<TEvent extends { type: string }>(
   delayMs: number,
-  result: TResult,
+  result: ExtractResult<TEvent>,
   abortScenario?: AbortScenario
-): SessionStreamGeneratorFn<TEvent, TResult>
+): SessionStreamGeneratorFn<TEvent>
 ```
+
+### Test Execution Helpers
+
+Helpers for creating pre-built `StreamingExecution<TEvent>` instances for unit tests where you don't need to run a real execution.
+
+#### createTestExecution()
+
+Creates a test `StreamingExecution` that immediately succeeds with the given result.
+
+```typescript
+function createTestExecution<TEvent extends { type: string }>(
+  result: ExtractResult<TEvent>,
+  events?: EmittableEventInput<TEvent>[]
+): StreamingExecution<TEvent>
+```
+
+**Example:**
+
+```typescript
+import { createTestExecution } from '@agtlantis/core/testing';
+import type { CompletionEvent } from '@agtlantis/core';
+
+type MyEvent =
+  | { type: 'progress'; step: string }
+  | CompletionEvent<string>;
+
+// Create a test execution that returns 'Hello' with one progress event
+const execution = createTestExecution<MyEvent>('Hello', [
+  { type: 'progress', step: 'done' },
+]);
+
+const result = await execution.result();
+// result.status === 'succeeded', result.value === 'Hello'
+```
+
+#### createTestErrorExecution()
+
+Creates a test `StreamingExecution` that immediately fails with the given error.
+
+```typescript
+function createTestErrorExecution<TEvent extends { type: string }>(
+  error: Error,
+  events?: EmittableEventInput<TEvent>[]
+): StreamingExecution<TEvent>
+```
+
+**Example:**
+
+```typescript
+import { createTestErrorExecution } from '@agtlantis/core/testing';
+
+const execution = createTestErrorExecution<MyEvent>(new Error('Something failed'));
+
+const result = await execution.result();
+// result.status === 'failed', result.error.message === 'Something failed'
+```
+
+---
 
 ### Abort Helpers
 

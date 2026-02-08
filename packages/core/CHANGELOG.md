@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Execution Mapping Utilities**: Transform execution results and events at service boundaries
+  - `mapExecution()` — transform all events in a `StreamingExecution` or result of `SimpleExecution`
+  - `mapExecutionResult()` — transform only `CompletionEvent` data (result-only convenience)
+  - `ReplaceResult<TEvent, U>` — type helper for replacing `CompletionEvent` data type in event union
+
 - **File Cache Fluent API**: `withFileCache(cache?)` method for providers
   - `GoogleProvider.withFileCache()` - injects cache into `GoogleFileManager`
   - `OpenAIProvider.withFileCache()` - no-op for API consistency

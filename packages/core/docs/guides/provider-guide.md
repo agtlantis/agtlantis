@@ -37,6 +37,8 @@ The Provider is the core abstraction in @agtlantis/core. It handles:
 
 Think of a Provider as a configured connection to an AI service. You create it once, configure it with the fluent API, then use it to run executions.
 
+> **Provider Support:** Currently, the Google AI provider is fully supported with all features (file management, caching, grounding, safety settings). The OpenAI provider supports core features (text generation, streaming, tool use) but some advanced features like file management are not yet implemented.
+
 ## Quick Start
 
 Here's the minimal code to get a response from an LLM:
@@ -56,8 +58,10 @@ const execution = provider.simpleExecution(async (session) => {
 });
 
 // 3. Get result
-const text = await execution.toResult();
-console.log(text);
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log(result.value);
+}
 ```
 
 ## Basic Usage
@@ -213,8 +217,10 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-const text = await execution.toResult();
-console.log(text);
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log(result.value);
+}
 ```
 
 The session automatically tracks:
@@ -227,20 +233,18 @@ The session automatically tracks:
 Use `streamingExecution()` when you need to emit events during processing. This is ideal for real-time UIs or long-running operations.
 
 ```typescript
-import { createGoogleProvider } from '@agtlantis/core';
-import type { EventMetrics } from '@agtlantis/core';
+import { createGoogleProvider, type CompletionEvent } from '@agtlantis/core';
 
-// Define your event types
+// Define your event types — CompletionEvent defines the result type
 type MyEvent =
-  | { type: 'progress'; message: string; metrics: EventMetrics }
-  | { type: 'complete'; data: string; metrics: EventMetrics }
-  | { type: 'error'; error: Error; metrics: EventMetrics };
+  | { type: 'progress'; message: string }
+  | CompletionEvent<string>;
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY!,
 }).withDefaultModel('gemini-2.5-flash');
 
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     // Emit progress event
     yield session.emit({ type: 'progress', message: 'Starting...' });
@@ -256,8 +260,8 @@ const execution = provider.streamingExecution<MyEvent, string>(
   }
 );
 
-// Consume events
-for await (const event of execution) {
+// Consume events via stream()
+for await (const event of execution.stream()) {
   if (event.type === 'progress') {
     console.log('Progress:', event.message);
   } else if (event.type === 'complete') {
@@ -340,15 +344,11 @@ const execution = provider.simpleExecution(async (session) => {
 
   const uploaded = await session.fileManager.upload(files);
 
-  // Use the uploaded file in your prompt
+  // Use the uploaded file in your prompt via .part (AI SDK FilePart/ImagePart)
   const result = await session.generateText({
     prompt: [
       { type: 'text', text: 'Summarize this document:' },
-      {
-        
-        data: new URL(uploaded[0].uri),
-        mediaType: uploaded[0].mediaType,
-      },
+      uploaded[0].part,
     ],
   });
 
@@ -424,7 +424,7 @@ if (isFileSource(value)) {
 }
 ```
 
-> **Note:** OpenAI doesn't support the upload + URI reference pattern. The `fileManager` on OpenAI sessions will throw an error if you try to upload files. Use inline base64 or URL content parts instead.
+> **Note:** The OpenAI provider doesn't currently implement the upload + URI reference pattern. The `fileManager` on OpenAI sessions will throw an error if you try to upload files. Use inline base64 or URL content parts instead.
 
 **File Caching:**
 
@@ -451,7 +451,7 @@ const providerWithCache = createGoogleProvider({
 
 When a file is uploaded, the FileManager computes a hash from its content. If an identical file was previously uploaded and cached, the cached URI is returned immediately without re-uploading.
 
-> **Note:** `withFileCache()` is also available on OpenAI provider for API consistency, but it's a no-op since OpenAI doesn't support file uploads.
+> **Note:** `withFileCache()` is also available on OpenAI provider for API consistency, but it's a no-op since file uploads are not yet implemented for the OpenAI provider.
 
 ### Google Search and URL Context Grounding
 
@@ -630,13 +630,17 @@ const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY!,
 }).withDefaultModel('gemini-2.5-flash');
 
-try {
-  const execution = provider.simpleExecution(async (session) => {
-    const result = await session.generateText({ prompt: 'Hello!' });
-    return result.text;
-  });
-  const text = await execution.toResult();
-} catch (error) {
+const execution = provider.simpleExecution(async (session) => {
+  const result = await session.generateText({ prompt: 'Hello!' });
+  return result.text;
+});
+
+const result = await execution.result();
+
+if (result.status === 'succeeded') {
+  console.log(result.value);
+} else if (result.status === 'failed') {
+  const error = result.error;
   if (error instanceof RateLimitError) {
     // Retryable - wait and retry
     console.log(`Rate limited. Retry after ${error.retryAfter} seconds`);

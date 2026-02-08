@@ -70,8 +70,10 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-const text = await execution.toResult();
-console.log(text);
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log(result.value);
+}
 // Output: [gemini-2.5-flash] 523ms
 //         Tokens: 42
 ```
@@ -183,7 +185,7 @@ const provider = createGoogleProvider({
   .withLogger(logger);
 
 // Execution lifecycle events fire for streamingExecution
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     yield session.emit({ type: 'progress', message: 'Working...' });
     const result = await session.generateText({ prompt: 'Hello' });
@@ -191,7 +193,7 @@ const execution = provider.streamingExecution<MyEvent, string>(
   }
 );
 
-for await (const event of execution) {
+for await (const event of execution.stream()) {
   // Process events
 }
 ```

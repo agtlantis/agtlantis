@@ -6,6 +6,8 @@
 
 The Provider module is the core abstraction for interacting with AI models. It provides a unified, provider-agnostic interface for Google AI and OpenAI, with fluent configuration and automatic session management.
 
+> **Provider Support:** Currently, the Google AI provider is fully supported with all features. The OpenAI provider supports core features (text generation, streaming, tool use) but some advanced features like file management are not yet implemented.
+
 ## Import
 
 ```typescript
@@ -68,13 +70,18 @@ interface Provider {
   withPricing(pricing: ProviderPricing): Provider;
   withDefaultOptions(options: Record<string, unknown>): Provider;
 
-  streamingExecution<TEvent, TResult>(
-    generator: (session: StreamingSession<TEvent, TResult>) => AsyncGenerator<TEvent, TEvent>
-  ): StreamingExecution<TEvent, TResult>;
+  streamingExecution<TEvent extends { type: string }>(
+    generator: (session: StreamingSession<TEvent>) => AsyncGenerator<
+      SessionEvent<TEvent>,
+      SessionEvent<TEvent> | Promise<SessionEvent<TEvent>>
+    >,
+    options?: ExecutionOptions
+  ): StreamingExecution<TEvent>;
 
   simpleExecution<TResult>(
-    fn: (session: SimpleSession) => Promise<TResult>
-  ): Promise<Execution<TResult>>;
+    fn: (session: SimpleSession) => Promise<TResult>,
+    options?: ExecutionOptions
+  ): SimpleExecution<TResult>;
 }
 ```
 
@@ -85,14 +92,14 @@ interface Provider {
 | `withPricing(pricing)` | `Provider` | Returns new provider with custom pricing config |
 | `withDefaultOptions(options)` | `Provider` | Returns new provider with default provider-specific options |
 | `streamingExecution(generator)` | `StreamingExecution` | Creates streaming execution with event emission |
-| `simpleExecution(fn)` | `Promise<Execution>` | Creates simple Promise-based execution |
+| `simpleExecution(fn)` | `SimpleExecution` | Creates simple Promise-based execution |
 
 ### StreamingSession
 
 Session interface for streaming executions. Passed to the generator function.
 
 ```typescript
-interface StreamingSession<TEvent, TResult> {
+interface StreamingSession<TEvent extends { type: string }> {
   // AI SDK wrappers
   generateText<TOOLS, OUTPUT>(params: GenerateTextParams<TOOLS, OUTPUT>): Promise<GenerateTextResult>;
   streamText<TOOLS, OUTPUT>(params: StreamTextParams<TOOLS, OUTPUT>): StreamTextResult;
@@ -104,9 +111,9 @@ interface StreamingSession<TEvent, TResult> {
   onDone(fn: () => Promise<void> | void): void;
 
   // Stream control
-  emit(event: Omit<TEvent, 'metrics'>): TEvent;
-  done(data: TResult): Promise<TEvent>;
-  fail(error: Error, data?: TResult): Promise<TEvent>;
+  emit(event: EmittableEventInput<TEvent>): SessionEvent<TEvent>;
+  done(data: ExtractResult<TEvent>): Promise<SessionEvent<TEvent>>;
+  fail(error: Error, data?: ExtractResult<TEvent>): Promise<SessionEvent<TEvent>>;
 
   // Recording
   record(data: Record<string, unknown>): void;
@@ -222,7 +229,7 @@ const providerWithTTL = createGoogleProvider({
   .withFileCache(new InMemoryFileCache({ defaultTTL: 30 * 60 * 1000 }));
 ```
 
-> **Note:** `withFileCache()` is also available on OpenAI provider for API consistency, but it's a no-op since OpenAI doesn't support file uploads.
+> **Note:** `withFileCache()` is also available on OpenAI provider for API consistency, but it's a no-op since file uploads are not yet implemented for the OpenAI provider.
 
 When a file is uploaded, the FileManager computes a hash from its content (or uses the explicit `hash` field if provided) and checks the cache. If found, the cached `UploadedFile` is returned immediately without re-uploading.
 
@@ -448,7 +455,7 @@ const azureProvider = createOpenAIProvider({
 }).withDefaultModel('gpt-4');
 ```
 
-> **Note:** OpenAI does not support the FileManager upload pattern. The `fileManager` will throw an error on upload. Use inline content parts instead.
+> **Note:** The OpenAI provider does not yet implement the FileManager upload pattern. The `fileManager` will throw an error on upload. Use inline content parts instead.
 
 ## Errors
 
@@ -589,25 +596,27 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-const answer = await execution.toResult();
-console.log(answer); // "Paris"
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log(result.value); // "Paris"
+}
 ```
 
 ### Streaming with Progress Events
 
 ```typescript
-import { createGoogleProvider } from '@agtlantis/core';
+import { createGoogleProvider, type CompletionEvent } from '@agtlantis/core';
 
-// Define event types - metrics are added automatically by the framework
+// Define event types — CompletionEvent defines the result type
 type MyEvent =
   | { type: 'thinking' }
-  | { type: 'complete'; result: string };
+  | CompletionEvent<string>;
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY!,
 }).withDefaultModel('gemini-2.5-flash');
 
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     yield session.emit({ type: 'thinking' });
 

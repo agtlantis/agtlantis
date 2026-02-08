@@ -209,10 +209,10 @@ This diagram shows how an execution flows through the system, from provider to r
   Provider
       │
       ├─── simpleExecution(fn) ───────────────────────────┐
-      │    Returns: Promise<Execution<TResult>>           │
+      │    Returns: SimpleExecution<TResult>              │
       │                                                   │
       └─── streamingExecution(generator) ─────┐           │
-           Returns: StreamingExecution<TEvent, TResult>   │
+           Returns: StreamingExecution<TEvent>            │
                                               │           │
                                               ▼           ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -261,15 +261,17 @@ This diagram shows how an execution flows through the system, from provider to r
 │                           Execution Result                                    │
 │                                                                               │
 │  Simple Execution:                                                            │
-│    const result = await execution.toResult();                                │
-│    const metadata = await execution.getSummary();                           │
+│    const result = await execution.result();                                  │
+│    // result.status: 'succeeded' | 'failed' | 'canceled'                     │
+│    // result.summary: SessionSummary (always available)                       │
 │                                                                               │
 │  Streaming Execution:                                                         │
-│    for await (const event of execution) {                                    │
-│      // Each event includes: { data, metrics: EventMetrics }                 │
+│    for await (const event of execution.stream()) {                           │
+│      // Each event includes: metrics: EventMetrics                           │
 │      // EventMetrics: { timestamp, elapsedMs, deltaMs }                      │
 │    }                                                                          │
-│    const result = await execution.toResult();                                │
+│    const result = await execution.result();                                  │
+│    // result.events: all events, result.summary: SessionSummary              │
 │                                                                               │
 │  Both include SessionSummary:                                                 │
 │    { llmCalls, totalLLMUsage, totalCost, costByModel, ... }                  │
@@ -330,9 +332,9 @@ const execution = provider.streamingExecution(async function* (session) {
   return session.done({ analysis: result.text });
 });
 
-// Consume with for-await-of
-for await (const event of execution) {
-  console.log(event.data.stage); // 'analyzing', 'complete'
+// Consume via stream()
+for await (const event of execution.stream()) {
+  console.log(event.type); // 'progress', 'complete'
 }
 ```
 

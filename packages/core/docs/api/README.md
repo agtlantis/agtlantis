@@ -43,8 +43,6 @@ import {
   // Providers
   createGoogleProvider,
   createOpenAIProvider,
-  createAnthropicProvider,
-
   // Patterns
   defineProgressivePattern,
 
@@ -61,9 +59,15 @@ import {
   calculateCostFromUsage,
   configurePricing,
 
+  // Execution mapping
+  mapExecution,
+  mapExecutionResult,
+  type ReplaceResult,
+
   // Types
   type Provider,
-  type Session,
+  type StreamingSession,
+  type SimpleSession,
   type Execution,
   type SimpleExecution,
   type StreamingExecution,

@@ -5,7 +5,7 @@ import type { SessionStreamGeneratorFn } from './types';
 import { SessionSummary } from '../session/types';
 import {
   TEST_PROVIDER_TYPE,
-  TestEvent,
+  type TestEvent,
   createMockModel,
   createMockFileManager,
   createMockUsage,
@@ -43,7 +43,7 @@ describe('StreamingExecutionHost', () => {
 
   describe('construction (eager start)', () => {
     it('should create with session factory and generator', () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'test' });
@@ -57,7 +57,7 @@ describe('StreamingExecutionHost', () => {
 
     it('should start consuming immediately (eager start)', async () => {
       let started = false;
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         started = true;
@@ -75,7 +75,7 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should buffer events even without stream() call', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'a' });
@@ -97,14 +97,14 @@ describe('StreamingExecutionHost', () => {
       let sessionCount = 0;
       const sessionFactory = () => {
         sessionCount++;
-        return new StreamingSession<TestEvent, string>({
+        return new StreamingSession<TestEvent>({
           defaultLanguageModel: createMockModel(),
           providerType: TEST_PROVIDER_TYPE,
           fileManager: createMockFileManager(),
         });
       };
 
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         return session.done('result');
@@ -119,9 +119,9 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should pass session to generator', async () => {
-      let receivedSession: StreamingSession<TestEvent, string> | null = null;
+      let receivedSession: StreamingSession<TestEvent> | null = null;
 
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         receivedSession = session;
@@ -137,7 +137,7 @@ describe('StreamingExecutionHost', () => {
 
   describe('stream()', () => {
     it('should yield events emitted by session', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'progress', message: 'Working...' });
@@ -149,15 +149,13 @@ describe('StreamingExecutionHost', () => {
       const events = await collectEvents(execution.stream());
 
       expect(events).toHaveLength(3); // 2 progress + 1 complete
-      expect(events[0].type).toBe('progress');
-      expect(events[0].message).toBe('Working...');
-      expect(events[1].type).toBe('progress');
-      expect(events[1].message).toBe('Almost done...');
-      expect(events[2].type).toBe('complete');
+      expect(events[0]).toMatchObject({ type: 'progress', message: 'Working...' });
+      expect(events[1]).toMatchObject({ type: 'progress', message: 'Almost done...' });
+      expect(events[2]).toMatchObject({ type: 'complete' });
     });
 
     it('should have metrics on emitted events', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'progress' });
@@ -174,7 +172,7 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should allow multiple stream() calls (replay)', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'a' });
@@ -198,7 +196,7 @@ describe('StreamingExecutionHost', () => {
 
   describe('result()', () => {
     it('should yield complete event with data', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         return session.done('final-result');
@@ -214,7 +212,7 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should include events in result', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'progress' });
@@ -235,7 +233,7 @@ describe('StreamingExecutionHost', () => {
         usage: createMockUsage({ inputTokens: 200, outputTokens: 100, totalTokens: 300 }),
       });
 
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         // Make an LLM call to populate summary
@@ -252,7 +250,7 @@ describe('StreamingExecutionHost', () => {
 
     it('should return failed status on error via fail()', async () => {
       const testError = new Error('Test failure');
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         return session.fail(testError);
@@ -269,7 +267,7 @@ describe('StreamingExecutionHost', () => {
 
     it('should return failed status on thrown error', async () => {
       const testError = new Error('Unhandled!');
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* () {
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* () {
         throw testError;
       };
 
@@ -283,7 +281,7 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should provide summary even on failure', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         return session.fail(new Error('Error'));
@@ -299,7 +297,7 @@ describe('StreamingExecutionHost', () => {
 
   describe('stream() and result() ordering', () => {
     it('should allow stream -> result pattern', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'a' });
@@ -319,7 +317,7 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should allow result only pattern (events in result)', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'a' });
@@ -337,7 +335,7 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should allow concurrent stream and result', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'a' });
@@ -358,7 +356,7 @@ describe('StreamingExecutionHost', () => {
 
   describe('AbortError handling', () => {
     it('should treat AbortError as normal cancellation', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'progress' });
@@ -376,7 +374,7 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should distinguish AbortError from other errors', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'progress' });
@@ -399,7 +397,7 @@ describe('StreamingExecutionHost', () => {
         usage: createMockUsage(),
       });
 
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         const result = await session.generateText({ prompt: 'Hello' });
@@ -410,8 +408,8 @@ describe('StreamingExecutionHost', () => {
       const execution = new StreamingExecutionHost(createStreamingSessionFactory(), generator);
       const events = await collectEvents(execution.stream());
 
-      expect(events[0].message).toBe('AI response');
-      expect(events[1].data).toBe('AI response');
+      expect(events[0]).toMatchObject({ type: 'progress', message: 'AI response' });
+      expect(events[1]).toMatchObject({ type: 'complete', data: 'AI response' });
     });
 
     it('should allow using session.streamText()', async () => {
@@ -423,7 +421,7 @@ describe('StreamingExecutionHost', () => {
         usage: Promise.resolve(createMockUsage()),
       });
 
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         const result = session.streamText({ prompt: 'Hello' });
@@ -444,7 +442,7 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should allow file management through session', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         // Register cleanup
@@ -461,13 +459,13 @@ describe('StreamingExecutionHost', () => {
       const execution = new StreamingExecutionHost(createStreamingSessionFactory(), generator);
       const events = await collectEvents(execution.stream());
 
-      expect(events[0].message).toBe('Uploaded 0 files');
+      expect(events[0]).toMatchObject({ type: 'progress', message: 'Uploaded 0 files' });
     });
   });
 
   describe('edge cases', () => {
     it('should handle generator that returns done immediately without yielding', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         return session.done('instant');
@@ -485,7 +483,7 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should auto-catch exception thrown before first yield', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* () {
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* () {
         throw new Error('Early crash');
       };
 
@@ -498,7 +496,7 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should handle multiple cancel calls safely', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'event' });
@@ -518,7 +516,7 @@ describe('StreamingExecutionHost', () => {
 
     it('should trigger generator finally block on normal completion', async () => {
       let finallyExecuted = false;
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         try {
@@ -541,7 +539,7 @@ describe('StreamingExecutionHost', () => {
 
       const sessionFactory = (signal?: AbortSignal) => {
         signalReceived = signal;
-        return new StreamingSession<TestEvent, string>({
+        return new StreamingSession<TestEvent>({
           defaultLanguageModel: createMockModel(),
           providerType: TEST_PROVIDER_TYPE,
           fileManager: createMockFileManager(),
@@ -549,7 +547,7 @@ describe('StreamingExecutionHost', () => {
         });
       };
 
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'progress', message: 'working' });
@@ -568,7 +566,7 @@ describe('StreamingExecutionHost', () => {
 
       const sessionFactory = (signal?: AbortSignal) => {
         signalReceived = signal;
-        return new StreamingSession<TestEvent, string>({
+        return new StreamingSession<TestEvent>({
           defaultLanguageModel: createMockModel(),
           providerType: TEST_PROVIDER_TYPE,
           fileManager: createMockFileManager(),
@@ -576,7 +574,7 @@ describe('StreamingExecutionHost', () => {
         });
       };
 
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'progress', message: 'working' });
@@ -597,7 +595,7 @@ describe('StreamingExecutionHost', () => {
 
   describe('race conditions', () => {
     it('should support multiple concurrent stream() consumers', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'a' });
@@ -627,7 +625,7 @@ describe('StreamingExecutionHost', () => {
 
     it('should handle immediate stream() during eager start', async () => {
       let generatorStarted = false;
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         generatorStarted = true;
@@ -649,7 +647,7 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should handle abandoned stream() iterator without memory leak', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'a' });
@@ -707,7 +705,7 @@ describe('StreamingExecutionHost', () => {
 
     it('should handle concurrent cleanup() and result() calls', async () => {
       const onDoneHook = vi.fn();
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         session.onDone(onDoneHook);
@@ -793,7 +791,7 @@ describe('StreamingExecutionHost', () => {
   describe('memory management', () => {
     it('should buffer all events for replay support', async () => {
       const eventCount = 100;
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         for (let i = 0; i < eventCount; i++) {
@@ -813,7 +811,7 @@ describe('StreamingExecutionHost', () => {
     });
 
     it('should clear subscribers after completion', async () => {
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'a' });
@@ -841,7 +839,7 @@ describe('StreamingExecutionHost', () => {
     it('should handle cleanup on never-ending generator', async () => {
       // Use a generator that listens to the session's internal signal
       let signalReceived: AbortSignal | undefined;
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         yield session.emit({ type: 'initial' });
@@ -862,7 +860,7 @@ describe('StreamingExecutionHost', () => {
 
       const sessionFactory = (signal?: AbortSignal) => {
         signalReceived = signal;
-        return new StreamingSession<TestEvent, string>({
+        return new StreamingSession<TestEvent>({
           defaultLanguageModel: createMockModel(),
           providerType: TEST_PROVIDER_TYPE,
           fileManager: createMockFileManager(),
@@ -888,7 +886,7 @@ describe('StreamingExecutionHost', () => {
         usage: createMockUsage({ inputTokens: 500, outputTokens: 250 }),
       });
 
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         await session.generateText({ prompt: 'test' });
@@ -913,7 +911,7 @@ describe('StreamingExecutionHost', () => {
       const abortScenario = createAbortScenario();
 
       // Generator that gets aborted before emitting
-      const generator: SessionStreamGeneratorFn<TestEvent, string> = async function* (
+      const generator: SessionStreamGeneratorFn<TestEvent> = async function* (
         session
       ) {
         await new Promise<void>((_, reject) => {

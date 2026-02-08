@@ -58,11 +58,10 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-await execution.toResult();
+const result = await execution.result();
 
-// 2. Get session summary
-const summary = await execution.getSummary();
-const usage = summary.totalLLMUsage;
+// 2. Get usage from result summary (always available regardless of status)
+const usage = result.summary.totalLLMUsage;
 
 // 3. Calculate cost
 const cost = calculateCostFromUsage(usage, 'gemini-2.5-flash', 'google');
@@ -124,12 +123,11 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-await execution.toResult();
-const summary = await execution.getSummary();
+const result = await execution.result();
 
-// Calculate cost from session summary
+// Calculate cost from result summary
 const cost = calculateCostFromUsage(
-  summary.totalLLMUsage,
+  result.summary.totalLLMUsage,
   'gemini-2.5-flash',
   'google'
 );
@@ -220,7 +218,7 @@ const execution = provider.simpleExecution(async (session) => {
   return final.text;
 });
 
-await execution.toResult();
+await execution.result();
 
 // Calculate total cost across all calls
 const { totalCost, costByModel } = calculateTotalCost(llmCalls);
@@ -307,7 +305,7 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-await execution.toResult();
+await execution.result();
 ```
 
 ### Pricing Resolution Hierarchy

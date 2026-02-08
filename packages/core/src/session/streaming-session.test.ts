@@ -2,6 +2,7 @@ import type { LanguageModelUsage } from 'ai';
 import { generateText, streamText } from 'ai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { TestEvent } from '../execution/testing/fixtures';
 import { StreamingSession, createStreamingSession } from './streaming-session';
 import {
     TEST_PROVIDER_TYPE,
@@ -19,18 +20,6 @@ vi.mock('ai', () => ({
 const mockGenerateText = generateText as ReturnType<typeof vi.fn>;
 const mockStreamText = streamText as ReturnType<typeof vi.fn>;
 
-/**
- * Test event type - pure domain event without metrics.
- * Framework automatically wraps with SessionEvent<TestEvent> at runtime.
- */
-interface TestEvent {
-    type: string;
-    message?: string;
-    data?: string;
-    summary?: unknown;
-    error?: Error;
-}
-
 describe('createStreamingSession', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -44,7 +33,7 @@ describe('createStreamingSession', () => {
         it('should create a session with all required methods', () => {
             const model = createMockModel();
             const fileManager = createMockFileManager();
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: model,
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager,
@@ -72,7 +61,7 @@ describe('createStreamingSession', () => {
             const mockResult = { text: 'Hello!', usage: createMockUsage() };
             mockGenerateText.mockResolvedValue(mockResult);
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: model,
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -94,7 +83,7 @@ describe('createStreamingSession', () => {
             };
             mockStreamText.mockReturnValue(mockResult);
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: model,
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -113,7 +102,7 @@ describe('createStreamingSession', () => {
             const startTime = 1000000;
             vi.setSystemTime(startTime);
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -124,8 +113,7 @@ describe('createStreamingSession', () => {
 
             const event = session.emit({ type: 'progress', message: 'Working...' });
 
-            expect(event.type).toBe('progress');
-            expect(event.message).toBe('Working...');
+            expect(event).toMatchObject({ type: 'progress', message: 'Working...' });
             expect(event.metrics).toBeDefined();
             expect(event.metrics.timestamp).toBe(startTime + 100);
             expect(event.metrics.elapsedMs).toBe(100);
@@ -136,7 +124,7 @@ describe('createStreamingSession', () => {
             const startTime = 1000000;
             vi.setSystemTime(startTime);
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -163,7 +151,7 @@ describe('createStreamingSession', () => {
 
         describe('reserved type prevention', () => {
             it('should throw when emitting "complete" type at runtime', () => {
-                const session = createStreamingSession<TestEvent, string>({
+                const session = createStreamingSession<TestEvent>({
                     defaultLanguageModel: createMockModel(),
                     providerType: TEST_PROVIDER_TYPE,
                     fileManager: createMockFileManager(),
@@ -176,7 +164,7 @@ describe('createStreamingSession', () => {
             });
 
             it('should throw when emitting "error" type at runtime', () => {
-                const session = createStreamingSession<TestEvent, string>({
+                const session = createStreamingSession<TestEvent>({
                     defaultLanguageModel: createMockModel(),
                     providerType: TEST_PROVIDER_TYPE,
                     fileManager: createMockFileManager(),
@@ -189,7 +177,7 @@ describe('createStreamingSession', () => {
             });
 
             it('should allow emitting normal event types', () => {
-                const session = createStreamingSession<TestEvent, string>({
+                const session = createStreamingSession<TestEvent>({
                     defaultLanguageModel: createMockModel(),
                     providerType: TEST_PROVIDER_TYPE,
                     fileManager: createMockFileManager(),
@@ -199,7 +187,7 @@ describe('createStreamingSession', () => {
             });
 
             it('should still allow done() to emit complete events internally', async () => {
-                const session = createStreamingSession<TestEvent, string>({
+                const session = createStreamingSession<TestEvent>({
                     defaultLanguageModel: createMockModel(),
                     providerType: TEST_PROVIDER_TYPE,
                     fileManager: createMockFileManager(),
@@ -210,7 +198,7 @@ describe('createStreamingSession', () => {
             });
 
             it('should still allow fail() to emit error events internally', async () => {
-                const session = createStreamingSession<TestEvent, string>({
+                const session = createStreamingSession<TestEvent>({
                     defaultLanguageModel: createMockModel(),
                     providerType: TEST_PROVIDER_TYPE,
                     fileManager: createMockFileManager(),
@@ -228,7 +216,7 @@ describe('createStreamingSession', () => {
             const startTime = 1000000;
             vi.setSystemTime(startTime);
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -251,7 +239,7 @@ describe('createStreamingSession', () => {
                 usage: createMockUsage({ inputTokens: 200, outputTokens: 100, totalTokens: 300 }),
             });
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: model,
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -261,11 +249,11 @@ describe('createStreamingSession', () => {
 
             const event = await session.done('result');
 
-            expect(event.summary).toBeDefined();
-            const summary = event.summary as {
+            expect('summary' in event && event.summary).toBeDefined();
+            const summary = (event as unknown as { summary: {
                 llmCallCount: number;
                 totalLLMUsage: { inputTokens: number; outputTokens: number };
-            };
+            } }).summary;
             expect(summary.llmCallCount).toBe(1);
             expect(summary.totalLLMUsage.inputTokens).toBe(200);
             expect(summary.totalLLMUsage.outputTokens).toBe(100);
@@ -278,7 +266,7 @@ describe('createStreamingSession', () => {
             const startTime = 1000000;
             vi.setSystemTime(startTime);
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -290,13 +278,12 @@ describe('createStreamingSession', () => {
             const testError = new Error('Test error');
             const event = await session.fail(testError);
 
-            expect(event.type).toBe('error');
-            expect(event.error).toBe(testError);
+            expect(event).toMatchObject({ type: 'error', error: testError });
             expect(event.metrics.elapsedMs).toBe(200);
         });
 
         it('should include optional data in error event', async () => {
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -315,7 +302,7 @@ describe('createStreamingSession', () => {
                 usage: createMockUsage(),
             });
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: model,
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -325,13 +312,13 @@ describe('createStreamingSession', () => {
 
             const event = await session.fail(new Error('Error'));
 
-            expect(event.summary).toBeDefined();
+            expect('summary' in event && event.summary).toBeDefined();
         });
     });
 
     describe('onDone', () => {
         it('should execute hooks in LIFO order (last registered = first executed)', async () => {
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -355,7 +342,7 @@ describe('createStreamingSession', () => {
         });
 
         it('should handle async hooks', async () => {
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -378,7 +365,7 @@ describe('createStreamingSession', () => {
         });
 
         it('should continue executing other hooks when one throws', async () => {
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -407,7 +394,7 @@ describe('createStreamingSession', () => {
         });
 
         it('should continue executing when async hook rejects', async () => {
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -436,7 +423,7 @@ describe('createStreamingSession', () => {
         });
 
         it('should work with no hooks registered', async () => {
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -450,7 +437,7 @@ describe('createStreamingSession', () => {
         it('should expose fileManager from options', () => {
             const fileManager = createMockFileManager();
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager,
@@ -472,7 +459,7 @@ describe('createStreamingSession', () => {
                 },
             ]);
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager,
@@ -493,7 +480,7 @@ describe('createStreamingSession', () => {
 
     describe('record and recordToolCall', () => {
         it('should record custom data via record()', async () => {
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -508,7 +495,7 @@ describe('createStreamingSession', () => {
         });
 
         it('should record tool calls via recordToolCall()', async () => {
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -532,7 +519,7 @@ describe('createStreamingSession', () => {
                 usage: createMockUsage({ inputTokens: 100, outputTokens: 50, totalTokens: 150 }),
             });
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: model,
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -564,7 +551,7 @@ describe('createStreamingSession', () => {
                 usage: usagePromise,
             });
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: model,
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -605,7 +592,7 @@ describe('createStreamingSession', () => {
                 },
             ]);
 
-            const session = createStreamingSession<TestEvent, string>({
+            const session = createStreamingSession<TestEvent>({
                 defaultLanguageModel: model,
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager,
@@ -641,10 +628,10 @@ describe('createStreamingSession', () => {
             expect(completeEvent.data).toBe('AI response');
             expect(completeEvent.metrics.elapsedMs).toBe(500);
 
-            const summary = completeEvent.summary as {
+            const summary = (completeEvent as unknown as { summary: {
                 llmCallCount: number;
                 totalLLMUsage: { totalTokens: number };
-            };
+            } }).summary;
             expect(summary.llmCallCount).toBe(1);
             expect(summary.totalLLMUsage.totalTokens).toBe(700);
 
@@ -658,7 +645,7 @@ describe('createStreamingSession', () => {
         it('should call onExecutionStart when session is created', () => {
             const logger = createMockLogger();
 
-            new StreamingSession<TestEvent, string>({
+            new StreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -677,7 +664,7 @@ describe('createStreamingSession', () => {
         it('should call onExecutionEmit when emit() is called', () => {
             const logger = createMockLogger();
 
-            const session = new StreamingSession<TestEvent, string>({
+            const session = new StreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -698,7 +685,7 @@ describe('createStreamingSession', () => {
         it('should call onExecutionDone when done() is called', async () => {
             const logger = createMockLogger();
 
-            const session = new StreamingSession<TestEvent, string>({
+            const session = new StreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -722,7 +709,7 @@ describe('createStreamingSession', () => {
         it('should call onExecutionError when fail() is called', async () => {
             const logger = createMockLogger();
 
-            const session = new StreamingSession<TestEvent, string>({
+            const session = new StreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -748,7 +735,7 @@ describe('createStreamingSession', () => {
             const logger = createMockLogger();
             mockGenerateText.mockResolvedValue({ text: 'response', usage: createMockUsage() });
 
-            const session = new StreamingSession<TestEvent, string>({
+            const session = new StreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -764,7 +751,7 @@ describe('createStreamingSession', () => {
         it('should work with createStreamingSession factory', () => {
             const logger = createMockLogger();
 
-            createStreamingSession<TestEvent, string>({
+            createStreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -777,7 +764,7 @@ describe('createStreamingSession', () => {
 
     describe('inheritance', () => {
         it('should extend SimpleSession', () => {
-            const session = new StreamingSession<TestEvent, string>({
+            const session = new StreamingSession<TestEvent>({
                 defaultLanguageModel: createMockModel(),
                 providerType: TEST_PROVIDER_TYPE,
                 fileManager: createMockFileManager(),
@@ -794,6 +781,92 @@ describe('createStreamingSession', () => {
             expect(typeof session.emit).toBe('function');
             expect(typeof session.done).toBe('function');
             expect(typeof session.fail).toBe('function');
+        });
+    });
+
+    describe('terminal operation guards', () => {
+        it('should throw when done() is called after done()', async () => {
+            const session = createStreamingSession<TestEvent>({
+                defaultLanguageModel: createMockModel(),
+                providerType: TEST_PROVIDER_TYPE,
+                fileManager: createMockFileManager(),
+            });
+
+            await session.done('first');
+
+            await expect(session.done('second')).rejects.toThrow(
+                'Session already terminated. Cannot call done() after a terminal operation.'
+            );
+        });
+
+        it('should throw when fail() is called after fail()', async () => {
+            const session = createStreamingSession<TestEvent>({
+                defaultLanguageModel: createMockModel(),
+                providerType: TEST_PROVIDER_TYPE,
+                fileManager: createMockFileManager(),
+            });
+
+            await session.fail(new Error('first'));
+
+            await expect(session.fail(new Error('second'))).rejects.toThrow(
+                'Session already terminated. Cannot call fail() after a terminal operation.'
+            );
+        });
+
+        it('should throw when fail() is called after done()', async () => {
+            const session = createStreamingSession<TestEvent>({
+                defaultLanguageModel: createMockModel(),
+                providerType: TEST_PROVIDER_TYPE,
+                fileManager: createMockFileManager(),
+            });
+
+            await session.done('result');
+
+            await expect(session.fail(new Error('error'))).rejects.toThrow(
+                'Session already terminated. Cannot call fail() after a terminal operation.'
+            );
+        });
+
+        it('should throw when done() is called after fail()', async () => {
+            const session = createStreamingSession<TestEvent>({
+                defaultLanguageModel: createMockModel(),
+                providerType: TEST_PROVIDER_TYPE,
+                fileManager: createMockFileManager(),
+            });
+
+            await session.fail(new Error('error'));
+
+            await expect(session.done('result')).rejects.toThrow(
+                'Session already terminated. Cannot call done() after a terminal operation.'
+            );
+        });
+
+        it('should throw when emit() is called after done()', async () => {
+            const session = createStreamingSession<TestEvent>({
+                defaultLanguageModel: createMockModel(),
+                providerType: TEST_PROVIDER_TYPE,
+                fileManager: createMockFileManager(),
+            });
+
+            await session.done('result');
+
+            expect(() => session.emit({ type: 'progress', message: 'late' })).toThrow(
+                'Session already terminated. Cannot call emit() after a terminal operation.'
+            );
+        });
+
+        it('should throw when emit() is called after fail()', async () => {
+            const session = createStreamingSession<TestEvent>({
+                defaultLanguageModel: createMockModel(),
+                providerType: TEST_PROVIDER_TYPE,
+                fileManager: createMockFileManager(),
+            });
+
+            await session.fail(new Error('error'));
+
+            expect(() => session.emit({ type: 'progress', message: 'late' })).toThrow(
+                'Session already terminated. Cannot call emit() after a terminal operation.'
+            );
         });
     });
 });

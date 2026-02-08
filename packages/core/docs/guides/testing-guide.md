@@ -28,13 +28,29 @@ describe('my AI feature', () => {
       return result.text;
     });
 
-    expect(await execution.toResult()).toBe('Hello, world!');
+    const result = await execution.result();
+    expect(result.status).toBe('succeeded');
+    if (result.status === 'succeeded') {
+      expect(result.value).toBe('Hello, world!');
+    }
     expect(provider.getCalls()).toHaveLength(1);
   });
 });
 ```
 
 No API keys needed. No network requests. Just fast, deterministic tests.
+
+## Choosing a Testing Approach
+
+The testing module provides three levels of abstraction. Choose based on what your code under test actually does:
+
+| Approach | When to Use | What It Tests |
+|----------|-------------|---------------|
+| **MockProvider** | Your code *creates* executions (agents, services that call `provider.streamingExecution()`) | End-to-end AI agent behavior with call tracking |
+| **createTestExecution** | Your code *receives/consumes* a `StreamingExecution` (command handlers, registries, orchestrators) | Execution consumers without needing a provider or generator |
+| **Execution Host Testing** | You build custom execution hosts or session logic | Low-level execution infrastructure (session factories, generators, abort flows) |
+
+Most application tests use **MockProvider**. Use **createTestExecution** when you need a pre-built execution as a test dependency. Drop down to **Execution Host Testing** only when testing the execution machinery itself.
 
 ## Basic Usage
 
@@ -192,27 +208,27 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-expect(await execution.toResult()).toBe('The answer is 42');
+const result = await execution.result();
+expect(result.status).toBe('succeeded');
+if (result.status === 'succeeded') {
+  expect(result.value).toBe('The answer is 42');
+}
 ```
 
 **Streaming Execution**
 
 Test functions that use `streamingExecution()`:
 
-> **Note:** `EventMetrics` is imported from the main package (`@agtlantis/core`), not the testing module. See [Observability API](../api/observability.md) for details.
-
 ```typescript
 import { mock, collectEvents } from '@agtlantis/core/testing';
-import type { EventMetrics } from '@agtlantis/core';
+import type { CompletionEvent } from '@agtlantis/core';
 
-interface MyEvent {
-  type: string;
-  metrics: EventMetrics;  // { timestamp, elapsedMs, deltaMs }
-  data?: unknown;
-}
+type MyEvent =
+  | { type: 'progress'; message: string }
+  | CompletionEvent<string>;
 
 const provider = mock.provider(mock.stream(['Hello', ', ', 'world!']));
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     const result = session.streamText({ prompt: 'Say hello' });
     let text = '';
@@ -243,7 +259,7 @@ const execution = provider.simpleExecution(async (session) => {
   await session.generateText({ prompt: 'First' });
   await session.generateText({ prompt: 'Second' });
 });
-await execution.toResult(); // Wait for execution to complete
+await execution.result(); // Wait for execution to complete
 
 const calls = provider.getCalls();
 expect(calls).toHaveLength(2);
@@ -263,7 +279,7 @@ const provider = mock.provider(mock.text('Response'));
 const execution = provider.simpleExecution(async (session) => {
   await session.generateText({ prompt: 'Test' });
 });
-await execution.toResult();
+await execution.result();
 expect(provider.getCalls()).toHaveLength(1);
 
 // Clear for next test
@@ -347,7 +363,7 @@ const execution = provider.simpleExecution(async (session) => {
   await session.generateText({ model: 'gpt-4', prompt: 'Complex task' });
   await session.generateText({ model: 'gpt-3.5-turbo', prompt: 'Simple task' });
 });
-await execution.toResult();
+await execution.result();
 
 const calls = provider.getCalls();
 expect(calls[0].modelId).toBe('gpt-4');
@@ -403,7 +419,7 @@ const execution = provider.simpleExecution(async (session) => {
     prompt: 'What is the meaning of life?',
   });
 });
-await execution.toResult();
+await execution.result();
 
 const calls = provider.getCalls();
 const params = calls[0].params as { prompt: Array<{ role: string; content: unknown }> };
@@ -511,7 +527,7 @@ describe('multi-step workflow', () => {
       // Then: detailed processing
       await session.generateText({ model: 'detailed-model', prompt: 'Complex task' });
     });
-    await execution.toResult();
+    await execution.result();
 
     const calls = provider.getCalls();
     expect(calls).toHaveLength(2);
@@ -542,9 +558,9 @@ Mock tests should be instant. Avoid artificial delays and unnecessary setup:
 // Bad: Adds artificial delay
 await new Promise((r) => setTimeout(r, 100));
 
-// Good: Test immediately
-const result = await execution.toResult();
-expect(result).toBe('expected');
+// Good: Get result immediately
+const result = await execution.result();
+expect(result.status).toBe('succeeded');
 ```
 
 ### Document Test Intent
@@ -571,6 +587,126 @@ describe('UserProfileGenerator', () => {
   });
 });
 ```
+
+## Test Execution Helpers
+
+When your code *receives* a `StreamingExecution<TEvent>` as a dependency — rather than creating one — you don't need a provider, generator, or session. The test execution helpers give you a ready-made execution that immediately resolves, so you can focus on testing the consumer logic.
+
+### createTestExecution()
+
+Creates a `StreamingExecution` that immediately succeeds with the given result. Use this to test handlers, registries, or any code that consumes an execution:
+
+```typescript
+import { createTestExecution } from '@agtlantis/core/testing';
+import type { CompletionEvent } from '@agtlantis/core';
+
+type InterviewEvent =
+  | { type: 'question'; text: string }
+  | CompletionEvent<{ summary: string }>;
+
+// Create a pre-built succeeded execution
+const execution = createTestExecution<InterviewEvent>(
+  { summary: 'Great interview' },   // result (typed as ExtractResult<InterviewEvent>)
+  [{ type: 'question', text: 'Tell me about your experience' }]  // intermediate events
+);
+
+// Use it as a test dependency
+const result = await execution.result();
+expect(result.status).toBe('succeeded');
+if (result.status === 'succeeded') {
+  expect(result.value).toEqual({ summary: 'Great interview' });
+}
+```
+
+### createTestErrorExecution()
+
+Creates a `StreamingExecution` that immediately fails with the given error. Use this to test error handling in consumers:
+
+```typescript
+import { createTestErrorExecution } from '@agtlantis/core/testing';
+
+const execution = createTestErrorExecution<InterviewEvent>(
+  new Error('AI service unavailable')
+);
+
+const result = await execution.result();
+expect(result.status).toBe('failed');
+if (result.status === 'failed') {
+  expect(result.error.message).toBe('AI service unavailable');
+}
+```
+
+### With Intermediate Events
+
+Both helpers accept an optional events array. The stream replays these events followed by the terminal event:
+
+```typescript
+import { collectEvents, createTestExecution } from '@agtlantis/core/testing';
+
+const execution = createTestExecution<InterviewEvent>(
+  { summary: 'Done' },
+  [
+    { type: 'question', text: 'First question' },
+    { type: 'question', text: 'Second question' },
+  ]
+);
+
+const events = await collectEvents(execution.stream());
+// events: [question, question, complete] — 3 events total
+expect(events).toHaveLength(3);
+```
+
+### Testing with Execution Mapping
+
+When testing service layers that use `mapExecutionResult()` or `mapExecution()`, combine `createTestExecution()` with the mapping functions. This is the canonical pattern for testing agent→service boundary transformations:
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { createTestExecution } from '@agtlantis/core/testing';
+import { mapExecutionResult } from '@agtlantis/core';
+import type { CompletionEvent } from '@agtlantis/core';
+
+type AgentEvent =
+  | { type: 'thinking'; content: string }
+  | CompletionEvent<{ raw: string }>;
+
+describe('MyService', () => {
+  it('should map agent result to domain type', async () => {
+    // 1. Create a mock agent execution with test data
+    const agentExecution = createTestExecution<AgentEvent>(
+      { raw: 'hello world' },
+      [{ type: 'thinking', content: 'Processing...' }],
+    );
+
+    // 2. Apply the same mapping your service uses
+    const serviceExecution = mapExecutionResult(agentExecution, (raw) => ({
+      formatted: raw.raw.toUpperCase(),
+    }));
+
+    // 3. Verify the mapped result
+    const result = await serviceExecution.result();
+    expect(result.status).toBe('succeeded');
+    if (result.status === 'succeeded') {
+      expect(result.value).toEqual({ formatted: 'HELLO WORLD' });
+    }
+  });
+});
+```
+
+### Event Type Helpers
+
+The test execution helpers (and generator helpers) rely on derived types to keep signatures precise:
+
+| Type Helper | What It Does |
+|-------------|-------------|
+| `ExtractResult<TEvent>` | Extracts the result type `T` from `CompletionEvent<T>` in the event union |
+| `EmittableEventInput<TEvent>` | Excludes reserved types (`CompletionEvent`, `ErrorEvent`) — only domain events are allowed |
+
+For example, given `type MyEvent = { type: 'progress' } | CompletionEvent<string>`:
+- `ExtractResult<MyEvent>` → `string`
+- `EmittableEventInput<MyEvent>` → `{ type: 'progress' }`
+
+> For foundational explanation of `CompletionEvent<T>` and event type design, see the [Streaming Guide — Type Your Events](./streaming-guide.md#type-your-events) section.
 
 ## Execution Host Testing
 
@@ -751,6 +887,8 @@ expect(logger.onExecutionStart).toHaveBeenCalled();
 | `collectStreamAsync()` | Collects all events from async iterable |
 | `createControllablePromise()` | Promise with external resolve/reject |
 | `createOrderTrackingLogger()` | Logger that tracks call order |
+| `createTestExecution()` | Creates a `StreamingExecution` that immediately succeeds |
+| `createTestErrorExecution()` | Creates a `StreamingExecution` that immediately fails |
 | `createMockModel()` | Creates mock `LanguageModel` |
 | `createMockFileManager()` | Creates mock `FileManager` |
 | `createMockLogger()` | Creates mock `Logger` |

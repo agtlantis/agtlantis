@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { StreamingSession } from '@/session/streaming-session';
 import type { StreamTextParams } from '@/session/types';
 import type { BaseProvider } from '@/provider/base-provider';
-import type { EmittableEventInput, SessionEvent } from '@/execution/types';
+import type { EmittableEventInput, ErrorEvent, ExtractResult, SessionEvent } from '@/execution/types';
 
 export type ProgressiveStreamOptions<TUserTools extends ToolSet = {}> = Omit<
     StreamTextParams<TUserTools>,
@@ -169,7 +169,7 @@ export class ProgressivePattern<
      * ```
      */
     async *runInSession<TUserTools extends ToolSet = {}>(
-        session: StreamingSession<TEvent, TResult>,
+        session: StreamingSession<TEvent>,
         options: ProgressiveStreamOptions<TUserTools>
     ): AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent>, undefined> {
         const { tools: userTools, system, stopWhen: userStopWhen, protocol, ...restOptions } =
@@ -221,7 +221,7 @@ export class ProgressivePattern<
             throw new Error(baseMsg + detail);
         }
 
-        const completeEvent = await session.done(result);
+        const completeEvent = await session.done(result as ExtractResult<TEvent>);
         yield completeEvent;
         return completeEvent;
     }
@@ -262,9 +262,9 @@ export class ProgressivePattern<
     run<TUserTools extends ToolSet = {}>(
         provider: BaseProvider,
         options: ProgressiveStreamOptions<TUserTools>
-    ): AsyncIterable<SessionEvent<TEvent>> {
+    ): AsyncIterable<SessionEvent<TEvent | ErrorEvent>> {
         const self = this;
-        const execution = provider.streamingExecution<TEvent, TResult>(async function* (session) {
+        const execution = provider.streamingExecution<TEvent>(async function* (session) {
             return yield* self.runInSession(session, options);
         });
         return execution.stream();

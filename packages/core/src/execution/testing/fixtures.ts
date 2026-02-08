@@ -8,6 +8,7 @@
 
 import type { LanguageModel, LanguageModelUsage } from 'ai';
 
+import type { CompletionEvent } from '@/execution/types';
 import type { FileManager } from '@/provider/types';
 import type { Logger } from '@/observability/logger';
 import { SimpleSession } from '../../session/simple-session';
@@ -23,16 +24,19 @@ export type MockFnFactory = () => MockFn;
 export const TEST_PROVIDER_TYPE = 'google' as const;
 
 /**
- * Test event type - pure domain event without metrics.
- * Framework automatically wraps with SessionEvent<TestEvent> at runtime.
+ * Base test event — the domain event users emit via session.emit().
  */
-export interface TestEvent {
+export interface TestBaseEvent {
   type: string;
   message?: string;
   data?: string;
-  summary?: unknown;
-  error?: Error;
 }
+
+/**
+ * Full test event union including CompletionEvent.
+ * ExtractResult<TestEvent> = string, EmittableEventInput<TestEvent> = TestBaseEvent.
+ */
+export type TestEvent = TestBaseEvent | CompletionEvent<string>;
 
 // ============================================================================
 // Default noop mock factory
@@ -158,12 +162,11 @@ export function createSimpleSessionFactory(
 
 export function createStreamingSessionFactory<
   TEvent extends { type: string } = TestEvent,
-  TResult = string,
->(options: CreateSessionFactoryOptions = {}): () => StreamingSession<TEvent, TResult> {
+>(options: CreateSessionFactoryOptions = {}): () => StreamingSession<TEvent> {
   const { mockFn, logger } = options;
 
   return () =>
-    new StreamingSession<TEvent, TResult>({
+    new StreamingSession<TEvent>({
       defaultLanguageModel: createMockModel({ mockFn }),
       providerType: TEST_PROVIDER_TYPE,
       fileManager: createMockFileManager({ mockFn }),
@@ -178,15 +181,14 @@ export interface CreateStreamingSessionFactoryWithSignalOptions
 
 export function createStreamingSessionFactoryWithSignal<
   TEvent extends { type: string } = TestEvent,
-  TResult = string,
 >(
   options: CreateStreamingSessionFactoryWithSignalOptions = {}
-): (signal?: AbortSignal) => StreamingSession<TEvent, TResult> {
+): (signal?: AbortSignal) => StreamingSession<TEvent> {
   const { mockFn, logger, onSignalCapture } = options;
 
   return (signal?: AbortSignal) => {
     onSignalCapture?.(signal);
-    return new StreamingSession<TEvent, TResult>({
+    return new StreamingSession<TEvent>({
       defaultLanguageModel: createMockModel({ mockFn }),
       providerType: TEST_PROVIDER_TYPE,
       fileManager: createMockFileManager({ mockFn }),

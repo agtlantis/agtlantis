@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { Execution, StreamingExecution, ExecutionResult, StreamingResult } from './types';
+import type { Execution, StreamingExecution, ExecutionResult, StreamingResult, CompletionEvent, SessionEvent, ErrorEvent } from './types';
 import type { EventMetrics } from '@/observability';
 import { createMockSessionSummary } from '@/testing';
 
@@ -103,26 +103,23 @@ describe('Agent Types', () => {
 
     describe('StreamingExecution', () => {
         it('should provide stream() method for event iteration', async () => {
-            interface ProgressEvent {
-                type: 'progress' | 'complete';
+            interface ProgressBaseEvent {
+                type: 'progress';
                 message: string;
                 metrics: EventMetrics;
             }
 
-            const events: ProgressEvent[] = [
+            type TestStreamEvent = ProgressBaseEvent | CompletionEvent<string>;
+
+            const events: (ProgressBaseEvent & { metrics: EventMetrics })[] = [
                 {
                     type: 'progress',
                     message: 'Step 1',
                     metrics: { timestamp: 1000, elapsedMs: 0, deltaMs: 0 },
                 },
-                {
-                    type: 'complete',
-                    message: 'Done',
-                    metrics: { timestamp: 1100, elapsedMs: 100, deltaMs: 100 },
-                },
             ];
 
-            const streamingExecution: StreamingExecution<ProgressEvent, string> = {
+            const streamingExecution: StreamingExecution<TestStreamEvent> = {
                 stream: async function* () {
                     for (const event of events) {
                         yield event;
@@ -133,43 +130,39 @@ describe('Agent Types', () => {
                     value: 'done',
                     summary: mockSummary,
                     events,
-                } satisfies StreamingResult<ProgressEvent, string>),
+                } satisfies StreamingResult<SessionEvent<TestStreamEvent | ErrorEvent>, string>),
                 cancel: () => {},
                 cleanup: async () => {},
                 [Symbol.asyncDispose]: async () => {},
             };
 
-            const collectedEvents: ProgressEvent[] = [];
+            const collectedEvents: Array<{ type: string }> = [];
             for await (const event of streamingExecution.stream()) {
                 collectedEvents.push(event);
             }
 
-            expect(collectedEvents).toHaveLength(2);
+            expect(collectedEvents).toHaveLength(1);
             expect(collectedEvents[0].type).toBe('progress');
-            expect(collectedEvents[1].type).toBe('complete');
         });
 
         it('should include events in result', async () => {
-            interface ProgressEvent {
-                type: 'progress' | 'complete';
+            interface ProgressBaseEvent {
+                type: 'progress';
                 message: string;
                 metrics: EventMetrics;
             }
 
-            const events: ProgressEvent[] = [
+            type TestStreamEvent = ProgressBaseEvent | CompletionEvent<string>;
+
+            const events: (ProgressBaseEvent & { metrics: EventMetrics })[] = [
                 {
                     type: 'progress',
                     message: 'Step 1',
                     metrics: { timestamp: 1000, elapsedMs: 0, deltaMs: 0 },
                 },
-                {
-                    type: 'complete',
-                    message: 'Done',
-                    metrics: { timestamp: 1100, elapsedMs: 100, deltaMs: 100 },
-                },
             ];
 
-            const streamingExecution: StreamingExecution<ProgressEvent, string> = {
+            const streamingExecution: StreamingExecution<TestStreamEvent> = {
                 stream: async function* () {
                     for (const event of events) {
                         yield event;
@@ -190,9 +183,8 @@ describe('Agent Types', () => {
             const result = await streamingExecution.result();
 
             expect(result.status).toBe('succeeded');
-            expect(result.events).toHaveLength(2);
+            expect(result.events).toHaveLength(1);
             expect(result.events[0].type).toBe('progress');
-            expect(result.events[1].type).toBe('complete');
         });
     });
 });

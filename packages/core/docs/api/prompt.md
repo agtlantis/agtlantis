@@ -558,8 +558,10 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-const text = await execution.toResult();
-console.log(text);
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log(result.value);
+}
 ```
 
 ### Static System Prompt (No Template Variables)

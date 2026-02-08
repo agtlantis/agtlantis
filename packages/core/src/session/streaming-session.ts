@@ -6,7 +6,7 @@ import type { FileManager } from '@/provider/types';
 import type { ProviderType, ProviderPricing } from '@/pricing/types';
 import type { SessionSummary } from './types';
 import { SimpleSession } from './simple-session';
-import type { SessionEvent, EmittableEventInput } from '@/execution/types';
+import type { SessionEvent, EmittableEventInput, ExtractResult } from '@/execution/types';
 
 type ProviderOptions = Record<string, Record<string, unknown>>;
 
@@ -23,11 +23,9 @@ export interface StreamingSessionOptions {
   defaultTools?: ToolSet;
 }
 
-export class StreamingSession<
-  TEvent extends { type: string },
-  TResult,
-> extends SimpleSession {
+export class StreamingSession<TEvent extends { type: string }> extends SimpleSession {
   private lastEventTime: number;
+  private _terminated = false;
 
   constructor(options: StreamingSessionOptions) {
     super({
@@ -62,6 +60,10 @@ export class StreamingSession<
    * @throws Error when attempting to emit reserved types ('complete', 'error')
    */
   emit(event: EmittableEventInput<TEvent>): SessionEvent<TEvent> {
+    if (this._terminated) {
+      throw new Error('Session already terminated. Cannot call emit() after a terminal operation.');
+    }
+
     // Runtime check: prevent reserved types even when TypeScript is bypassed
     const eventType = (event as { type: string }).type;
     if (eventType === 'complete' || eventType === 'error') {
@@ -97,7 +99,12 @@ export class StreamingSession<
    * @param data - The final result data
    * @returns The complete event with data and summary
    */
-  async done(data: TResult): Promise<SessionEvent<TEvent>> {
+  async done(data: ExtractResult<TEvent>): Promise<SessionEvent<TEvent>> {
+    if (this._terminated) {
+      throw new Error('Session already terminated. Cannot call done() after a terminal operation.');
+    }
+    this._terminated = true;
+
     const summary = await this.getSummary();
 
     this._logger.onExecutionDone?.({
@@ -109,12 +116,11 @@ export class StreamingSession<
     });
 
     // Use emitInternal to bypass reserved type check (internal only)
-    // Cast required: TypeScript can't know that TEvent includes a 'complete' variant
     return this.emitInternal({
       type: 'complete',
       data,
       summary,
-    } as unknown as TEvent);
+    } as unknown as Extract<TEvent, { type: 'complete' }>);
   }
 
   /**
@@ -125,7 +131,12 @@ export class StreamingSession<
    * @param data - Optional partial result data (if any was produced before failure)
    * @returns The error event
    */
-  async fail(error: Error, data?: TResult): Promise<SessionEvent<TEvent>> {
+  async fail(error: Error, data?: ExtractResult<TEvent>): Promise<SessionEvent<TEvent>> {
+    if (this._terminated) {
+      throw new Error('Session already terminated. Cannot call fail() after a terminal operation.');
+    }
+    this._terminated = true;
+
     let summary: SessionSummary | undefined;
     try {
       summary = await this.getSummary();
@@ -156,8 +167,7 @@ export class StreamingSession<
     }
 
     // Use emitInternal to bypass reserved type check (internal only)
-    // Cast required: TypeScript can't know that TEvent includes an 'error' variant
-    return this.emitInternal(errorEvent as unknown as TEvent);
+    return this.emitInternal(errorEvent as unknown as Extract<TEvent, { type: 'error' }>);
   }
 
   private createMetrics(): EventMetrics {
@@ -172,10 +182,7 @@ export class StreamingSession<
   }
 }
 
-export interface StreamingSessionInternal<
-  TEvent extends { type: string },
-  TResult,
-> {
+export interface StreamingSessionInternal<TEvent extends { type: string }> {
   generateText: SimpleSession['generateText'];
   streamText: SimpleSession['streamText'];
   fileManager: FileManager;
@@ -184,8 +191,8 @@ export interface StreamingSessionInternal<
   recordToolCall: SimpleSession['recordToolCall'];
 
   emit(event: EmittableEventInput<TEvent>): SessionEvent<TEvent>;
-  done(data: TResult): Promise<SessionEvent<TEvent>>;
-  fail(error: Error, data?: TResult): Promise<SessionEvent<TEvent>>;
+  done(data: ExtractResult<TEvent>): Promise<SessionEvent<TEvent>>;
+  fail(error: Error, data?: ExtractResult<TEvent>): Promise<SessionEvent<TEvent>>;
 
   runOnDoneHooks(): Promise<void>;
   getSummary(): Promise<SessionSummary>;
@@ -200,13 +207,10 @@ export interface CreateStreamingSessionOptions {
   signal?: AbortSignal;
 }
 
-export function createStreamingSession<
-  TEvent extends { type: string },
-  TResult,
->(
+export function createStreamingSession<TEvent extends { type: string }>(
   options: CreateStreamingSessionOptions
-): StreamingSessionInternal<TEvent, TResult> {
-  const session = new StreamingSession<TEvent, TResult>({
+): StreamingSessionInternal<TEvent> {
+  const session = new StreamingSession<TEvent>({
     defaultLanguageModel: options.defaultLanguageModel,
     providerType: options.providerType,
     fileManager: options.fileManager,
@@ -215,5 +219,5 @@ export function createStreamingSession<
     signal: options.signal,
   });
 
-  return session as unknown as StreamingSessionInternal<TEvent, TResult>;
+  return session as unknown as StreamingSessionInternal<TEvent>;
 }

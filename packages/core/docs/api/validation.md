@@ -318,7 +318,10 @@ const execution = provider.simpleExecution(async (session) => {
   );
 });
 
-const answer = await execution.toResult();
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log(result.value); // validated answer
+}
 ```
 
 ## Errors
@@ -510,7 +513,8 @@ const execution = provider.simpleExecution(async (session) => {
   );
 });
 
-const analysis = await execution.toResult();
+const result = await execution.result();
+// result.status: 'succeeded' | 'failed' | 'canceled'
 ```
 
 ### Error Recovery with Fallback

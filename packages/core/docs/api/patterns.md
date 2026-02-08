@@ -34,12 +34,12 @@ class ProgressivePattern<
   readonly progressSchema: TProgressSchema;
   readonly resultSchema: TResultSchema;
 
-  stream<TUserTools extends ToolSet = {}>(
+  runInSession<TUserTools extends ToolSet = {}>(
     session: StreamingSession,
     options: ProgressiveStreamOptions<TUserTools>,
   ): AsyncGenerator<ProgressEvent<TProgress> | CompleteEvent<TResult>>;
 
-  execute<TUserTools extends ToolSet = {}>(
+  run<TUserTools extends ToolSet = {}>(
     provider: BaseProvider,
     options: ProgressiveStreamOptions<TUserTools>,
   ): AsyncIterable<ProgressEvent<TProgress> | CompleteEvent<TResult>>;
@@ -57,12 +57,12 @@ class ProgressivePattern<
 
 | Method | Description |
 |--------|-------------|
-| `stream(session, options)` | Stream events within a `streamingExecution` context |
-| `execute(provider, options)` | High-level API for simple usage |
+| `runInSession(session, options)` | Stream events within a `streamingExecution` context |
+| `run(provider, options)` | High-level API for simple usage |
 
 ### ProgressiveStreamOptions
 
-Options for `pattern.stream()` and `pattern.execute()` methods.
+Options for `pattern.runInSession()` and `pattern.run()` methods.
 
 ```typescript
 type ProgressiveStreamOptions<TUserTools extends ToolSet = {}> = Omit<
@@ -106,14 +106,13 @@ interface ProgressEvent<TProgress> {
 
 ### CompleteEvent
 
-Event emitted when streaming finishes with the final result.
+Event emitted when streaming finishes with the final result. This corresponds to `CompletionEvent<TResult>` from the core execution types.
 
 ```typescript
 interface CompleteEvent<TResult> {
   type: 'complete';
   data: TResult;
-  summary: unknown;
-  metrics: EventMetrics;
+  summary: SessionSummary;
 }
 ```
 
@@ -124,7 +123,6 @@ interface CompleteEvent<TResult> {
 | `type` | `'complete'` | Event type discriminator |
 | `data` | `TResult` | Final result matching `resultSchema` |
 | `summary` | `unknown` | Execution summary |
-| `metrics` | `EventMetrics` | Timing and usage metrics |
 
 ### EventMetrics
 
@@ -167,7 +165,7 @@ function defineProgressivePattern<
 | `config.progressSchema` | `z.ZodType` | Zod schema for progress events |
 | `config.resultSchema` | `z.ZodType` | Zod schema for the final result |
 
-**Returns:** A `ProgressivePattern` instance with `stream()` and `execute()` methods.
+**Returns:** A `ProgressivePattern` instance with `runInSession()` and `run()` methods.
 
 **Example:**
 
@@ -219,8 +217,8 @@ const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 });
 
-// Execute with pattern.execute()
-for await (const event of pattern.execute(provider, {
+// Execute with pattern.run()
+for await (const event of pattern.run(provider, {
   system: 'You are a helpful assistant. Report progress before answering.',
   prompt: 'What is the capital of Japan?',
 })) {
@@ -301,10 +299,9 @@ const progressByPhase: Record<string, Progress[]> = {
 let result: Result | null = null;
 
 const execution = provider.streamingExecution<
-  { type: 'progress'; data: Progress; metrics: any },
-  Result
+  { type: 'progress'; data: Progress } | CompletionEvent<Result>
 >(async function* (session) {
-  yield* pattern.stream(session, {
+  yield* pattern.runInSession(session, {
     system: `You are a professional document analyst.
 Analyze the document through multiple phases:
 1. Scanning - report page progress
@@ -317,7 +314,7 @@ Then submit your complete analysis.`,
   });
 });
 
-for await (const event of execution) {
+for await (const event of execution.stream()) {
   if (event.type === 'progress') {
     progressByPhase[event.data.phase].push(event.data);
 
@@ -372,13 +369,12 @@ const provider = createGoogleProvider({
 });
 
 const execution = provider.streamingExecution<
-  { type: 'progress'; data: Progress; metrics: any },
-  Result
+  { type: 'progress'; data: Progress } | CompletionEvent<Result>
 >(async function* (session) {
   // Pre-processing or setup
   console.log('Starting analysis...');
 
-  yield* pattern.stream(session, {
+  yield* pattern.runInSession(session, {
     system: 'You are a document summarizer.',
     messages: [
       { role: 'user', content: 'Summarize the key benefits of TypeScript.' },
@@ -390,7 +386,7 @@ const execution = provider.streamingExecution<
   console.log('Analysis complete.');
 });
 
-for await (const event of execution) {
+for await (const event of execution.stream()) {
   console.log(event.type, event.data);
 }
 ```

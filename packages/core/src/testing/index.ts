@@ -3,6 +3,7 @@ export {
   createMockUsage,
   createMockSessionSummary,
   createTestEvent,
+  type TestBaseEvent,
   type TestEvent,
   type TestResult,
 } from './fixtures';
@@ -30,6 +31,7 @@ export {
   // Types
   type MockFn,
   type MockFnFactory,
+  type TestBaseEvent as ExecutionTestBaseEvent,
   type TestEvent as ExecutionTestEvent,
   type CreateMockModelOptions,
   type CreateMockFileManagerOptions,
@@ -67,3 +69,5 @@ export {
   createOrderTrackingLogger,
   type LoggerEventType,
 } from '../execution/testing/fixtures';
+
+export { createTestExecution, createTestErrorExecution, createTestCanceledExecution } from './test-execution';

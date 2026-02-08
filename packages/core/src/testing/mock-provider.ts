@@ -155,9 +155,8 @@ export class MockProvider extends BaseProvider {
 
     protected createStreamingSession<
         TEvent extends { type: string },
-        TResult,
-    >(signal?: AbortSignal): StreamingSession<TEvent, TResult> {
-        return new StreamingSession<TEvent, TResult>({ ...this.buildSessionConfig(), signal });
+    >(signal?: AbortSignal): StreamingSession<TEvent> {
+        return new StreamingSession<TEvent>({ ...this.buildSessionConfig(), signal });
     }
 
     private buildSessionConfig() {

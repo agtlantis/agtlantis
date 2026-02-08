@@ -237,18 +237,16 @@ For streaming executions, cancel when you have enough data.
 
 ```typescript
 import { createGoogleProvider } from '@agtlantis/core';
-import type { EventMetrics } from '@agtlantis/core';
+import type { CompletionEvent } from '@agtlantis/core';
 
-type ChunkEvent = {
-  type: 'chunk' | 'complete' | 'error';
-  text?: string;
-  metrics: EventMetrics;
-};
+type ChunkEvent =
+  | { type: 'chunk'; text: string }
+  | CompletionEvent<string>;
 
 async function generateUntilEnough() {
   const provider = createGoogleProvider({ apiKey: process.env.GOOGLE_AI_API_KEY });
 
-  const execution = provider.streamingExecution<ChunkEvent, string>(
+  const execution = provider.streamingExecution<ChunkEvent>(
     async function* (session) {
       const result = session.streamText({ prompt: 'Write a very long essay' });
       let fullText = '';

@@ -1,6 +1,6 @@
 import { SessionSummary } from '../session/types';
 import type { StreamingSession } from '../session/streaming-session';
-import type { SessionEvent, SessionStreamGeneratorFn, StreamingExecution, StreamingResult } from './types';
+import type { ErrorEvent, ExtractResult, SessionEvent, SessionStreamGeneratorFn, StreamingExecution, StreamingResult } from './types';
 import { ERRORS } from './constants';
 import { combineSignals, Deferred } from './utils';
 import { isAbortError, normalizeError, createHookRunner, type HookRunner } from './shared';
@@ -17,7 +17,6 @@ type InternalStreamingResult<T> =
  * Starts execution eagerly on construction - events are buffered automatically.
  *
  * @typeParam TEvent - User's pure domain event type with required `type` field (metrics added automatically)
- * @typeParam TResult - Final result type
  *
  * @example
  * ```typescript
@@ -52,11 +51,10 @@ type InternalStreamingResult<T> =
  */
 export class StreamingExecutionHost<
     TEvent extends { type: string },
-    TResult,
-> implements StreamingExecution<TEvent, TResult> {
+> implements StreamingExecution<TEvent> {
     private readonly abortController = new AbortController();
     private readonly effectiveSignal: AbortSignal;
-    private readonly consumerPromise: Promise<InternalStreamingResult<TResult>>;
+    private readonly consumerPromise: Promise<InternalStreamingResult<ExtractResult<TEvent>>>;
     private readonly eventBuffer: SessionEvent<TEvent>[] = [];
     private readonly subscribers = new Set<(event: SessionEvent<TEvent>) => void>();
     private completed = false;
@@ -65,14 +63,14 @@ export class StreamingExecutionHost<
     private cancelRequested = false;
 
     private extractedOutcome:
-        | { type: 'result'; value: TResult }
+        | { type: 'result'; value: ExtractResult<TEvent> }
         | { type: 'error'; error: Error }
         | null = null;
     private extractedSummary: SessionSummary | null = null;
 
     constructor(
-        private readonly createSession: (signal?: AbortSignal) => StreamingSession<TEvent, TResult>,
-        private readonly generator: SessionStreamGeneratorFn<TEvent, TResult>,
+        private readonly createSession: (signal?: AbortSignal) => StreamingSession<TEvent>,
+        private readonly generator: SessionStreamGeneratorFn<TEvent>,
         userSignal?: AbortSignal
     ) {
         // Combine user signal with internal controller for dual cancellation support
@@ -84,7 +82,7 @@ export class StreamingExecutionHost<
         this.consumerPromise = this.startConsuming();
     }
 
-    private hasDataField(event: SessionEvent<TEvent>): event is SessionEvent<TEvent> & { data: TResult } {
+    private hasDataField(event: SessionEvent<TEvent>): event is SessionEvent<TEvent> & { data: ExtractResult<TEvent> } {
         return 'data' in event && (event as { data?: unknown }).data !== undefined;
     }
 
@@ -119,7 +117,7 @@ export class StreamingExecutionHost<
         this.subscribers.forEach(fn => fn(event));
     }
 
-    private async startConsuming(): Promise<InternalStreamingResult<TResult>> {
+    private async startConsuming(): Promise<InternalStreamingResult<ExtractResult<TEvent>>> {
         // Pass the effective signal to session for AI SDK cancellation
         const session = this.createSession(this.effectiveSignal);
         this.hookRunner = createHookRunner(() => session.runOnDoneHooks());
@@ -197,7 +195,7 @@ export class StreamingExecutionHost<
         }
     }
 
-    private async buildResult(session: StreamingSession<TEvent, TResult>): Promise<InternalStreamingResult<TResult>> {
+    private async buildResult(session: StreamingSession<TEvent>): Promise<InternalStreamingResult<ExtractResult<TEvent>>> {
         const summary = this.extractedSummary ?? await session.getSummary();
 
         // Use discriminated union for clean pattern matching
@@ -232,7 +230,7 @@ export class StreamingExecutionHost<
      * Returns buffered events first, then real-time events.
      * Can be called multiple times - replays buffer each time.
      */
-    async *stream(): AsyncIterable<SessionEvent<TEvent>> {
+    async *stream(): AsyncIterable<SessionEvent<TEvent | ErrorEvent>> {
         // 1. Yield buffered events first
         let index = 0;
         while (index < this.eventBuffer.length) {
@@ -299,7 +297,7 @@ export class StreamingExecutionHost<
      * Get the execution result with status, summary, and all events.
      * Never throws - returns a discriminated union with status.
      */
-    async result(): Promise<StreamingResult<SessionEvent<TEvent>, TResult>> {
+    async result(): Promise<StreamingResult<SessionEvent<TEvent | ErrorEvent>, ExtractResult<TEvent>>> {
         const internal = await this.consumerPromise;
         const events = Object.freeze([...this.eventBuffer]) as readonly SessionEvent<TEvent>[];
 

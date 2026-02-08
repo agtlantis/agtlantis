@@ -6,7 +6,7 @@
  * These helpers are framework-agnostic (no vitest/jest dependency).
  */
 
-import type { SessionEvent } from '@/execution/types';
+import type { SessionEvent, ExtractResult, EmittableEventInput } from '@/execution/types';
 import type { Logger } from '@/observability/logger';
 import type { SimpleSession } from '../../session/simple-session';
 
@@ -95,13 +95,12 @@ export function createAlreadyAbortedSignal(reason = 'Already aborted'): AbortSig
  */
 export function createSimpleGenerator<
   TEvent extends { type: string },
-  TResult,
 >(
-  result: TResult,
-  events: TEvent[] = []
+  result: ExtractResult<TEvent>,
+  events: EmittableEventInput<TEvent>[] = []
 ): (session: {
-  emit: (event: TEvent) => SessionEvent<TEvent>;
-  done: (value: TResult) => Promise<SessionEvent<TEvent>>;
+  emit: (event: EmittableEventInput<TEvent>) => SessionEvent<TEvent>;
+  done: (value: ExtractResult<TEvent>) => Promise<SessionEvent<TEvent>>;
 }) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | Promise<SessionEvent<TEvent>>, unknown> {
   return async function* (session) {
     for (const event of events) {
@@ -127,9 +126,9 @@ export function createErrorGenerator<
   TEvent extends { type: string },
 >(
   error: Error,
-  eventsBeforeError: TEvent[] = []
+  eventsBeforeError: EmittableEventInput<TEvent>[] = []
 ): (session: {
-  emit: (event: TEvent) => SessionEvent<TEvent>;
+  emit: (event: EmittableEventInput<TEvent>) => SessionEvent<TEvent>;
 }) => AsyncGenerator<SessionEvent<TEvent>, never, unknown> {
   return async function* (session) {
     for (const event of eventsBeforeError) {
@@ -162,9 +161,9 @@ export function createCancelableGenerator<
 >(
   abortScenario: AbortScenario,
   onCancel?: () => void,
-  eventsBeforeWait: TEvent[] = []
+  eventsBeforeWait: EmittableEventInput<TEvent>[] = []
 ): (session: {
-  emit: (event: TEvent) => SessionEvent<TEvent>;
+  emit: (event: EmittableEventInput<TEvent>) => SessionEvent<TEvent>;
 }) => AsyncGenerator<SessionEvent<TEvent>, void, unknown> {
   return async function* (session) {
     for (const event of eventsBeforeWait) {
@@ -244,14 +243,13 @@ export function createCancelableFunction(
  */
 export function createDelayedGenerator<
   TEvent extends { type: string },
-  TResult,
 >(
   delayMs: number,
-  result: TResult,
+  result: ExtractResult<TEvent>,
   abortScenario?: AbortScenario
 ): (session: {
-  emit: (event: TEvent) => SessionEvent<TEvent>;
-  done: (value: TResult) => Promise<SessionEvent<TEvent>>;
+  emit: (event: EmittableEventInput<TEvent>) => SessionEvent<TEvent>;
+  done: (value: ExtractResult<TEvent>) => Promise<SessionEvent<TEvent>>;
 }) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | Promise<SessionEvent<TEvent>>, unknown> {
   return async function* (session) {
     await new Promise<void>((resolve, reject) => {
@@ -280,7 +278,6 @@ export function createDelayedGenerator<
  * const generator = createSlowGenerator([
  *   { type: 'chunk', content: 'A' },
  *   { type: 'chunk', content: 'B' },
- *   { type: 'complete', data: 'result' },
  * ], 10);
  * const execution = new StreamingExecutionHost(factory, generator);
  *
@@ -291,11 +288,11 @@ export function createDelayedGenerator<
 export function createSlowGenerator<
   TEvent extends { type: string },
 >(
-  events: TEvent[],
+  events: EmittableEventInput<TEvent>[],
   delayBetweenEventsMs: number,
   abortScenario?: AbortScenario
 ): (session: {
-  emit: (event: TEvent) => SessionEvent<TEvent>;
+  emit: (event: EmittableEventInput<TEvent>) => SessionEvent<TEvent>;
 }) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | undefined, unknown> {
   return async function* (session) {
     for (const event of events) {
@@ -365,10 +362,10 @@ export async function collectStreamAsync<T>(stream: AsyncIterable<T>): Promise<T
 export function createNeverEndingGenerator<
   TEvent extends { type: string },
 >(
-  eventsBeforeWait: TEvent[] = [],
+  eventsBeforeWait: EmittableEventInput<TEvent>[] = [],
   abortScenario?: AbortScenario
 ): (session: {
-  emit: (event: TEvent) => SessionEvent<TEvent>;
+  emit: (event: EmittableEventInput<TEvent>) => SessionEvent<TEvent>;
 }) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | undefined, unknown> {
   return async function* (session) {
     for (const event of eventsBeforeWait) {

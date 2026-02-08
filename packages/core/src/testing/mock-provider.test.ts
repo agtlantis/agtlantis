@@ -55,7 +55,7 @@ describe('MockProvider', () => {
         it('should execute streaming with mock stream response', async () => {
             const provider = mock.provider(mock.stream(['Hello', ', ', 'world!']));
 
-            const execution = provider.streamingExecution<TestEvent, string>(
+            const execution = provider.streamingExecution<TestEvent>(
                 async function* (session) {
                     const result = session.streamText({ prompt: 'Say hello' });
                     let text = '';
@@ -74,7 +74,7 @@ describe('MockProvider', () => {
         it('should emit intermediate events', async () => {
             const provider = mock.provider(mock.text('Done!'));
 
-            const execution = provider.streamingExecution<TestEvent, string>(
+            const execution = provider.streamingExecution<TestEvent>(
                 async function* (session) {
                     yield session.emit({ type: 'progress', data: 'Working...' });
                     await session.generateText({ prompt: 'Test' });
@@ -121,7 +121,7 @@ describe('MockProvider', () => {
         it('should track streamText calls', async () => {
             const provider = mock.provider(mock.stream(['Hello']));
 
-            const execution = provider.streamingExecution<TestEvent, string>(
+            const execution = provider.streamingExecution<TestEvent>(
                 async function* (session) {
                     const result = session.streamText({ prompt: 'Test' });
                     for await (const _ of result.textStream) {
@@ -390,7 +390,7 @@ describe('MockProvider', () => {
         it('should work with mock.stream()', async () => {
             const provider = mock.provider(mock.stream(['a', 'b', 'c']));
 
-            const execution = provider.streamingExecution<TestEvent, string>(
+            const execution = provider.streamingExecution<TestEvent>(
                 async function* (session) {
                     const result = session.streamText({ prompt: 'Test' });
                     const chunks: string[] = [];

@@ -1,3 +1,4 @@
+import type { CompletionEvent } from '@/execution/types';
 import type { LanguageModelUsage } from '@/observability';
 import { SessionSummary, type LLMCallRecord, type ToolCallSummary, type AdditionalCost } from '@/session/types';
 
@@ -25,29 +26,22 @@ export function createMockUsage(overrides?: Partial<LanguageModelUsage>): Langua
     };
 }
 
-/**
- * Test event type - pure domain event without metrics.
- * Framework automatically wraps with SessionEvent<TestEvent> at runtime.
- */
-export interface TestEvent {
+export interface TestBaseEvent {
     type: string;
     message?: string;
-    data?: unknown;
-    error?: Error;
+    data?: string;
 }
+
+export type TestEvent = TestBaseEvent | CompletionEvent<string>;
 
 export interface TestResult {
     value: string;
 }
 
-/**
- * Creates a test event for use in tests.
- * Note: metrics are automatically added by session.emit() at runtime.
- */
 export function createTestEvent(
     type: string,
-    overrides?: Partial<Omit<TestEvent, 'type'>>
-): TestEvent {
+    overrides?: Partial<Omit<TestBaseEvent, 'type'>>
+): TestBaseEvent {
     return {
         type,
         ...overrides,

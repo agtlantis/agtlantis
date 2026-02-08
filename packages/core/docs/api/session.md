@@ -26,18 +26,123 @@ import {
   type ToolCallSummary,
   type AdditionalCost,
   type EventMetrics,
-  // Type helpers for event definitions
+  // Event type helpers
+  type CompletionEvent,
+  type ErrorEvent,
+  type ExtractResult,
+  type EmittableEventInput,
   type SessionEvent,
-  type SessionEventInput,
   type DistributiveOmit,
 } from '@agtlantis/core';
 ```
 
-## Type Helpers
+## Event Type Helpers
 
-@agtlantis/core provides type helpers that improve DX when working with streaming events.
+### CompletionEvent\<TResult\>
 
-### DistributiveOmit<T, K>
+Completion event emitted by `session.done()`. Include this in your event union to define the result type.
+
+```typescript
+type CompletionEvent<TResult> = {
+  type: 'complete';
+  data: TResult;
+  summary: SessionSummary;
+};
+```
+
+**Example:**
+
+```typescript
+type MyEvent =
+  | { type: 'progress'; step: string }
+  | CompletionEvent<MyResult>;
+
+// session.done(result) emits { type: 'complete', data: result, summary }
+```
+
+### ErrorEvent
+
+Error event emitted by `session.fail()`. Auto-added to `stream()` and `result()` return types — you don't need to include this in your event union.
+
+```typescript
+type ErrorEvent = {
+  type: 'error';
+  error: Error;
+  summary?: SessionSummary;
+  data?: unknown;
+};
+```
+
+**Example:**
+
+```typescript
+for await (const event of execution.stream()) {
+  if (event.type === 'error') {
+    console.error(event.error.message);
+  }
+}
+```
+
+### ExtractResult\<TEvent\>
+
+Extracts the result type from an event union containing `CompletionEvent<T>`. Returns `never` if no `CompletionEvent` member exists (making `session.done()` uncallable).
+
+```typescript
+type ExtractResult<TEvent extends { type: string }> =
+  Extract<TEvent, { type: 'complete' }> extends { data: infer R } ? R : never;
+```
+
+**Example:**
+
+```typescript
+type MyEvent =
+  | { type: 'progress'; step: string }
+  | CompletionEvent<{ answer: string }>;
+
+type Result = ExtractResult<MyEvent>;
+// Result = { answer: string }
+```
+
+### EmittableEventInput\<TEvent\>
+
+Input type for `session.emit()` — excludes reserved event types (`'complete'`, `'error'`). Prevents accidental direct emission of terminal events.
+
+```typescript
+type EmittableEventInput<T extends { type: string }> =
+  T extends { type: 'complete' | 'error' } ? never : T;
+```
+
+### SessionEvent\<T\>
+
+Adds `metrics: EventMetrics` to your event type. The framework uses this internally to include timing information with each event.
+
+**For most cases, you don't need this** - the framework automatically wraps your events with `SessionEvent<T>` internally. Just define your event types without metrics:
+
+```typescript
+// Recommended: Pure event types (framework adds metrics)
+type MyEvent =
+  | { type: 'progress'; message: string }
+  | CompletionEvent<string>;
+```
+
+**When you need SessionEvent\<T\>:**
+- Creating mock/stub streaming executions for testing
+- Explicitly typing variables that hold emitted events (e.g., `StreamingResult.events`)
+
+```typescript
+import type { SessionEvent, StreamingResult, CompletionEvent } from '@agtlantis/core';
+
+type MyEvent =
+  | { type: 'progress'; message: string }
+  | CompletionEvent<string>;
+
+// Example: Creating a stub execution for testing
+const events: SessionEvent<MyEvent>[] = [
+  { type: 'progress', message: 'Working...', metrics: { timestamp: Date.now(), elapsedMs: 0, deltaMs: 0 } },
+];
+```
+
+### DistributiveOmit\<T, K\>
 
 Distributive version of `Omit` that properly handles union types. Standard `Omit<Union, K>` loses unique properties from union members.
 
@@ -55,70 +160,45 @@ type Good = DistributiveOmit<Union, 'metrics'>;
 // Result: { type: 'a'; foo: string } | { type: 'b'; bar: number }
 ```
 
-### SessionEvent<T>
+### SessionEventInput\<T\> *(Deprecated)*
 
-Adds `metrics: EventMetrics` to your event type. The framework uses this internally to include timing information with each event.
-
-**For most cases, you don't need this** - the framework automatically wraps your events with `SessionEvent<T>` internally. Just define your event types without metrics:
-
-```typescript
-// Recommended: Pure event types (framework adds metrics)
-type MyEvent =
-  | { type: 'progress'; message: string }
-  | { type: 'complete'; data: string };
-```
-
-**When you need SessionEvent<T>:**
-- Creating mock/stub streaming executions for testing
-- Explicitly typing variables that hold emitted events (e.g., `StreamingResult.events`)
-
-```typescript
-import type { SessionEvent, StreamingResult } from '@agtlantis/core';
-
-// Example: Creating a stub execution for testing
-const events: SessionEvent<MyEvent>[] = [
-  { type: 'progress', message: 'Working...', metrics: { timestamp: Date.now(), elapsedMs: 0, deltaMs: 0 } },
-  { type: 'complete', data: 'Result', metrics: { timestamp: Date.now(), elapsedMs: 100, deltaMs: 100 } },
-];
-```
-
-### SessionEventInput<T> *(Deprecated)*
-
-> **⚠️ Deprecated**: With the simplified event generic, `SessionEventInput<T>` is no longer needed. The `session.emit()` method now accepts your event type directly.
+> **Deprecated**: With the simplified event generic, `SessionEventInput<T>` is no longer needed. The `session.emit()` method now accepts your event type directly.
 
 ---
 
 ## Types
 
-### Execution<TResult>
+### Execution\<TResult\>
 
 Base interface for all execution types. Both streaming and simple executions implement this interface.
 
 ```typescript
 interface Execution<TResult> extends AsyncDisposable {
   /**
-   * Consume the execution and return the final result.
-   * For streaming executions, this consumes all events first.
+   * Get the execution result with status and summary.
+   * Returns a discriminated union: succeeded | failed | canceled.
+   * Summary is always available regardless of status.
    */
-  toResult(): Promise<TResult>;
+  result(): Promise<ExecutionResult<TResult>>;
 
-  /**
-   * Get execution metadata (token usage, duration, etc.).
-   * Only available after execution completes.
-   */
-  getSummary(): Promise<SessionSummary>;
+  /** Request cancellation (cooperative). */
+  cancel(): void;
 
-  /**
-   * Cleanup resources (uploaded files, connections, etc.).
-   * Safe to call multiple times.
-   */
+  /** Cleanup resources (uploaded files, connections, etc.). Safe to call multiple times. */
   cleanup(): Promise<void>;
 
-  /**
-   * Async disposal for `await using` syntax (TS 5.2+).
-   */
+  /** Async disposal for `await using` syntax (TS 5.2+). */
   [Symbol.asyncDispose](): Promise<void>;
 }
+```
+
+**ExecutionResult\<T\>:**
+
+```typescript
+type ExecutionResult<T> =
+  | { status: 'succeeded'; value: T; summary: SessionSummary }
+  | { status: 'failed'; error: Error; summary: SessionSummary }
+  | { status: 'canceled'; summary: SessionSummary };
 ```
 
 **Example:**
@@ -136,9 +216,11 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 try {
-  const text = await execution.toResult();
-  const summary = await execution.getSummary();
-  console.log('Tokens:', summary.totalLLMUsage.totalTokens);
+  const result = await execution.result();
+  if (result.status === 'succeeded') {
+    console.log('Text:', result.value);
+    console.log('Tokens:', result.summary.totalLLMUsage.totalTokens);
+  }
 } finally {
   await execution.cleanup();
 }
@@ -148,24 +230,36 @@ await using execution2 = provider.simpleExecution(async (session) => {
   const result = await session.generateText({ prompt: 'Hello' });
   return result.text;
 });
-const text = await execution2.toResult();
+const result2 = await execution2.result();
 // cleanup() called automatically
 ```
 
 ---
 
-### StreamingExecution<TEvent, TResult>
+### StreamingExecution\<TEvent\>
 
-Streaming execution that yields events during execution. Extends both `Execution` and `AsyncIterable`.
+Streaming execution that yields events during execution. Extends `Execution<ExtractResult<TEvent>>`.
+
+- `TEvent` — your event union type (must include `CompletionEvent<TResult>`)
+- Result type is automatically extracted from `CompletionEvent<TResult>` in the union via `ExtractResult<TEvent>`
+- `ErrorEvent` is auto-included in `stream()` and `result()` return types
 
 ```typescript
-interface StreamingExecution<TEvent, TResult>
-  extends Execution<TResult>,
-    AsyncIterable<TEvent> {
+interface StreamingExecution<TEvent extends { type: string }>
+  extends Execution<ExtractResult<TEvent>> {
   /**
-   * Request cancellation (cooperative).
-   * The generator must check for cancellation and stop gracefully.
+   * Get the event stream.
+   * Returns buffered + real-time events with metrics.
+   * ErrorEvent is auto-included in the stream type.
    */
+  stream(): AsyncIterable<SessionEvent<TEvent | ErrorEvent>>;
+
+  /**
+   * Get the execution result with status, summary, and all events.
+   */
+  result(): Promise<StreamingResult<SessionEvent<TEvent | ErrorEvent>, ExtractResult<TEvent>>>;
+
+  /** Request cancellation (cooperative). */
   cancel(): void;
 }
 ```
@@ -173,19 +267,18 @@ interface StreamingExecution<TEvent, TResult>
 **Example:**
 
 ```typescript
-import { createGoogleProvider } from '@agtlantis/core';
+import { createGoogleProvider, type CompletionEvent } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-// Define event types - metrics are added automatically by the framework
+// Define event types — CompletionEvent<T> defines the result type
 type MyEvent =
   | { type: 'progress'; message: string }
-  | { type: 'complete'; data: string }
-  | { type: 'error'; error: Error };
+  | CompletionEvent<string>;
 
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     yield session.emit({ type: 'progress', message: 'Working...' });
     const result = await session.generateText({ prompt: 'Hello' });
@@ -193,13 +286,16 @@ const execution = provider.streamingExecution<MyEvent, string>(
   }
 );
 
-// Consume events (metrics available on each event)
+// Option 1: Stream events (metrics available on each event)
 for await (const event of execution.stream()) {
   console.log(`[${event.metrics.elapsedMs}ms] ${event.type}`);
 }
 
-// Or skip to result
+// Option 2: Get result directly
 const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log(result.value);
+}
 
 // Cancel if needed
 execution.cancel();
@@ -210,14 +306,13 @@ await execution.cleanup();
 
 ---
 
-### StreamingSession<TEvent, TResult>
+### StreamingSession\<TEvent\>
 
 Session interface for streaming executions. Provides AI SDK wrappers, file management, lifecycle hooks, and stream control.
 
 ```typescript
 interface StreamingSession<
-  TEvent extends { type: string },  // metrics handled internally
-  TResult,
+  TEvent extends { type: string },
 > {
   // AI SDK Wrappers
   generateText<TOOLS extends ToolSet = {}, OUTPUT extends OutputSpec = DefaultOutput>(
@@ -235,9 +330,9 @@ interface StreamingSession<
   onDone(fn: () => Promise<void> | void): void;
 
   // Stream Control
-  emit(event: TEvent): SessionEvent<TEvent>;  // returns event with metrics added
-  done(data: TResult): Promise<SessionEvent<TEvent>>;
-  fail(error: Error, data?: TResult): Promise<SessionEvent<TEvent>>;
+  emit(event: EmittableEventInput<TEvent>): SessionEvent<TEvent>;
+  done(data: ExtractResult<TEvent>): Promise<SessionEvent<TEvent>>;
+  fail(error: Error, data?: ExtractResult<TEvent>): Promise<SessionEvent<TEvent>>;
 
   // Recording
   record(data: Record<string, unknown>): void;
@@ -253,31 +348,30 @@ interface StreamingSession<
 | `streamText(params)` | AI SDK streaming wrapper with usage tracking |
 | `fileManager` | Upload/delete files with auto-cleanup |
 | `onDone(fn)` | Register cleanup hook (LIFO order) |
-| `emit(event)` | Create intermediate event (metrics added automatically) |
-| `done(data)` | Signal successful completion |
-| `fail(error, data?)` | Signal failure with optional partial result |
+| `emit(event)` | Emit intermediate event (reserved types excluded at type level) |
+| `done(data)` | Signal successful completion (emits `CompletionEvent`) |
+| `fail(error, data?)` | Signal failure (emits `ErrorEvent`) |
 | `record(data)` | Record custom data for session summary |
 | `recordToolCall(summary)` | Record a tool call for session summary |
 
 **Example:**
 
 ```typescript
-import { createGoogleProvider } from '@agtlantis/core';
+import { createGoogleProvider, type CompletionEvent } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-// Define event types - metrics are added automatically by the framework
+type AnalysisResult = { items: string[]; count: number };
+
+// Define event types — CompletionEvent defines the result type
 type AnalysisEvent =
   | { type: 'analyzing' }
   | { type: 'found'; data: { items: string[] } }
-  | { type: 'complete'; data: AnalysisResult }
-  | { type: 'error'; error: Error };
+  | CompletionEvent<AnalysisResult>;
 
-type AnalysisResult = { items: string[]; count: number };
-
-const execution = provider.streamingExecution<AnalysisEvent, AnalysisResult>(
+const execution = provider.streamingExecution<AnalysisEvent>(
   async function* (session) {
     // Register cleanup hook (runs in LIFO order)
     session.onDone(() => console.log('Session complete'));
@@ -394,14 +488,14 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-const answer = await execution.toResult();
-const summary = await execution.getSummary();
-
-console.log(answer); // "4"
-console.log('LLM cost:', summary.llmCost);
-console.log('Additional costs:', summary.totalAdditionalCost);
-console.log('Total cost:', summary.totalCost);
-console.log('Metadata:', summary.metadata);
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log(result.value); // "4"
+  console.log('LLM cost:', result.summary.llmCost);
+  console.log('Additional costs:', result.summary.totalAdditionalCost);
+  console.log('Total cost:', result.summary.totalCost);
+  console.log('Metadata:', result.summary.metadata);
+}
 ```
 
 ---
@@ -461,20 +555,19 @@ class SessionSummary {
 **Example:**
 
 ```typescript
-// SessionSummary is included in the 'complete' event from done()
-for await (const event of execution) {
-  if (event.type === 'complete' && event.summary) {
-    const summary = event.summary as SessionSummary;
-    console.log('Duration:', summary.totalDuration, 'ms');
-    console.log('LLM calls:', summary.llmCallCount);
-    console.log('Total tokens:', summary.totalLLMUsage.totalTokens);
-    console.log('LLM cost: $', summary.llmCost.toFixed(4));
-    console.log('Additional costs: $', summary.totalAdditionalCost.toFixed(4));
-    console.log('Total cost: $', summary.totalCost.toFixed(4));
-    console.log('Metadata:', summary.metadata);
+// SessionSummary is included in the CompletionEvent from done()
+for await (const event of execution.stream()) {
+  if (event.type === 'complete') {
+    console.log('Duration:', event.summary.totalDuration, 'ms');
+    console.log('LLM calls:', event.summary.llmCallCount);
+    console.log('Total tokens:', event.summary.totalLLMUsage.totalTokens);
+    console.log('LLM cost: $', event.summary.llmCost.toFixed(4));
+    console.log('Additional costs: $', event.summary.totalAdditionalCost.toFixed(4));
+    console.log('Total cost: $', event.summary.totalCost.toFixed(4));
+    console.log('Metadata:', event.summary.metadata);
 
     // Serialize for database storage
-    const json = summary.toJSON();
+    const json = event.summary.toJSON();
     await db.save(json);
   }
 }
@@ -508,7 +601,7 @@ interface AdditionalCost {
 **Example:**
 
 ```typescript
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     // Record additional cost for search grounding
     session.recordAdditionalCost({
@@ -580,7 +673,7 @@ interface ToolCallSummary {
 **Example:**
 
 ```typescript
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     const startTime = Date.now();
 
@@ -626,7 +719,7 @@ interface EventMetrics {
 
 ---
 
-### GenerateTextParams<TOOLS, OUTPUT>
+### GenerateTextParams\<TOOLS, OUTPUT\>
 
 Parameters for `session.generateText()`. Mirrors AI SDK with optional model override.
 
@@ -641,7 +734,7 @@ type GenerateTextParams<TOOLS, OUTPUT> = Omit<AISDKGenerateTextParams<TOOLS>, 'm
 
 ---
 
-### StreamTextParams<TOOLS, OUTPUT>
+### StreamTextParams\<TOOLS, OUTPUT\>
 
 Parameters for `session.streamText()`. Mirrors AI SDK with optional model override.
 
@@ -659,20 +752,19 @@ type StreamTextParams<TOOLS, OUTPUT> = Omit<AISDKStreamTextParams<TOOLS>, 'model
 ### Streaming Execution with Events
 
 ```typescript
-import { createGoogleProvider, SessionSummary } from '@agtlantis/core';
+import { createGoogleProvider, SessionSummary, type CompletionEvent } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-// Define event types - metrics are added automatically by the framework
+// Define event types — CompletionEvent defines the result type
 type TaskEvent =
   | { type: 'started'; message: string }
   | { type: 'progress'; message: string }
-  | { type: 'complete'; data: string; summary: SessionSummary }
-  | { type: 'error'; error: Error };
+  | CompletionEvent<string>;
 
-const execution = provider.streamingExecution<TaskEvent, string>(
+const execution = provider.streamingExecution<TaskEvent>(
   async function* (session) {
     yield session.emit({ type: 'started', message: 'Beginning task' });
 
@@ -689,10 +781,18 @@ const execution = provider.streamingExecution<TaskEvent, string>(
 );
 
 for await (const event of execution.stream()) {
-  console.log(`[${event.metrics.elapsedMs}ms] ${event.type}: ${event.message || event.data || ''}`);
-
-  if (event.type === 'complete' && event.summary) {
-    console.log('Cost: $' + event.summary.totalCost.toFixed(4));
+  switch (event.type) {
+    case 'started':
+    case 'progress':
+      console.log(`[${event.metrics.elapsedMs}ms] ${event.type}: ${event.message}`);
+      break;
+    case 'complete':
+      console.log('Result:', event.data);
+      console.log('Cost: $' + event.summary.totalCost.toFixed(4));
+      break;
+    case 'error':
+      console.error('Error:', event.error.message);
+      break;
   }
 }
 
@@ -716,7 +816,11 @@ async function translateText(text: string, targetLanguage: string): Promise<stri
     return result.text;
   });
 
-  return execution.toResult();
+  const result = await execution.result();
+  if (result.status === 'succeeded') {
+    return result.value;
+  }
+  throw result.status === 'failed' ? result.error : new Error('Canceled');
 }
 
 const translated = await translateText('Hello, world!', 'Spanish');
@@ -726,7 +830,7 @@ console.log(translated); // "Hola, mundo!"
 ### Multiple LLM Calls with Different Models
 
 ```typescript
-import { createGoogleProvider } from '@agtlantis/core';
+import { createGoogleProvider, type CompletionEvent } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
@@ -734,13 +838,12 @@ const provider = createGoogleProvider({
 
 type StepResult = { draft: string; refined: string };
 
-// Define event types - metrics are added automatically by the framework
+// Define event types — CompletionEvent defines the result type
 type StepEvent =
   | { type: 'step'; step: string }
-  | { type: 'complete'; data: StepResult }
-  | { type: 'error'; error: Error };
+  | CompletionEvent<StepResult>;
 
-const execution = provider.streamingExecution<StepEvent, StepResult>(
+const execution = provider.streamingExecution<StepEvent>(
   async function* (session) {
     yield session.emit({ type: 'step', step: 'Drafting with fast model' });
 
@@ -765,8 +868,8 @@ for await (const event of execution.stream()) {
   if (event.type === 'step') {
     console.log('Step:', event.step);
   } else if (event.type === 'complete') {
-    console.log('Draft:', event.data?.draft);
-    console.log('Refined:', event.data?.refined);
+    console.log('Draft:', event.data.draft);
+    console.log('Refined:', event.data.refined);
   }
 }
 

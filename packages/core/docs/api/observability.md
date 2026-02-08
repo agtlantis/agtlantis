@@ -59,7 +59,7 @@ interface EventMetrics {
 
 ```typescript
 // EventMetrics is automatically added to events via session.emit()
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     // emit() returns the complete event with metrics attached
     yield session.emit({ type: 'progress', message: 'Step 1' });
@@ -115,7 +115,7 @@ const logger = createLogger({
 
 ### SessionSummary
 
-Aggregated session summary collected during agent execution. Available after execution completes via `getSummary()`.
+Aggregated session summary collected during agent execution. Available via `result().summary` (always accessible regardless of execution status).
 
 > **See:** [SessionSummary in Session API Reference](./session.md#sessionsummary) for full type documentation.
 
@@ -134,9 +134,10 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-await execution.toResult();
-const summary: SessionSummary = await execution.getSummary();
+const result = await execution.result();
 
+// Summary is always available, regardless of status
+const { summary } = result;
 console.log('Duration:', summary.totalDuration, 'ms');
 console.log('LLM Calls:', summary.llmCallCount);
 console.log('Tokens:', summary.totalLLMUsage.totalTokens);
@@ -668,21 +669,19 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-await execution.toResult();
+const result = await execution.result();
+// result.summary contains cost/token data regardless of status
 ```
 
 ### Full Execution Lifecycle Tracking
 
 ```typescript
 import { createGoogleProvider, createLogger } from '@agtlantis/core';
-import type { EventMetrics } from '@agtlantis/core';
+import type { CompletionEvent } from '@agtlantis/core';
 
-type ProgressEvent = {
-  type: 'progress' | 'complete' | 'error';
-  message?: string;
-  data?: string;
-  metrics: EventMetrics;
-};
+type MyEvent =
+  | { type: 'progress'; message: string }
+  | CompletionEvent<string>;
 
 const logger = createLogger({
   onExecutionStart(event) {
@@ -695,8 +694,7 @@ const logger = createLogger({
     console.log(`  <- LLM Done: ${event.response.duration}ms`);
   },
   onExecutionEmit(event) {
-    const e = event.event as ProgressEvent;
-    console.log(`  [${e.metrics.elapsedMs}ms] Event: ${e.type}`);
+    console.log(`  [${event.event.metrics.elapsedMs}ms] Event: ${event.event.type}`);
   },
   onExecutionDone(event) {
     console.log('=== Execution Complete ===');
@@ -716,7 +714,7 @@ const provider = createGoogleProvider({
   .withDefaultModel('gemini-2.5-flash')
   .withLogger(logger);
 
-const execution = provider.streamingExecution<ProgressEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     yield session.emit({ type: 'progress', message: 'Starting...' });
 
@@ -728,7 +726,7 @@ const execution = provider.streamingExecution<ProgressEvent, string>(
   }
 );
 
-for await (const event of execution) {
+for await (const event of execution.stream()) {
   // Events are also logged by the logger
 }
 

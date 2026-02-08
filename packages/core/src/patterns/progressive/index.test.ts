@@ -1,18 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { z } from 'zod';
 import { defineProgressivePattern, ProgressivePattern } from './index';
+import type { CompletionEvent } from '@/execution/types';
 import type { EventMetrics } from '@/observability';
 import type { StreamingSession } from '@/session/streaming-session';
 
-interface TestEvent {
+type TestProgress = { stage: string; message: string } | { stage: string; progress: number };
+type TestResult = { summary: string; score: number };
+
+interface TestBaseEvent {
     type: string;
     data?: unknown;
-    summary?: unknown;
     metrics: EventMetrics;
 }
 
-type TestProgress = { stage: string; message: string } | { stage: string; progress: number };
-type TestResult = { summary: string; score: number };
+type TestEvent = TestBaseEvent | CompletionEvent<TestResult>;
 
 const testProgressSchema = z.discriminatedUnion('stage', [
     z.object({ stage: z.literal('analyzing'), message: z.string() }),
@@ -50,7 +52,7 @@ function createMockFullStream(
 
 function createMockSession(
     fullStreamEvents: Array<{ toolName: string; input: unknown }>
-): StreamingSession<TestEvent, TestResult> & {
+): StreamingSession<TestEvent> & {
     _emittedEvents: TestEvent[];
     _doneResult: () => TestResult | null;
 } {
@@ -78,7 +80,7 @@ function createMockSession(
         })),
         _emittedEvents: emittedEvents,
         _doneResult: () => doneResult,
-    } as unknown as StreamingSession<TestEvent, TestResult> & {
+    } as unknown as StreamingSession<TestEvent> & {
         _emittedEvents: TestEvent[];
         _doneResult: () => TestResult | null;
     };

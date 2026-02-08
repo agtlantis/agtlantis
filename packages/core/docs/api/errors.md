@@ -296,7 +296,9 @@ async function generateText(prompt: string) {
       return result.text;
     });
 
-    return await execution.toResult();
+    const result = await execution.result();
+    if (result.status === 'succeeded') return result.value;
+    throw result.status === 'failed' ? result.error : new Error('canceled');
   } catch (error) {
     if (error instanceof ConfigurationError) {
       console.error('Configuration issue:', error.message);
@@ -431,7 +433,7 @@ try {
 
 ```typescript
 import { createGoogleProvider, createLogger } from '@agtlantis/core';
-import type { ExecutionErrorEvent } from '@agtlantis/core';
+import type { ExecutionErrorEvent, CompletionEvent } from '@agtlantis/core';
 
 let lastError: ExecutionErrorEvent | null = null;
 
@@ -449,14 +451,18 @@ const provider = createGoogleProvider({
   .withDefaultModel('gemini-2.5-flash')
   .withLogger(logger);
 
-const execution = provider.streamingExecution<{ type: string; error?: Error }, string>(
+type MyEvent =
+  | { type: 'progress'; message: string }
+  | CompletionEvent<string>;
+
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     const result = await session.generateText({ prompt: 'Hello' });
     return session.done(result.text);
   }
 );
 
-for await (const event of execution) {
+for await (const event of execution.stream()) {
   if (event.type === 'error') {
     console.error('Error event received:', event.error?.message);
   }

@@ -247,7 +247,7 @@ const execution = provider.streamingExecution<
   // You can also do post-processing here
 });
 
-for await (const event of execution) {
+for await (const event of execution.stream()) {
   console.log(event.type, event.data);
 }
 ```
@@ -392,7 +392,7 @@ const execution = provider.streamingExecution(async function* (session) {
   });
 });
 
-for await (const event of execution) {
+for await (const event of execution.stream()) {
   console.log(event.type, event.data);
 }
 ```

@@ -26,8 +26,7 @@ export abstract class BaseProvider implements Provider {
      */
     protected abstract createStreamingSession<
         TEvent extends { type: string },
-        TResult,
-    >(signal?: AbortSignal): StreamingSession<TEvent, TResult>;
+    >(signal?: AbortSignal): StreamingSession<TEvent>;
 
     abstract withDefaultModel(modelId: string): Provider;
 
@@ -37,14 +36,14 @@ export abstract class BaseProvider implements Provider {
 
     abstract withDefaultOptions(options: Record<string, unknown>): Provider;
 
-    streamingExecution<TEvent extends { type: string }, TResult>(
+    streamingExecution<TEvent extends { type: string }>(
         generator: (
-            session: StreamingSession<TEvent, TResult>
+            session: StreamingSession<TEvent>
         ) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | Promise<SessionEvent<TEvent>>>,
         options?: ExecutionOptions
-    ): StreamingExecution<TEvent, TResult> {
+    ): StreamingExecution<TEvent> {
         return new StreamingExecutionHost(
-            (signal) => this.createStreamingSession<TEvent, TResult>(signal),
+            (signal) => this.createStreamingSession<TEvent>(signal),
             generator,
             options?.signal
         );

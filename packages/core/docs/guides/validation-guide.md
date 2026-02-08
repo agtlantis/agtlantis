@@ -96,8 +96,10 @@ const execution = provider.simpleExecution(async (session) => {
   return result;
 });
 
-const answer = await execution.toResult();
-console.log(answer); // { answer: "Paris", confidence: 0.95 }
+const result = await execution.result();
+if (result.status === 'succeeded') {
+  console.log(result.value); // { answer: "Paris", confidence: 0.95 }
+}
 ```
 
 ## Basic Usage
@@ -490,7 +492,11 @@ async function analyzeWithRetry(
     );
   });
 
-  return execution.toResult();
+  const result = await execution.result();
+  if (result.status !== 'succeeded') {
+    throw result.status === 'failed' ? result.error : new Error('canceled');
+  }
+  return result.value;
 }
 
 // Usage

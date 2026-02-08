@@ -1,20 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { EventMetrics } from '@/observability';
+import type { CompletionEvent } from '@/execution/types';
 import { mock } from './mock';
 
 interface ProgressEvent {
     type: 'progress';
     message: string;
-    metrics: EventMetrics;
 }
 
-interface CompleteEvent {
-    type: 'complete';
-    data: string;
-    metrics: EventMetrics;
-}
-
-type TestEvent = ProgressEvent | CompleteEvent;
+type TestEvent = ProgressEvent | CompletionEvent<string>;
 
 describe('Multi-Model Integration', () => {
     it('should track calls to different models in sequence', async () => {
@@ -236,43 +229,43 @@ describe('Provider Configuration Integration', () => {
 describe('Streaming Lifecycle Integration', () => {
     it('should emit progress events while tracking calls', async () => {
         const provider = mock.provider(mock.text('Final answer'));
-        const emittedEvents: TestEvent[] = [];
+        const emittedEvents: unknown[] = [];
 
-        const execution = provider.streamingExecution<TestEvent, string>(async function* (session) {
+        const execution = provider.streamingExecution<TestEvent>(async function* (session) {
             yield session.emit({
                 type: 'progress',
                 message: 'Starting...',
-            } as ProgressEvent);
+            });
 
             const { text } = await session.generateText({ prompt: 'Generate' });
 
             yield session.emit({
                 type: 'progress',
                 message: 'LLM call complete',
-            } as ProgressEvent);
+            });
 
             return session.done(text);
         });
 
         for await (const event of execution.stream()) {
-            emittedEvents.push(event);
+            if (event.type !== 'error') {
+                emittedEvents.push(event);
+            }
         }
 
         expect(emittedEvents).toHaveLength(3);
-        expect(emittedEvents[0]!.type).toBe('progress');
-        expect(emittedEvents[1]!.type).toBe('progress');
-        expect(emittedEvents[2]!.type).toBe('complete');
+        expect(emittedEvents[0]).toMatchObject({ type: 'progress', message: 'Starting...' });
+        expect(emittedEvents[1]).toMatchObject({ type: 'progress', message: 'LLM call complete' });
+        expect(emittedEvents[2]).toMatchObject({ type: 'complete', data: 'Final answer' });
 
         expect(provider.getCalls()).toHaveLength(1);
-        const completeEvent = emittedEvents[2] as CompleteEvent;
-        expect(completeEvent.data).toBe('Final answer');
     });
 
     it('should execute onDone hooks after streaming completes', async () => {
         const provider = mock.provider(mock.text('Done'));
         const hookOrder: string[] = [];
 
-        const execution = provider.streamingExecution<TestEvent, string>(async function* (session) {
+        const execution = provider.streamingExecution<TestEvent>(async function* (session) {
             session.onDone(() => {
                 hookOrder.push('hook1');
             });
@@ -280,7 +273,7 @@ describe('Streaming Lifecycle Integration', () => {
                 hookOrder.push('hook2');
             });
 
-            yield session.emit({ type: 'progress', message: 'Working' } as ProgressEvent);
+            yield session.emit({ type: 'progress', message: 'Working' });
             hookOrder.push('after-emit');
 
             await session.generateText({ prompt: 'Test' });
@@ -310,10 +303,10 @@ describe('Streaming Lifecycle Integration', () => {
             })
         );
 
-        const execution = provider.streamingExecution<TestEvent, string>(async function* (session) {
-            yield session.emit({ type: 'progress', message: 'Step 1' } as ProgressEvent);
+        const execution = provider.streamingExecution<TestEvent>(async function* (session) {
+            yield session.emit({ type: 'progress', message: 'Step 1' });
             await session.generateText({ prompt: 'Query' });
-            yield session.emit({ type: 'progress', message: 'Step 2' } as ProgressEvent);
+            yield session.emit({ type: 'progress', message: 'Step 2' });
             return session.done('final');
         });
 

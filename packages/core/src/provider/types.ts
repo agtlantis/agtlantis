@@ -121,12 +121,12 @@ export interface Provider {
      */
     withDefaultOptions(options: Record<string, unknown>): Provider;
 
-    streamingExecution<TEvent extends { type: string }, TResult>(
+    streamingExecution<TEvent extends { type: string }>(
         generator: (
-            session: StreamingSession<TEvent, TResult>
+            session: StreamingSession<TEvent>
         ) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | Promise<SessionEvent<TEvent>>>,
         options?: ExecutionOptions
-    ): StreamingExecution<TEvent, TResult>;
+    ): StreamingExecution<TEvent>;
 
     /**
      * Execute a non-streaming function with the provider.
@@ -143,7 +143,7 @@ export interface Provider {
      * // After (v2.x):
      * const execution = provider.simpleExecution(fn);
      * execution.cancel(); // Can cancel in-progress LLM calls
-     * const result = await execution.toResult();
+     * const result = await execution.result();
      * ```
      */
     simpleExecution<TResult>(

@@ -43,7 +43,8 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-const text = await execution.toResult();
+const result = await execution.result();
+// result.status: 'succeeded' | 'failed' | 'canceled'
 ```
 
 ## Handlebars Templates
@@ -297,7 +298,9 @@ async function explain(topic: string): Promise<string> {
     return result.text;
   });
 
-  return execution.toResult();
+  const result = await execution.result();
+  if (result.status !== 'succeeded') throw result.status === 'failed' ? result.error : new Error('canceled');
+  return result.value;
 }
 ```
 
@@ -341,7 +344,9 @@ async function analyzeSentiment(input: SentimentInput): Promise<SentimentResult>
     return result.object;
   });
 
-  return execution.toResult();
+  const result = await execution.result();
+  if (result.status !== 'succeeded') throw result.status === 'failed' ? result.error : new Error('canceled');
+  return result.value;
 }
 ```
 
@@ -395,7 +400,9 @@ async function startConversation(sessionCtx: SessionContext, turnCtx: TurnContex
     };
   });
 
-  return execution.toResult();
+  const result = await execution.result();
+  if (result.status !== 'succeeded') throw result.status === 'failed' ? result.error : new Error('canceled');
+  return result.value;
 }
 ```
 
@@ -422,7 +429,7 @@ async function* streamExplanation(topic: string) {
     });
   });
 
-  for await (const event of execution.toStream()) {
+  for await (const event of execution.stream()) {
     if (event.type === 'text-delta') {
       yield event.delta;
     }
@@ -496,7 +503,9 @@ async function analyzeDocument(document: string): Promise<Analysis> {
     );
   });
 
-  return execution.toResult();
+  const result = await execution.result();
+  if (result.status !== 'succeeded') throw result.status === 'failed' ? result.error : new Error('canceled');
+  return result.value;
 }
 ```
 

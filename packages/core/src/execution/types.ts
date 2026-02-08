@@ -96,37 +96,71 @@ export type SessionEventInput<T extends { type: string }> = T;
 export type ReservedEventType = 'complete' | 'error';
 
 /**
- * Input type for session.emit() - excludes reserved types ('complete', 'error').
- *
- * These terminal event types are reserved for internal use:
- * - `'complete'` - Emitted automatically by `session.done(result)`
- * - `'error'` - Emitted automatically by `session.fail(error)`
- *
- * **TypeScript Protection:**
- * Only works when TEvent uses literal types in a discriminated union.
- * If TEvent has `type: string`, the type check is bypassed but runtime check still applies.
- *
- * @example
- * ```typescript
- * // ✅ TypeScript protection works (discriminated union)
- * type MyEvent =
- *   | { type: 'progress'; step: number; metrics: EventMetrics }
- *   | { type: 'complete'; data: string; metrics: EventMetrics };
- *
- * session.emit({ type: 'progress', step: 1 }); // ✅ OK
- * session.emit({ type: 'complete', data: 'x' }); // ❌ TypeScript error
- *
- * // ❌ TypeScript protection bypassed (loose string type)
- * interface LooseEvent { type: string; metrics: EventMetrics; }
- * session.emit({ type: 'complete' }); // TypeScript allows, but throws at runtime!
- * ```
- */
-/**
  * Input type for emit() - excludes reserved event types.
  * Users define pure domain events; framework adds metrics wrapper.
  */
 export type EmittableEventInput<T extends { type: string }> =
     T extends { type: ReservedEventType } ? never : T;
+
+// ============================================================================
+// Terminal Event Types
+// ============================================================================
+
+/**
+ * Completion event emitted by session.done().
+ * Include this in your event union to define the result type.
+ *
+ * @example
+ * ```typescript
+ * type MyEvent =
+ *   | { type: 'progress'; step: string }
+ *   | CompletionEvent<MyResult>;
+ *
+ * // session.done(result) emits { type: 'complete', data: result, summary }
+ * ```
+ */
+export type CompletionEvent<TResult> = {
+    type: 'complete';
+    data: TResult;
+    summary: SessionSummary;
+};
+
+/**
+ * Error event emitted by session.fail().
+ * Auto-added to stream() return type — users don't need to include this in their event union.
+ *
+ * @example
+ * ```typescript
+ * for await (const event of execution.stream()) {
+ *   if (event.type === 'error') {
+ *     console.error(event.error.message);
+ *   }
+ * }
+ * ```
+ */
+export type ErrorEvent = {
+    type: 'error';
+    error: Error;
+    summary?: SessionSummary;
+    data?: unknown;
+};
+
+/**
+ * Extract the result type from an event union containing CompletionEvent<T>.
+ * Returns `never` if no CompletionEvent member exists (making session.done() uncallable).
+ *
+ * @example
+ * ```typescript
+ * type MyEvent =
+ *   | { type: 'progress'; step: string }
+ *   | CompletionEvent<{ answer: string }>;
+ *
+ * type Result = ExtractResult<MyEvent>;
+ * // Result = { answer: string }
+ * ```
+ */
+export type ExtractResult<TEvent extends { type: string }> =
+    Extract<TEvent, { type: 'complete' }> extends { data: infer R } ? R : never;
 
 /**
  * Options for execution.
@@ -351,60 +385,36 @@ export interface SimpleExecution<TResult> extends Execution<TResult> {
 }
 
 /**
- * Streaming execution that yields events via stream() method.
- * Starts eagerly on construction - execution and event buffering begin immediately.
- *
- * @typeParam TEvent - Event type yielded during streaming
- * @typeParam TResult - Final result type
- *
- * @example
- * ```typescript
- * const execution = agent.execute(input);
- * // ↑ Already executing, events being buffered
- *
- * // Option 1: Stream events (buffered + real-time)
- * for await (const event of execution.stream()) {
- *   console.log(`[${event.metrics.elapsedMs}ms] ${event.type}`);
- * }
- * const result = await execution.result();
- *
- * // Option 2: Get result only (events available in result.events)
- * const result = await execution.result();
- * console.log(`Received ${result.events.length} events`);
- *
- * // Always cleanup
- * await execution.cleanup();
- * ```
- */
-/**
  * Represents a streaming execution that emits events as they occur.
  * TEvent is the user's pure domain event type (without metrics).
  * stream() and result() return SessionEvent<TEvent> which includes metrics.
  */
-export interface StreamingExecution<TEvent extends { type: string }, TResult> extends Execution<TResult> {
+export interface StreamingExecution<TEvent extends { type: string }> extends Execution<ExtractResult<TEvent>> {
     /**
      * Get the event stream.
      * Returns an AsyncIterable that yields all events with metrics:
      * - Events already in the buffer (from eager execution)
      * - Real-time events as they occur
+     * - ErrorEvent is auto-included — no need to add it to your event union
      *
      * Can be called multiple times - each call replays buffered events.
      * After execution completes, replays all events from buffer.
      *
      * @example
      * ```typescript
-     * const execution = provider.streamingExecution(...);
+     * type MyEvent =
+     *   | { type: 'progress'; step: number }
+     *   | CompletionEvent<MyResult>;
      *
-     * // Stream events
+     * const execution = provider.streamingExecution<MyEvent>(...);
+     *
      * for await (const event of execution.stream()) {
+     *   // event is SessionEvent<MyEvent | ErrorEvent>
      *   console.log(`[${event.metrics.elapsedMs}ms] ${event.type}`);
      * }
-     *
-     * // Get final result
-     * const result = await execution.result();
      * ```
      */
-    stream(): AsyncIterable<SessionEvent<TEvent>>;
+    stream(): AsyncIterable<SessionEvent<TEvent | ErrorEvent>>;
 
     /**
      * Get the execution result with status, summary, and all events.
@@ -423,38 +433,9 @@ export interface StreamingExecution<TEvent extends { type: string }, TResult> ex
      * console.log(`Cost: $${result.summary.totalCost}`);
      * ```
      */
-    result(): Promise<StreamingResult<SessionEvent<TEvent>, TResult>>;
+    result(): Promise<StreamingResult<SessionEvent<TEvent | ErrorEvent>, ExtractResult<TEvent>>>;
 }
 
-/**
- * Generator function type for session-based StreamingExecutionHost.
- * Receives a StreamingSession instead of control object, providing access to:
- * - AI SDK wrappers (generateText, streamText)
- * - File management
- * - Lifecycle hooks (onDone)
- * - Stream control (emit, done, fail)
- *
- * @typeParam TEvent - Event type with required `type` and `metrics` fields
- * @typeParam TResult - Final result type
- *
- * @example
- * ```typescript
- * const generator: SessionStreamGeneratorFn<AnalyzerEvent, AnalysisResult> =
- *   async function* (session) {
- *     // Register cleanup
- *     session.onDone(() => session.fileManager.clear());
- *
- *     // Emit progress
- *     yield session.emit({ type: 'progress', phase: 'uploading' });
- *
- *     // Use AI SDK through session
- *     const result = await session.generateText({ prompt: 'Hello' });
- *
- *     // Complete (async - returns Promise<TEvent>)
- *     return session.done(result.text);
- *   };
- * ```
- */
 /**
  * Generator function type for streaming executions.
  * TEvent is the user's pure domain event type (without metrics).
@@ -462,7 +443,6 @@ export interface StreamingExecution<TEvent extends { type: string }, TResult> ex
  */
 export type SessionStreamGeneratorFn<
     TEvent extends { type: string },
-    TResult,
 > = (
-    session: StreamingSession<TEvent, TResult>
+    session: StreamingSession<TEvent>
 ) => AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent> | Promise<SessionEvent<TEvent>> | undefined, unknown>;

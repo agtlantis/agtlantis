@@ -503,11 +503,10 @@ const execution = provider.simpleExecution(async (session) => {
   return result.text;
 });
 
-await execution.toResult();
-const summary = await execution.getSummary();
+const result = await execution.result();
 
 const cost = calculateCostFromUsage(
-  summary.totalLLMUsage,
+  result.summary.totalLLMUsage,
   'gemini-2.5-flash',
   'google'
 );

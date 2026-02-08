@@ -26,10 +26,10 @@ import type { Logger } from '@/observability/logger';
 export type SimpleSessionFactory = (signal?: AbortSignal) => SimpleSession;
 export type StreamingSessionFactory = (
   signal?: AbortSignal
-) => StreamingSession<TestEvent, string>;
+) => StreamingSession<TestEvent>;
 
 export type SimpleWorkload = (session: SimpleSession) => Promise<unknown>;
-export type StreamingWorkload = SessionStreamGeneratorFn<TestEvent, string>;
+export type StreamingWorkload = SessionStreamGeneratorFn<TestEvent>;
 
 export interface ExecutionHost<TResult = string> {
   result(): Promise<{ status: string; [key: string]: unknown }>;
@@ -178,7 +178,7 @@ export const streamingHostConfig: ExecutionHostTestConfig<string> = {
 
   createSessionFactory(logger?: Logger) {
     return (signal?: AbortSignal) =>
-      new StreamingSession<TestEvent, string>({
+      new StreamingSession<TestEvent>({
         defaultLanguageModel: createMockModel(),
         providerType: TEST_PROVIDER_TYPE,
         fileManager: createMockFileManager(),
@@ -191,7 +191,7 @@ export const streamingHostConfig: ExecutionHostTestConfig<string> = {
     let passedSignal: AbortSignal | undefined;
     const factory = vi.fn().mockImplementation((signal?: AbortSignal) => {
       passedSignal = signal;
-      return new StreamingSession<TestEvent, string>({
+      return new StreamingSession<TestEvent>({
         defaultLanguageModel: createMockModel(),
         providerType: TEST_PROVIDER_TYPE,
         fileManager: createMockFileManager(),
@@ -205,7 +205,7 @@ export const streamingHostConfig: ExecutionHostTestConfig<string> = {
   },
 
   createSuccessWorkload(result: string) {
-    return async function* (session: StreamingSession<TestEvent, string>) {
+    return async function* (session: StreamingSession<TestEvent>) {
       return session.done(result);
     };
   },
@@ -217,8 +217,8 @@ export const streamingHostConfig: ExecutionHostTestConfig<string> = {
   },
 
   createCancelableWorkload(abortScenario: AbortScenario, onCancel?: () => void) {
-    return async function* (session: StreamingSession<TestEvent, string>) {
-      yield session.emit({ type: 'start' } as Omit<TestEvent, 'metrics'>);
+    return async function* (session: StreamingSession<TestEvent>) {
+      yield session.emit({ type: 'start' });
 
       await new Promise<void>((_, reject) => {
         const signal = abortScenario.signal;
@@ -238,7 +238,7 @@ export const streamingHostConfig: ExecutionHostTestConfig<string> = {
   },
 
   createHookWorkload(hook: () => void, options?: { shouldFail?: boolean }) {
-    return async function* (session: StreamingSession<TestEvent, string>) {
+    return async function* (session: StreamingSession<TestEvent>) {
       session.onDone(hook);
       if (options?.shouldFail) {
         throw new Error('Intentional failure');

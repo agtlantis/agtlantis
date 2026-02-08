@@ -17,6 +17,7 @@
   - [AI SDK wrappers](#ai-sdk-wrappers)
   - [Custom recording](#custom-recording)
   - [Cancellation](#cancellation)
+  - [Execution mapping](#execution-mapping)
   - [Using await using (TypeScript 5.2+)](#using-await-using-typescript-52)
 - [Best practices](#best-practices)
   - [Resource cleanup](#resource-cleanup)
@@ -49,20 +50,19 @@ Choose streaming when you need to show progress to users. Choose simple when you
 Here's a minimal streaming execution that emits progress events:
 
 ```typescript
-import { createGoogleProvider } from '@agtlantis/core';
+import { createGoogleProvider, type CompletionEvent } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-// Define your event types - metrics are added automatically by the framework
+// Define your event types — CompletionEvent defines the result type
 type MyEvent =
   | { type: 'progress'; message: string }
-  | { type: 'complete'; data: string }
-  | { type: 'error'; error: Error };
+  | CompletionEvent<string>;
 
 // Create a streaming execution
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     // Emit progress
     yield session.emit({ type: 'progress', message: 'Starting...' });
@@ -99,22 +99,21 @@ await execution.cleanup();
 Use `provider.streamingExecution()` to create executions that yield events:
 
 ```typescript
-import { createGoogleProvider } from '@agtlantis/core';
+import { createGoogleProvider, type CompletionEvent } from '@agtlantis/core';
 
 const provider = createGoogleProvider({
   apiKey: process.env.GOOGLE_AI_API_KEY,
 }).withDefaultModel('gemini-2.5-flash');
 
-// Define your event variants - metrics are added automatically by the framework
+// Define your event variants — CompletionEvent defines the result type
+type AnalysisResult = { findings: string[]; summary: string };
+
 type AnalysisEvent =
   | { type: 'analyzing' }
   | { type: 'found'; data: { findings: string[] } }
-  | { type: 'complete'; data: AnalysisResult }
-  | { type: 'error'; error: Error };
+  | CompletionEvent<AnalysisResult>;
 
-type AnalysisResult = { findings: string[]; summary: string };
-
-const execution = provider.streamingExecution<AnalysisEvent, AnalysisResult>(
+const execution = provider.streamingExecution<AnalysisEvent>(
   async function* (session) {
     yield session.emit({ type: 'analyzing' });
 
@@ -136,7 +135,7 @@ const execution = provider.streamingExecution<AnalysisEvent, AnalysisResult>(
 Use `session.emit()` to create intermediate events. The `metrics` field is added automatically with timing information:
 
 ```typescript
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     // emit() returns the complete event with metrics automatically attached
     yield session.emit({ type: 'progress', message: 'Step 1' });
@@ -154,7 +153,7 @@ const execution = provider.streamingExecution<MyEvent, string>(
 Use `session.done()` for success and `session.fail()` for errors:
 
 ```typescript
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     try {
       const result = await session.generateText({ prompt: 'Hello' });
@@ -179,7 +178,7 @@ The `done()` method automatically includes the session summary (LLM usage, costs
 Use `for await...of` with `stream()` to consume streaming events:
 
 ```typescript
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     yield session.emit({ type: 'progress', message: 'Working...' });
     return session.done('Result');
@@ -248,7 +247,7 @@ await execution.cleanup();
 Register cleanup functions with `session.onDone()`. They run in LIFO order (last registered, first executed):
 
 ```typescript
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     // Register cleanup hooks
     const connection = await database.connect();
@@ -278,7 +277,7 @@ await execution.cleanup();
 The session provides `generateText()` and `streamText()` wrappers that automatically track usage:
 
 ```typescript
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     // generateText - non-streaming, waits for full response
     const result = await session.generateText({
@@ -307,7 +306,7 @@ const execution = provider.streamingExecution<MyEvent, string>(
 You can override the model for specific calls:
 
 ```typescript
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     // Use default model (gemini-2.5-flash)
     const quick = await session.generateText({ prompt: 'Quick answer?' });
@@ -328,7 +327,7 @@ const execution = provider.streamingExecution<MyEvent, string>(
 Track custom data and tool calls for the session summary:
 
 ```typescript
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     // Record custom data
     session.record({ customField: 'value', count: 42 });
@@ -356,7 +355,7 @@ const execution = provider.streamingExecution<MyEvent, string>(
 Streaming executions support cooperative cancellation:
 
 ```typescript
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     for (let i = 0; i < 100; i++) {
       yield session.emit({ type: 'progress', step: i });
@@ -380,6 +379,49 @@ const result = await execution.result();
 ```
 
 Note: Cancellation is cooperative. The generator must check for cancellation and stop gracefully.
+
+### Execution Mapping
+
+When your service layer wraps an agent, the agent's execution often has internal types (e.g., `RawOutput`) that need to be mapped to public domain types (e.g., `DomainOutput`). Instead of manually reconstructing the `StreamingExecution` object, use the mapping utilities.
+
+**Result-only mapping (most common):**
+
+Use `mapExecutionResult()` when intermediate events stay the same and only the completion result changes:
+
+```typescript
+import { mapExecutionResult } from '@agtlantis/core';
+
+// Agent returns StreamingExecution<AgentEvent> where AgentEvent includes CompletionEvent<RawOutput>
+const agentExecution = agent.execute(input);
+
+// Map only the result — intermediate events pass through unchanged
+const serviceExecution = mapExecutionResult(agentExecution, (raw) => ({
+  question: raw.question,
+  options: raw.options.map(toOption),
+}));
+// serviceExecution is StreamingExecution<ReplaceResult<AgentEvent, DomainOutput>>
+```
+
+**Full event mapping:**
+
+Use `mapExecution()` when you need to transform the entire event union:
+
+```typescript
+import { mapExecution } from '@agtlantis/core';
+
+const publicExecution = mapExecution(internalExecution, (event) => {
+  switch (event.type) {
+    case 'internal-step':
+      return { type: 'progress', message: event.detail };
+    case 'complete':
+      return { type: 'complete', data: transformResult(event.data) };
+  }
+});
+```
+
+**Error handling:** If the mapping function throws, the execution result becomes `{ status: 'failed' }` — honoring the "never throws" contract of executions.
+
+See the [Execution API Reference](../api/execution.md#execution-mapping) for full type signatures and behavior tables.
 
 ### Using await using (TypeScript 5.2+)
 
@@ -434,7 +476,7 @@ const result = await execution.result();
 Handle errors inside your generator to emit proper error events:
 
 ```typescript
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     try {
       yield session.emit({ type: 'progress', message: 'Starting' });
@@ -450,18 +492,18 @@ const execution = provider.streamingExecution<MyEvent, string>(
 
 ### Type Your Events
 
-Define explicit event types for better type safety. The framework automatically adds `metrics` to each event:
+Define explicit event types with `CompletionEvent<T>` for type-safe results. The framework automatically adds `metrics` to each event and `ErrorEvent` to the stream:
 
 ```typescript
 type MyResult = { answer: string; confidence: number };
 
-// Define event types without metrics - framework adds them automatically
+// Use CompletionEvent<T> to define the result type in your event union
 type MyEvent =
   | { type: 'progress'; message: string }
-  | { type: 'complete'; data: MyResult }
-  | { type: 'error'; error: Error };
+  | CompletionEvent<MyResult>;
+// ErrorEvent is auto-included in stream() — no need to add it
 
-const execution = provider.streamingExecution<MyEvent, MyResult>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     yield session.emit({ type: 'progress', message: 'Working...' });
     return session.done({ answer: 'Yes', confidence: 0.95 });
@@ -469,12 +511,17 @@ const execution = provider.streamingExecution<MyEvent, MyResult>(
 );
 ```
 
+> **Note on ErrorEvent:** `ErrorEvent` is automatically included in the return types of `stream()` and `result()`.
+> You do **not** need to add it to your event union. The default recommendation is to omit it.
+> Include `ErrorEvent` in your union only when you need `Extract<YourEvent, { type: 'error' }>` aliases
+> for downstream typing (e.g., re-exporting types for API consumers).
+
 ### Use File Manager for Uploads
 
 The session's file manager handles uploads and automatic cleanup:
 
 ```typescript
-const execution = provider.streamingExecution<MyEvent, string>(
+const execution = provider.streamingExecution<MyEvent>(
   async function* (session) {
     // Upload files (auto-cleaned on session end)
     const files = await session.fileManager.upload([
