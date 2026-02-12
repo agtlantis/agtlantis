@@ -6,7 +6,7 @@
 
 import Handlebars from 'handlebars';
 
-// Note: PromptContent class uses compileTemplate, not the other way around
+// Note: PromptTemplate class uses compileTemplate, not the other way around
 // This avoids circular dependencies
 import { PromptTemplateError } from './errors';
 

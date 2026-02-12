@@ -12,14 +12,16 @@
  *   loadChatbotPrompt,
  * } from './setup'
  */
-
 import path from 'node:path';
+
+import type { Provider } from '@agtlantis/core';
+import { createPromptLoader, toEvalTokenUsage } from '@e2e/shared';
 import { Output } from 'ai';
 import { z } from 'zod';
-import type { AgentPrompt, EvalAgent, AgentResult } from '@/core/types';
+
+import type { AgentPrompt, AgentResult, EvalAgent } from '@/core/types';
+
 import type { ChatbotInput, ChatbotOutput } from './fixtures/test-cases';
-import type { Provider } from '@agtlantis/core';
-import { toEvalTokenUsage, createPromptLoader } from '@e2e/shared';
 
 // ============================================================================
 // Composable Zod Schemas for Structured Output
@@ -132,7 +134,7 @@ function createChatbotAgentWithSchema<TSchema extends z.ZodType>(
                 const result = await session.generateText({
                     messages: [
                         { role: 'system', content: prompt.system },
-                        { role: 'user', content: prompt.buildUserPrompt(input) },
+                        { role: 'user', content: prompt.renderUserPrompt(input) },
                     ],
                     output: Output.object({ schema }),
                 });

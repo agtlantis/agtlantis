@@ -1,34 +1,42 @@
-import type { AgentPrompt, EvalAgent, EvalTokenUsage, TestResultWithVerdict, Verdict } from '@/core/types'
-import type { EvalContext, Judge, JudgeResult } from '@/judge/types'
-import type { Improver, ImproveResult, Suggestion } from '@/improver/types'
+import type {
+    AgentPrompt,
+    EvalAgent,
+    EvalTokenUsage,
+    TestResultWithVerdict,
+    Verdict,
+} from '@/core/types';
+import type { ImproveResult, Improver, Suggestion } from '@/improver/types';
+import type { EvalContext, Judge, JudgeResult } from '@/judge/types';
 
 /**
  * Configuration for creating a mock agent.
  */
 export interface MockAgentConfig<TInput, TOutput> {
-  /** Name for the mock agent */
-  name?: string
+    /** Name for the mock agent */
+    name?: string;
 
-  /** Description for the mock agent */
-  description?: string
+    /** Description for the mock agent */
+    description?: string;
 
-  /** Response to return from execute() */
-  response?: TOutput
+    /** Response to return from execute() */
+    response?: TOutput;
 
-  /** Token usage to include in metadata */
-  tokenUsage?: EvalTokenUsage
+    /** Token usage to include in metadata */
+    tokenUsage?: EvalTokenUsage;
 
-  /** Delay in ms before returning response */
-  delay?: number
+    /** Delay in ms before returning response */
+    delay?: number;
 
-  /** If true, throw an error instead of returning response */
-  shouldError?: boolean
+    /** If true, throw an error instead of returning response */
+    shouldError?: boolean;
 
-  /** Custom error message when shouldError is true */
-  errorMessage?: string
+    /** Custom error message when shouldError is true */
+    errorMessage?: string;
 
-  /** Custom execute function for more control */
-  executeFn?: (input: TInput) => Promise<{ result: TOutput; metadata?: { tokenUsage?: EvalTokenUsage } }>
+    /** Custom execute function for more control */
+    executeFn?: (
+        input: TInput
+    ) => Promise<{ result: TOutput; metadata?: { tokenUsage?: EvalTokenUsage } }>;
 }
 
 /**
@@ -56,72 +64,72 @@ export interface MockAgentConfig<TInput, TOutput> {
  * ```
  */
 export function createMockAgent<TInput, TOutput>(
-  config: MockAgentConfig<TInput, TOutput> = {}
+    config: MockAgentConfig<TInput, TOutput> = {}
 ): EvalAgent<TInput, TOutput> {
-  const {
-    name = 'MockAgent',
-    description = 'A mock agent for testing',
-    response = {} as TOutput,
-    tokenUsage = { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
-    delay = 0,
-    shouldError = false,
-    errorMessage = 'Mock agent execution failed',
-    executeFn,
-  } = config
+    const {
+        name = 'MockAgent',
+        description = 'A mock agent for testing',
+        response = {} as TOutput,
+        tokenUsage = { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        delay = 0,
+        shouldError = false,
+        errorMessage = 'Mock agent execution failed',
+        executeFn,
+    } = config;
 
-  return {
-    config: { name, description },
-    prompt: {
-      id: 'mock-prompt',
-      version: '1.0.0',
-      system: 'You are a mock agent',
-      buildUserPrompt: (input: TInput) => JSON.stringify(input),
-    },
-    execute: async (input: TInput) => {
-      if (executeFn) {
-        return executeFn(input)
-      }
+    return {
+        config: { name, description },
+        prompt: {
+            id: 'mock-prompt',
+            version: '1.0.0',
+            system: 'You are a mock agent',
+            renderUserPrompt: (input: TInput) => JSON.stringify(input),
+        },
+        execute: async (input: TInput) => {
+            if (executeFn) {
+                return executeFn(input);
+            }
 
-      if (delay > 0) {
-        await new Promise(resolve => setTimeout(resolve, delay))
-      }
+            if (delay > 0) {
+                await new Promise((resolve) => setTimeout(resolve, delay));
+            }
 
-      if (shouldError) {
-        throw new Error(errorMessage)
-      }
+            if (shouldError) {
+                throw new Error(errorMessage);
+            }
 
-      return {
-        result: response,
-        metadata: { tokenUsage },
-      }
-    },
-  }
+            return {
+                result: response,
+                metadata: { tokenUsage },
+            };
+        },
+    };
 }
 
 /**
  * Configuration for creating a mock judge.
  */
 export interface MockJudgeConfig {
-  /** Overall score to return (0-100) */
-  score?: number
+    /** Overall score to return (0-100) */
+    score?: number;
 
-  /** Whether the evaluation passed */
-  passed?: boolean
+    /** Whether the evaluation passed */
+    passed?: boolean;
 
-  /** Verdicts to return */
-  verdicts?: Verdict[]
+    /** Verdicts to return */
+    verdicts?: Verdict[];
 
-  /** Metadata to return (for cost tracking tests) */
-  metadata?: JudgeResult['metadata']
+    /** Metadata to return (for cost tracking tests) */
+    metadata?: JudgeResult['metadata'];
 
-  /** If true, throw an error instead of returning result */
-  shouldError?: boolean
+    /** If true, throw an error instead of returning result */
+    shouldError?: boolean;
 
-  /** Custom error message when shouldError is true */
-  errorMessage?: string
+    /** Custom error message when shouldError is true */
+    errorMessage?: string;
 
-  /** Custom evaluate function for more control */
-  evaluateFn?: (context: EvalContext) => Promise<JudgeResult>
+    /** Custom evaluate function for more control */
+    evaluateFn?: (context: EvalContext) => Promise<JudgeResult>;
 }
 
 /**
@@ -159,56 +167,56 @@ export interface MockJudgeConfig {
  * ```
  */
 export function createMockJudge(config: MockJudgeConfig = {}): Judge {
-  const {
-    score = 80,
-    passed = true,
-    verdicts = [
-      { criterionId: 'default', score: 80, reasoning: 'Default verdict', passed: true },
-    ],
-    metadata,
-    shouldError = false,
-    errorMessage = 'Mock judge evaluation failed',
-    evaluateFn,
-  } = config
-
-  return {
-    evaluate: async (context: EvalContext) => {
-      if (evaluateFn) {
-        return evaluateFn(context)
-      }
-
-      if (shouldError) {
-        throw new Error(errorMessage)
-      }
-
-      return {
-        verdicts,
-        overallScore: score,
-        passed,
+    const {
+        score = 80,
+        passed = true,
+        verdicts = [
+            { criterionId: 'default', score: 80, reasoning: 'Default verdict', passed: true },
+        ],
         metadata,
-      }
-    },
-  }
+        shouldError = false,
+        errorMessage = 'Mock judge evaluation failed',
+        evaluateFn,
+    } = config;
+
+    return {
+        evaluate: async (context: EvalContext) => {
+            if (evaluateFn) {
+                return evaluateFn(context);
+            }
+
+            if (shouldError) {
+                throw new Error(errorMessage);
+            }
+
+            return {
+                verdicts,
+                overallScore: score,
+                passed,
+                metadata,
+            };
+        },
+    };
 }
 
 /**
  * Configuration for creating a mock improver.
  */
 export interface MockImproverConfig {
-  /** Suggestions to return */
-  suggestions?: Suggestion[]
+    /** Suggestions to return */
+    suggestions?: Suggestion[];
 
-  /** If true, throw an error instead of returning suggestions */
-  shouldError?: boolean
+    /** If true, throw an error instead of returning suggestions */
+    shouldError?: boolean;
 
-  /** Custom error message when shouldError is true */
-  errorMessage?: string
+    /** Custom error message when shouldError is true */
+    errorMessage?: string;
 
-  /** Custom improve function for more control */
-  improveFn?: (
-    agentPrompt: AgentPrompt<any>,
-    results: TestResultWithVerdict<any, any>[]
-  ) => Promise<ImproveResult>
+    /** Custom improve function for more control */
+    improveFn?: (
+        agentPrompt: AgentPrompt<any>,
+        results: TestResultWithVerdict<any, any>[]
+    ) => Promise<ImproveResult>;
 }
 
 /**
@@ -241,24 +249,24 @@ export interface MockImproverConfig {
  * ```
  */
 export function createMockImprover(config: MockImproverConfig = {}): Improver {
-  const {
-    suggestions = [],
-    shouldError = false,
-    errorMessage = 'Mock improver failed',
-    improveFn,
-  } = config
+    const {
+        suggestions = [],
+        shouldError = false,
+        errorMessage = 'Mock improver failed',
+        improveFn,
+    } = config;
 
-  return {
-    improve: async (agentPrompt, results) => {
-      if (improveFn) {
-        return improveFn(agentPrompt, results)
-      }
+    return {
+        improve: async (agentPrompt, results) => {
+            if (improveFn) {
+                return improveFn(agentPrompt, results);
+            }
 
-      if (shouldError) {
-        throw new Error(errorMessage)
-      }
+            if (shouldError) {
+                throw new Error(errorMessage);
+            }
 
-      return { suggestions }
-    },
-  }
+            return { suggestions };
+        },
+    };
 }

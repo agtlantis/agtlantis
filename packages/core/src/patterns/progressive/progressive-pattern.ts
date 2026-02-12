@@ -1,9 +1,15 @@
-import { tool, hasToolCall, type ToolSet, type StopCondition } from 'ai';
+import { type StopCondition, type ToolSet, hasToolCall, tool } from 'ai';
 import { z } from 'zod';
+
+import type {
+    EmittableEventInput,
+    ErrorEvent,
+    ExtractResult,
+    SessionEvent,
+} from '@/execution/types';
+import type { BaseProvider } from '@/provider/base-provider';
 import type { StreamingSession } from '@/session/streaming-session';
 import type { StreamTextParams } from '@/session/types';
-import type { BaseProvider } from '@/provider/base-provider';
-import type { EmittableEventInput, ErrorEvent, ExtractResult, SessionEvent } from '@/execution/types';
 
 export type ProgressiveStreamOptions<TUserTools extends ToolSet = {}> = Omit<
     StreamTextParams<TUserTools>,
@@ -172,13 +178,18 @@ export class ProgressivePattern<
         session: StreamingSession<TEvent>,
         options: ProgressiveStreamOptions<TUserTools>
     ): AsyncGenerator<SessionEvent<TEvent>, SessionEvent<TEvent>, undefined> {
-        const { tools: userTools, system, stopWhen: userStopWhen, protocol, ...restOptions } =
-            options;
+        const {
+            tools: userTools,
+            system,
+            stopWhen: userStopWhen,
+            protocol,
+            ...restOptions
+        } = options;
 
         const internalTools = this.createTools();
         const allTools = { ...userTools, ...internalTools } as ToolSet;
         const systemString = typeof system === 'string' ? system : undefined;
-        const fullSystem = this.buildSystemPrompt(systemString, protocol);
+        const fullSystem = this.renderSystemPrompt(systemString, protocol);
 
         const defaultStopCondition = hasToolCall('submitResult');
         const stopConditions = this.combineStopConditions(defaultStopCondition, userStopWhen);
@@ -331,7 +342,7 @@ export class ProgressivePattern<
         return [defaultCondition, ...userArray];
     }
 
-    private buildSystemPrompt(userSystem?: string, protocol?: string): string {
+    private renderSystemPrompt(userSystem?: string, protocol?: string): string {
         const protocolText = protocol ?? TOOL_CALLING_PROTOCOL;
         return userSystem ? `${userSystem}\n\n${protocolText}` : protocolText;
     }

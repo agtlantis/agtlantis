@@ -54,7 +54,7 @@ export const qaAgent: EvalAgent<QuestionInput, AnswerOutput> = {
     id: 'qa-prompt',
     version: '1.0.0',
     system: 'You are a helpful assistant. Answer questions accurately and concisely.',
-    buildUserPrompt: (input) => input.question,
+    renderUserPrompt: (input) => input.question,
   },
   execute: async (input) => {
     // Use provider.simpleExecution() to call the LLM

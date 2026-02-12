@@ -1,11 +1,12 @@
-import type { ImproverContext, ImproverPrompt } from '../types'
-import { truncate } from '@/utils/json'
+import { truncate } from '@/utils/json';
+
+import type { ImproverContext, ImproverPrompt } from '../types';
 
 export const defaultImproverPrompt: ImproverPrompt = {
-  id: 'default-improver',
-  version: '2.0.0',
+    id: 'default-improver',
+    version: '2.0.0',
 
-  system: `You are an expert prompt engineer specializing in optimizing AI Agent prompts.
+    system: `You are an expert prompt engineer specializing in optimizing AI Agent prompts.
 
 Your role is to analyze test results and evaluation feedback to propose targeted improvements.
 
@@ -51,10 +52,10 @@ You MUST respond with valid JSON only. No additional text outside the JSON struc
   ]
 }`,
 
-  buildUserPrompt: (ctx: ImproverContext): string => {
-    const failedDetails = buildFailedCaseDetails(ctx.evaluatedResults)
+    renderUserPrompt: (ctx: ImproverContext): string => {
+        const failedDetails = buildFailedCaseDetails(ctx.evaluatedResults);
 
-    return `
+        return `
 ## Current Agent Prompt
 
 ### System Prompt
@@ -74,29 +75,25 @@ ${ctx.agentPrompt.system}
 ## Failed/Low-Score Cases Details
 ${failedDetails}
 
-Based on the above results, please propose specific prompt improvements.`.trim()
-  },
-}
+Based on the above results, please propose specific prompt improvements.`.trim();
+    },
+};
 
-function buildFailedCaseDetails(
-  results: ImproverContext['evaluatedResults']
-): string {
-  const failedOrLowScore = results.filter(
-    (r) => !r.passed || r.overallScore < 70
-  )
+function buildFailedCaseDetails(results: ImproverContext['evaluatedResults']): string {
+    const failedOrLowScore = results.filter((r) => !r.passed || r.overallScore < 70);
 
-  if (failedOrLowScore.length === 0) {
-    return '(None - all tests passed with acceptable scores)'
-  }
+    if (failedOrLowScore.length === 0) {
+        return '(None - all tests passed with acceptable scores)';
+    }
 
-  return failedOrLowScore
-    .map(
-      (r) => `
+    return failedOrLowScore
+        .map(
+            (r) => `
 ### ${r.testCase.id ?? 'unnamed'} (Score: ${r.overallScore})
 **Input:** ${truncate(JSON.stringify(r.testCase.input), 200)}
 **Output:** ${truncate(JSON.stringify(r.output), 200)}
 **Evaluation:**
 ${r.verdicts.map((v) => `- ${v.criterionId}: ${v.score}/100 - ${v.reasoning}`).join('\n')}`
-    )
-    .join('\n')
+        )
+        .join('\n');
 }

@@ -289,7 +289,7 @@ export {
     createFilePromptRepository,
     type FilePromptRepositoryOptions,
     type FileSystem,
-    type PromptContent,
+    type PromptTemplate,
     type PromptRepository,
 } from '@agtlantis/core';
 

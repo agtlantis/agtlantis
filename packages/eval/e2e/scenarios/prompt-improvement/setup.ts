@@ -16,20 +16,34 @@
  *   E2E_IMPROVEMENT_TERMINATION,
  * } from './setup'
  */
-
 import path from 'node:path';
-import { createFilePromptRepository, PromptContent } from '@agtlantis/core';
-import type { AgentPrompt } from '@/core/types';
-import { createEvalSuite } from '@/core/suite';
-import { runImprovementCycleAuto } from '@/improvement-cycle/runner';
-import { maxRounds, maxCost, targetScore } from '@/improvement-cycle/conditions';
 
-import type { EvalAgent } from '@/core/types';
-import type { Judge } from '@/judge/types';
-import type { Improver } from '@/improver/types';
-import type { CycleTerminationCondition, ImprovementCycleConfig } from '@/improvement-cycle/types';
-import type { MathInput, MathOutput } from './fixtures/test-cases';
+import { PromptTemplate, createFilePromptRepository } from '@agtlantis/core';
 import type { Provider } from '@agtlantis/core';
+// Local imports for use within this module
+import {
+    E2E_CONFIG,
+    E2E_PATHS,
+    TEST_PRICING_CONFIG,
+    createProviderAgent,
+    createTestImprover,
+    createTestJudge,
+    logEvalReportIO,
+} from '@e2e/shared';
+
+import { createEvalSuite } from '@/core/suite';
+import type { AgentPrompt } from '@/core/types';
+import type { EvalAgent } from '@/core/types';
+import { maxCost, maxRounds, targetScore } from '@/improvement-cycle/conditions';
+import { runImprovementCycleAuto } from '@/improvement-cycle/runner';
+import type { CycleTerminationCondition, ImprovementCycleConfig } from '@/improvement-cycle/types';
+import type { Improver } from '@/improver/types';
+import { accuracy, stepByStep } from '@/judge/criteria';
+import { createJudge } from '@/judge/llm-judge';
+import { defaultJudgePrompt } from '@/judge/prompts/default';
+import type { Judge } from '@/judge/types';
+
+import type { MathInput, MathOutput } from './fixtures/test-cases';
 
 // ============================================================================
 // Shared Infrastructure Re-exports
@@ -55,21 +69,6 @@ export {
     E2E_PATHS,
     createSubdir,
 } from '@e2e/shared';
-
-// Local imports for use within this module
-import {
-    E2E_CONFIG,
-    E2E_PATHS,
-    TEST_PRICING_CONFIG,
-    createTestJudge,
-    createTestImprover,
-    createProviderAgent,
-    logEvalReportIO,
-} from '@e2e/shared';
-
-import { accuracy, stepByStep } from '@/judge/criteria';
-import { createJudge } from '@/judge/llm-judge';
-import { defaultJudgePrompt } from '@/judge/prompts/default';
 
 export type { VerbosityLevel } from '@e2e/shared';
 
@@ -146,13 +145,13 @@ export async function loadImprovablePrompt(): Promise<AgentPrompt<MathInput>> {
         directory: PROMPTS_DIR,
     });
     const data = await repo.read('improvable-agent');
-    const builder = PromptContent.from(data).toBuilder<unknown, MathInput>();
+    const builder = PromptTemplate.from(data).compile<unknown, MathInput>();
     return {
         id: data.id,
         version: data.version,
         system: data.system,
         userTemplate: data.userTemplate,
-        buildUserPrompt: builder.buildUserPrompt,
+        renderUserPrompt: builder.renderUserPrompt,
     };
 }
 

@@ -59,7 +59,7 @@ const qaAgent: EvalAgent<QAInput, QAOutput> = {
     id: 'qa-prompt',
     version: '1.0.0',
     system: 'You are a helpful Q&A assistant. Answer questions accurately and concisely.',
-    buildUserPrompt: (input) => input.question,
+    renderUserPrompt: (input) => input.question,
   },
   execute: async (input) => {
     // Your actual LLM call here

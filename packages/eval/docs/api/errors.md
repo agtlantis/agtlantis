@@ -197,7 +197,7 @@ interface AgentPrompt<TInput, TOutput> {
   id: string
   version: string
   system: string
-  buildUserPrompt: (input: TInput) => string
+  renderUserPrompt: (input: TInput) => string
 }
 
 interface AgentResult<TOutput> {

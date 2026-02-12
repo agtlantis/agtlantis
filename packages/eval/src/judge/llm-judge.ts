@@ -1,16 +1,18 @@
+import { type LanguageModelUsage, type ModelMessage, Output } from 'ai';
+import { z } from 'zod';
+
+import { SCORE } from '@/core/constants.js';
+import { EvalError, EvalErrorCode } from '@/core/errors.js';
 import type {
     Criterion,
-    Verdict,
-    ValidatorCriterion,
-    JudgeMetadata,
     EvalTokenUsage,
+    JudgeMetadata,
+    ValidatorCriterion,
+    Verdict,
 } from '@/core/types.js';
-import { EvalError, EvalErrorCode } from '@/core/errors.js';
-import { SCORE } from '@/core/constants.js';
-import { Output, type LanguageModelUsage, type ModelMessage } from 'ai';
-import type { EvalContext, Judge, JudgeConfig, JudgeContext, JudgeResult } from './types.js';
+
 import { defaultJudgePrompt } from './prompts/default.js';
-import { z } from 'zod';
+import type { EvalContext, Judge, JudgeConfig, JudgeContext, JudgeResult } from './types.js';
 
 function toEvalTokenUsage(usage: LanguageModelUsage): EvalTokenUsage {
     return {
@@ -103,7 +105,7 @@ async function runLLMEvaluation(
 ): Promise<{ verdicts: Verdict[]; usage?: LanguageModelUsage }> {
     const messages: ModelMessage[] = [
         { role: 'system', content: prompt.system },
-        { role: 'user', content: prompt.buildUserPrompt(context) },
+        { role: 'user', content: prompt.renderUserPrompt(context) },
     ];
 
     let response: JudgeResponse;

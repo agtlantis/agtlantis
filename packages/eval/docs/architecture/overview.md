@@ -401,7 +401,7 @@
 │   ├─ id: string                                                  │
 │   ├─ version: string                                             │
 │   ├─ system: string                                              │
-│   └─ buildUserPrompt: (input: TInput) => string                 │
+│   └─ renderUserPrompt: (input: TInput) => string                 │
 │                                                                   │
 │ execute(input: TInput): Promise<AgentResult<TOutput>>           │
 └─────────────────────────────────────────────────────────────────┘
@@ -871,7 +871,7 @@ Configuration:
 - `createMockProvider()` with built-in call tracking
 
 ### 5. Template Method
-- `JudgePrompt.buildUserPrompt()`, `ImproverPrompt.buildUserPrompt()`
+- `JudgePrompt.renderUserPrompt()`, `ImproverPrompt.renderUserPrompt()`
 
 ### 6. Adapter Pattern
 - `toEvalAgent()` converts full Agent to EvalAgent

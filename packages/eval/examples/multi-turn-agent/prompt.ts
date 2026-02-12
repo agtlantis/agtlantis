@@ -3,9 +3,8 @@
  *
  * Conversational prompt for a restaurant reservation assistant.
  */
-
-import type { AgentPrompt } from '../../src/index'
-import type { BookingInput, BookingOutput } from './types'
+import type { AgentPrompt } from '../../src/index';
+import type { BookingInput, BookingOutput } from './types';
 
 /**
  * Booking Agent Prompt
@@ -14,10 +13,10 @@ import type { BookingInput, BookingOutput } from './types'
  * that collects booking information through conversation.
  */
 export const bookingAgentPrompt: AgentPrompt<BookingInput> = {
-  id: 'booking-agent-prompt',
-  version: '1.0.0',
+    id: 'booking-agent-prompt',
+    version: '1.0.0',
 
-  system: `You are a friendly restaurant reservation assistant.
+    system: `You are a friendly restaurant reservation assistant.
 
 ## Your Role
 - Help customers make restaurant reservations
@@ -74,24 +73,24 @@ Field value rules:
 
 IMPORTANT: When user says "확정", "예약 확정", or "확정해주세요" with all info provided, set status to "confirmed".`,
 
-  buildUserPrompt: (input: BookingInput): string => {
-    const parts: string[] = []
+    renderUserPrompt: (input: BookingInput): string => {
+        const parts: string[] = [];
 
-    // Include conversation history for multi-turn context
-    if (input.conversationHistory && input.conversationHistory.length > 0) {
-      parts.push('## Previous Conversation')
-      for (const msg of input.conversationHistory) {
-        const role = msg.role === 'user' ? 'Customer' : 'Assistant'
-        parts.push(`${role}: ${msg.content}`)
-      }
-      parts.push('')
-    }
+        // Include conversation history for multi-turn context
+        if (input.conversationHistory && input.conversationHistory.length > 0) {
+            parts.push('## Previous Conversation');
+            for (const msg of input.conversationHistory) {
+                const role = msg.role === 'user' ? 'Customer' : 'Assistant';
+                parts.push(`${role}: ${msg.content}`);
+            }
+            parts.push('');
+        }
 
-    parts.push('## Current Message')
-    parts.push(`Customer: ${input.message}`)
-    parts.push('')
-    parts.push('Respond in JSON format (no markdown code blocks).')
+        parts.push('## Current Message');
+        parts.push(`Customer: ${input.message}`);
+        parts.push('');
+        parts.push('Respond in JSON format (no markdown code blocks).');
 
-    return parts.join('\n')
-  },
-}
+        return parts.join('\n');
+    },
+};

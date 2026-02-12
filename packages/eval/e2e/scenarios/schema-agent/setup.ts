@@ -14,18 +14,27 @@
  *   runAndSave,
  * } from './setup'
  */
-
 import path from 'node:path';
-import { createFilePromptRepository, PromptContent } from '@agtlantis/core';
-import type { AgentPrompt } from '@/core/types';
-import { schema } from '@/judge/criteria';
-import type { ValidatorCriterion } from '@/core/types';
-import type { EvalReport } from '@/reporter/types';
-import type { EvalSuite } from '@/core/suite';
-import type { TestCase } from '@/core/types';
+
+import { PromptTemplate, createFilePromptRepository } from '@agtlantis/core';
+// Local imports for use within this module
+import {
+    E2E_CONFIG,
+    E2E_PATHS,
+    TEST_PRICING_CONFIG,
+    logEvalReportIO,
+    saveEvalReport,
+} from '@e2e/shared';
 import type { ZodSchema } from 'zod';
 
-import { PersonSchema, OrderSchema, SCHEMAS, type SchemaName } from './fixtures/schema-definitions';
+import type { EvalSuite } from '@/core/suite';
+import type { AgentPrompt } from '@/core/types';
+import type { ValidatorCriterion } from '@/core/types';
+import type { TestCase } from '@/core/types';
+import { schema } from '@/judge/criteria';
+import type { EvalReport } from '@/reporter/types';
+
+import { OrderSchema, PersonSchema, SCHEMAS, type SchemaName } from './fixtures/schema-definitions';
 import type { ExtractorInput } from './fixtures/test-cases';
 
 // ============================================================================
@@ -46,15 +55,6 @@ export {
     logEvalReportIO,
     saveEvalReport,
     E2E_PATHS,
-} from '@e2e/shared';
-
-// Local imports for use within this module
-import {
-    E2E_CONFIG,
-    E2E_PATHS,
-    TEST_PRICING_CONFIG,
-    logEvalReportIO,
-    saveEvalReport,
 } from '@e2e/shared';
 
 export type { VerbosityLevel } from '@e2e/shared';
@@ -111,13 +111,13 @@ export async function loadExtractorPrompt(): Promise<AgentPrompt<ExtractorInput>
         directory: FIXTURES_DIR,
     });
     const data = await repo.read('json-extractor');
-    const builder = PromptContent.from(data).toBuilder<unknown, ExtractorInput>();
+    const builder = PromptTemplate.from(data).compile<unknown, ExtractorInput>();
     return {
         id: data.id,
         version: data.version,
         system: data.system,
         userTemplate: data.userTemplate,
-        buildUserPrompt: builder.buildUserPrompt,
+        renderUserPrompt: builder.renderUserPrompt,
     };
 }
 

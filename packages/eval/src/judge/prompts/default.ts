@@ -1,10 +1,10 @@
-import type { JudgeContext, JudgePrompt } from '../types'
+import type { JudgeContext, JudgePrompt } from '../types';
 
 export const defaultJudgePrompt: JudgePrompt = {
-  id: 'default-judge',
-  version: '2.0.0',
+    id: 'default-judge',
+    version: '2.0.0',
 
-  system: `You are an expert evaluator specializing in assessing AI Agent outputs.
+    system: `You are an expert evaluator specializing in assessing AI Agent outputs.
 
 Your role is to fairly and thoroughly evaluate the agent's output against the provided criteria.
 
@@ -42,10 +42,10 @@ You MUST respond with valid JSON only. No additional text or explanation outside
   ]
 }`,
 
-  buildUserPrompt: (ctx: JudgeContext): string => {
-    const fileSection = buildFileSection(ctx.files)
+    renderUserPrompt: (ctx: JudgeContext): string => {
+        const fileSection = buildFileSection(ctx.files);
 
-    return `
+        return `
 ## Agent Under Evaluation
 ${ctx.agentDescription}
 
@@ -62,17 +62,17 @@ ${JSON.stringify(ctx.output, null, 2)}
 ## Evaluation Criteria
 ${ctx.criteria.map((c) => `- **${c.name}** (id: ${c.id}, weight: ${c.weight ?? 1}): ${c.description}`).join('\n')}
 
-Please evaluate the agent's output against each criterion listed above.`.trim()
-  },
-}
+Please evaluate the agent's output against each criterion listed above.`.trim();
+    },
+};
 
 function buildFileSection(files: JudgeContext['files']): string {
-  if (!files || files.length === 0) {
-    return ''
-  }
+    if (!files || files.length === 0) {
+        return '';
+    }
 
-  return `
+    return `
 ## Reference Files
 ${files.map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``).join('\n\n')}
-`
+`;
 }

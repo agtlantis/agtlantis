@@ -6,29 +6,29 @@
  *
  * Enable with: REAL_E2E=true GOOGLE_API_KEY=... pnpm test e2e
  */
-
-import { describe } from 'vitest';
 import {
-    createGoogleProvider,
-    createFilePromptRepository,
-    PromptContent,
     GOOGLE_PRICING,
+    PromptTemplate,
     type Provider,
+    createFilePromptRepository,
+    createGoogleProvider,
 } from '@agtlantis/core';
-import { createJudge } from '@/judge/llm-judge';
-import { defaultJudgePrompt } from '@/judge/prompts/default';
-import { accuracy, relevance } from '@/judge/criteria';
+import { describe } from 'vitest';
+
+import type { AgentPrompt, AgentResult, Criterion, EvalAgent, EvalTokenUsage } from '@/core/types';
+import { maxCost, maxRounds, targetScore } from '@/improvement-cycle/conditions';
+import type { CycleTerminationCondition } from '@/improvement-cycle/types';
 import { createImprover } from '@/improver/llm-improver';
 import { defaultImproverPrompt } from '@/improver/prompts/default';
-import { maxRounds, maxCost, targetScore } from '@/improvement-cycle/conditions';
+import type { Improver } from '@/improver/types';
+import { accuracy, relevance } from '@/judge/criteria';
+import { createJudge } from '@/judge/llm-judge';
+import { defaultJudgePrompt } from '@/judge/prompts/default';
+import type { Judge } from '@/judge/types';
+// PromptRenderer is used via PromptTemplate.from().compile()
+import type { EvalPricingConfig } from '@/reporter/cost-helpers';
 import { extractJson } from '@/utils/json';
 
-import type { Judge } from '@/judge/types';
-import type { Improver } from '@/improver/types';
-import type { Criterion, AgentPrompt, EvalAgent, AgentResult, EvalTokenUsage } from '@/core/types';
-// PromptBuilder is used via PromptContent.from().toBuilder()
-import type { EvalPricingConfig } from '@/reporter/cost-helpers';
-import type { CycleTerminationCondition } from '@/improvement-cycle/types';
 import { E2E_CONFIG, validateE2EConfig } from './config';
 
 const DEFAULT_MODEL = E2E_CONFIG.defaultModel;
@@ -127,7 +127,7 @@ export function createProviderAgent<TInput, TOutput = string>(
                 const result = await session.generateText({
                     messages: [
                         { role: 'system', content: prompt.system },
-                        { role: 'user', content: prompt.buildUserPrompt(input) },
+                        { role: 'user', content: prompt.renderUserPrompt(input) },
                     ],
                 });
                 return result.text;
@@ -213,13 +213,13 @@ export function createPromptLoader(fixturesDir: string) {
     return async function loadPromptFixture<TInput>(name: string): Promise<AgentPrompt<TInput>> {
         const repo = createFilePromptRepository({ directory: fixturesDir });
         const data = await repo.read(name);
-        const builder = PromptContent.from(data).toBuilder<unknown, TInput>();
+        const builder = PromptTemplate.from(data).compile<unknown, TInput>();
         return {
             id: data.id,
             version: data.version,
             system: data.system,
             userTemplate: data.userTemplate,
-            buildUserPrompt: builder.buildUserPrompt,
+            renderUserPrompt: builder.renderUserPrompt,
         } as AgentPrompt<TInput>;
     };
 }

@@ -399,7 +399,7 @@ interface GenerateObjectOptions extends LLMOptions {
 │ id: string                                                      │
 │ version: string                                                 │
 │ system: string                                                  │
-│ buildUserPrompt(context): string                                │
+│ renderUserPrompt(context): string                                │
 └─────────────────────────────────────────────────────────────────┘
           │
           │ stored/loaded by
@@ -407,7 +407,7 @@ interface GenerateObjectOptions extends LLMOptions {
 ┌─────────────────────────────────────────────────────────────────┐
 │                   PromptRepository                              │
 ├─────────────────────────────────────────────────────────────────┤
-│ read(id, version?): Promise<PromptContent>                      │
+│ read(id, version?): Promise<PromptTemplateData>                  │
 │ write(content): Promise<void>                                   │
 └─────────────────────────────────────────────────────────────────┘
             ┌───────────────────┴───────────────────┐

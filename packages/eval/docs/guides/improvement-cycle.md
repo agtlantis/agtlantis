@@ -113,7 +113,7 @@ const config = {
     id: 'my-agent',
     version: '1.0.0',
     system: 'You are a helpful assistant.',
-    buildUserPrompt: (input) => input.question,
+    renderUserPrompt: (input) => input.question,
   },
   terminateWhen: [
     targetScore(90),       // Stop when score reaches 90%

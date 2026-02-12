@@ -4,9 +4,9 @@
  * Multi-turn conversational agent for restaurant reservations.
  * Implements the EvalAgent interface from @agtlantis/eval.
  */
-
 import type { Provider } from '@agtlantis/core';
-import type { EvalAgent, AgentResult } from '../../src/index';
+
+import type { AgentResult, EvalAgent } from '../../src/index';
 import { bookingAgentPrompt } from './prompt';
 import type { BookingInput, BookingOutput, BookingState } from './types';
 
@@ -52,7 +52,7 @@ export function createBookingAgent(provider: Provider): EvalAgent<BookingInput, 
                 return await session.generateText({
                     messages: [
                         { role: 'system', content: bookingAgentPrompt.system },
-                        { role: 'user', content: bookingAgentPrompt.buildUserPrompt(input) },
+                        { role: 'user', content: bookingAgentPrompt.renderUserPrompt(input) },
                     ],
                 });
             });

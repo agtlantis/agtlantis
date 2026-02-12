@@ -7,46 +7,41 @@
  * ```typescript
  * import {
  *   createFilePromptRepository,
- *   PromptContent,
- *   type PromptBuilder,
+ *   PromptTemplate,
+ *   type PromptRenderer,
  * } from '@agtlantis/core';
  *
  * // Create a file-based repository
  * const repo = createFilePromptRepository({ directory: './prompts' });
  *
- * // Read a prompt and compile to builder
+ * // Read a prompt and compile to renderer
  * interface SessionCtx { studentName: string }
  * interface TurnCtx { answers: string[] }
  *
  * const data = await repo.read('greeting');
- * const builder = PromptContent.from(data).toBuilder<SessionCtx, TurnCtx>();
+ * const renderer = PromptTemplate.from(data).compile<SessionCtx, TurnCtx>();
  *
- * // Use the builder
- * const systemPrompt = builder.buildSystemPrompt({ studentName: 'Kim' });
- * const userPrompt = builder.buildUserPrompt({ answers: ['A', 'B'] });
+ * // Use the renderer
+ * const systemPrompt = renderer.renderSystemPrompt({ studentName: 'Kim' });
+ * const userPrompt = renderer.renderUserPrompt({ answers: ['A', 'B'] });
  * ```
  */
 
 // Types
-export type {
-  PromptContentData,
-  PromptBuilder,
-  PromptRepository,
-  FileSystem,
-} from './types';
+export type { PromptTemplateData, PromptRenderer, PromptRepository, FileSystem } from './types';
 
-// PromptContent class
-export { PromptContent } from './prompt-content';
+// PromptTemplate class
+export { PromptTemplate } from './prompt-template';
 
 // Errors
 export {
-  PromptErrorCode,
-  PromptError,
-  PromptNotFoundError,
-  PromptInvalidFormatError,
-  PromptTemplateError,
-  PromptIOError,
-  type PromptErrorOptions,
+    PromptErrorCode,
+    PromptError,
+    PromptNotFoundError,
+    PromptInvalidFormatError,
+    PromptTemplateError,
+    PromptIOError,
+    type PromptErrorOptions,
 } from './errors';
 
 // Template utilities
@@ -54,7 +49,7 @@ export { compileTemplate } from './template';
 
 // Repository implementations
 export {
-  FilePromptRepository,
-  createFilePromptRepository,
-  type FilePromptRepositoryOptions,
+    FilePromptRepository,
+    createFilePromptRepository,
+    type FilePromptRepositoryOptions,
 } from './file-prompt-repository';

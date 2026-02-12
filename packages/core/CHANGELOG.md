@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Prompt API Rename**: Clarified naming for prompt-related types and methods
+  - `PromptBuilder` → `PromptRenderer`
+  - `PromptContent` → `PromptTemplate`
+  - `PromptContentData` → `PromptTemplateData`
+  - `.toBuilder()` → `.compile()`
+
 ### Added
 
 - **Execution Mapping Utilities**: Transform execution results and events at service boundaries

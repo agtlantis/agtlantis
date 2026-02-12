@@ -3,9 +3,9 @@
  *
  * @agtlantis/eval의 EvalAgent 인터페이스를 구현합니다.
  */
-
 import type { Provider } from '@agtlantis/core';
-import type { EvalAgent, AgentResult } from '../../src/index';
+
+import type { AgentResult, EvalAgent } from '../../src/index';
 import { qaAgentPrompt } from './prompt';
 import type { QAInput, QAOutput } from './types';
 
@@ -43,7 +43,7 @@ export function createQAAgent(provider: Provider): EvalAgent<QAInput, QAOutput> 
                 const result = await session.generateText({
                     messages: [
                         { role: 'system', content: qaAgentPrompt.system },
-                        { role: 'user', content: qaAgentPrompt.buildUserPrompt(input) },
+                        { role: 'user', content: qaAgentPrompt.renderUserPrompt(input) },
                     ],
                     output: Output.object({ schema: qaAgentPrompt.outputSchema }),
                 });

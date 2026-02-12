@@ -52,7 +52,7 @@ export interface AgentPrompt<TInput> {
     /** User template string (for serialization/history) */
     userTemplate?: string;
     /** User prompt builder function */
-    buildUserPrompt: (input: TInput) => string;
+    renderUserPrompt: (input: TInput) => string;
     /** Additional custom fields */
     [key: string]: unknown;
 }
@@ -117,7 +117,7 @@ export interface AgentResult<TOutput> {
  * // Direct implementation
  * const myAgent: EvalAgent<string, string> = {
  *   config: { name: 'MyAgent', description: 'A simple agent' },
- *   prompt: { id: 'prompt-1', version: '1.0.0', system: '...', buildUserPrompt: (input) => input },
+ *   prompt: { id: 'prompt-1', version: '1.0.0', system: '...', renderUserPrompt: (input) => input },
  *   execute: async (input) => ({ result: `Processed: ${input}` })
  * }
  *

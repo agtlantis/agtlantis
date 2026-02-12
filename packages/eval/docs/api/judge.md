@@ -101,7 +101,7 @@ const customPrompt: JudgePrompt = {
   id: 'technical-review',
   version: '1.0.0',
   system: 'You are a strict technical reviewer...',
-  buildUserPrompt: (context) => `Evaluate this response: ${JSON.stringify(context.output)}`,
+  renderUserPrompt: (context) => `Evaluate this response: ${JSON.stringify(context.output)}`,
 }
 
 const judge = createJudge({

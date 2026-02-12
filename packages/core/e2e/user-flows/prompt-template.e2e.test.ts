@@ -1,13 +1,14 @@
+import { E2E_CONFIG, createTestProvider, describeEachProvider } from '@e2e/helpers';
 import path from 'path';
-import { describe, it, expect } from 'vitest';
-import { describeEachProvider, createTestProvider, E2E_CONFIG } from '@e2e/helpers';
-import { createFilePromptRepository } from '@/prompt/file-prompt-repository';
-import { PromptContent } from '@/prompt/prompt-content';
+import { describe, expect, it } from 'vitest';
+
 import {
-    PromptNotFoundError,
     PromptInvalidFormatError,
+    PromptNotFoundError,
     PromptTemplateError,
 } from '@/prompt/errors';
+import { createFilePromptRepository } from '@/prompt/file-prompt-repository';
+import { PromptTemplate } from '@/prompt/prompt-template';
 
 const fixturesPath = path.join(__dirname, 'fixtures/prompts');
 
@@ -18,9 +19,9 @@ describeEachProvider('Prompt Template', (providerType) => {
             async ({ task }) => {
                 const repo = createFilePromptRepository({ directory: fixturesPath });
                 const data = await repo.read('greeting');
-                const builder = PromptContent.from(data).toBuilder<unknown, { name: string }>();
+                const builder = PromptTemplate.from(data).compile<unknown, { name: string }>();
 
-                const userMessage = builder.buildUserPrompt({ name: 'World' });
+                const userMessage = builder.renderUserPrompt({ name: 'World' });
 
                 const provider = createTestProvider(providerType, { task });
                 const execution = provider.simpleExecution(async (session) => {
@@ -53,8 +54,8 @@ describeEachProvider('Prompt Template', (providerType) => {
                 expect(data.version).toBe('2.0.0');
                 expect(data.system).toContain('enthusiastic');
 
-                const builder = PromptContent.from(data).toBuilder<unknown, { name: string }>();
-                const userMessage = builder.buildUserPrompt({ name: 'Tester' });
+                const builder = PromptTemplate.from(data).compile<unknown, { name: string }>();
+                const userMessage = builder.renderUserPrompt({ name: 'Tester' });
                 expect(userMessage).toContain('Tester');
             },
             E2E_CONFIG.timeout
@@ -70,8 +71,8 @@ describeEachProvider('Prompt Template', (providerType) => {
                 expect(data.version).toBe('1.0.0');
                 expect(data.system).toContain('friendly greeter');
 
-                const builder = PromptContent.from(data).toBuilder<unknown, { name: string }>();
-                const userMessage = builder.buildUserPrompt({ name: 'Alice' });
+                const builder = PromptTemplate.from(data).compile<unknown, { name: string }>();
+                const userMessage = builder.renderUserPrompt({ name: 'Alice' });
                 expect(userMessage).toContain('Alice');
             },
             E2E_CONFIG.timeout
@@ -116,10 +117,10 @@ describeEachProvider('Prompt Template', (providerType) => {
             async () => {
                 const repo = createFilePromptRepository({ directory: fixturesPath });
                 const data = await repo.read('greeting');
-                const builder = PromptContent.from(data).toBuilder<unknown, { name: string }>();
+                const builder = PromptTemplate.from(data).compile<unknown, { name: string }>();
 
                 expect(() => {
-                    builder.buildUserPrompt({} as { name: string });
+                    builder.renderUserPrompt({} as { name: string });
                 }).toThrow(PromptTemplateError);
             },
             E2E_CONFIG.timeout

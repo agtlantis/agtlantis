@@ -56,7 +56,7 @@ const myAgent: EvalAgent<MathInput, MathOutput> = {
     id: 'math-tutor',
     version: '1.0.0',
     system: 'You are a helpful math tutor.',
-    buildUserPrompt: (input) => input.question,
+    renderUserPrompt: (input) => input.question,
   },
   execute: async (input) => ({
     result: { answer: '42', explanation: 'The answer to everything.' },

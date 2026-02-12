@@ -286,10 +286,10 @@ const result = render({ name: 'User', query: 'What is AI?' })
 // 'Hello User, you asked: What is AI?'
 ```
 
-### `PromptContent` Type
+### `PromptTemplate` Type
 
 ```typescript
-interface PromptContent {
+interface PromptTemplate {
   id: string
   version: string
   system: string

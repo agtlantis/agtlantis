@@ -237,7 +237,7 @@ interface GreetingInput {
 }
 
 const prompt = await repo.read<GreetingInput>('greeting');
-const userPrompt = prompt.buildUserPrompt({ name: 'World' });
+const userPrompt = prompt.renderUserPrompt({ name: 'World' });
 
 console.log(prompt.system);
 console.log(userPrompt);

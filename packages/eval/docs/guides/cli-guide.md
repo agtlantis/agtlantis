@@ -227,7 +227,7 @@ export const prompt: AgentPrompt<YourInputType> = {
   version: '1.2.0',
   system: `You are a helpful assistant...`,
   userTemplate: `User question: {{question}}`,
-  buildUserPrompt: compileTemplate(`User question: {{question}}`),
+  renderUserPrompt: compileTemplate(`User question: {{question}}`),
 }
 ```
 

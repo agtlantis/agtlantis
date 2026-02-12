@@ -1,16 +1,18 @@
-import type { AgentPrompt, EvalTestResult, ImproverMetadata, EvalTokenUsage } from '@/core/types';
+import { type LanguageModelUsage, type ModelMessage, Output } from 'ai';
+import { z } from 'zod';
+
+import { EvalError, EvalErrorCode } from '@/core/errors';
+import type { AgentPrompt, EvalTestResult, EvalTokenUsage, ImproverMetadata } from '@/core/types';
+
+import { defaultImproverPrompt } from './prompts/default';
 import type {
+    AggregatedMetrics,
+    ImproveResult,
     Improver,
     ImproverConfig,
     ImproverContext,
-    ImproveResult,
     Suggestion,
-    AggregatedMetrics,
 } from './types';
-import { EvalError, EvalErrorCode } from '@/core/errors';
-import { Output, type LanguageModelUsage, type ModelMessage } from 'ai';
-import { defaultImproverPrompt } from './prompts/default';
-import { z } from 'zod';
 
 function toEvalTokenUsage(usage: LanguageModelUsage): EvalTokenUsage {
     return {
@@ -101,7 +103,7 @@ export function createImprover(config: ImproverConfig): Improver {
 
             const messages: ModelMessage[] = [
                 { role: 'system', content: prompt.system },
-                { role: 'user', content: prompt.buildUserPrompt(context) },
+                { role: 'user', content: prompt.renderUserPrompt(context) },
             ];
 
             let response: ImproverResponse;
