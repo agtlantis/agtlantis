@@ -11,7 +11,7 @@ export interface SchemaOptions<T> extends CriterionOptions {
 }
 
 function formatZodErrors(error: ZodError): string {
-  return error.errors
+  return error.issues
     .map((e) => {
       const path = e.path.length > 0 ? `${e.path.join('.')}: ` : ''
       return `- ${path}${e.message}`
@@ -68,7 +68,7 @@ export function schema<T>(options: SchemaOptions<T>): ValidatorCriterion {
 
       return {
         valid: false,
-        errors: result.error.errors,
+        errors: result.error.issues,
         errorSummary: formatZodErrors(result.error),
       }
     },

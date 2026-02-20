@@ -39,13 +39,13 @@ export const yamlTestCaseSchema = z.object({
     name: z.string().optional(),
     description: z.string().optional(),
     tags: z.array(z.string()).optional(),
-    input: z.record(z.unknown()),
+    input: z.record(z.string(), z.unknown()),
     persona: z.union([z.string().min(1), yamlPersonaSchema]).optional(),
     maxTurns: z.number().int().positive().optional(),
     endWhen: yamlTerminationConditionSchema.optional(),
     onConditionMet: z.enum(['pass', 'fail']).optional(),
     onMaxTurnsReached: z.enum(['pass', 'fail']).optional(),
-    expectedOutput: z.record(z.unknown()).optional(),
+    expectedOutput: z.record(z.string(), z.unknown()).optional(),
     expect: yamlExpectationSchema.optional(),
 });
 
@@ -54,7 +54,7 @@ export const yamlEvalFileSchema = z.object({
     name: z.string().optional(),
     description: z.string().optional(),
     defaults: yamlTestCaseDefaultsSchema.optional(),
-    personas: z.record(yamlPersonaSchema).optional(),
+    personas: z.record(z.string(), yamlPersonaSchema).optional(),
     cases: z.array(yamlTestCaseSchema).min(1, 'At least one test case is required'),
 });
 

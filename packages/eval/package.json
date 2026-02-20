@@ -76,10 +76,10 @@
     "tsx": "^4.7.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16",
-    "zod": "^3.23.8"
+    "zod": "^4.3.5"
   },
   "peerDependencies": {
-    "zod": "^3.22.0"
+    "zod": "^3.22.0 || ^4.0.0"
   },
   "peerDependenciesMeta": {
     "zod": {

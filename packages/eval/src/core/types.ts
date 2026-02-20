@@ -261,7 +261,7 @@ export interface Criterion {
  */
 export type ZodIssue = {
     readonly code: string;
-    readonly path: readonly (string | number)[];
+    readonly path: readonly PropertyKey[];
     readonly message: string;
 };
 

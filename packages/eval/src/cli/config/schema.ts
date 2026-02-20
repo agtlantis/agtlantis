@@ -4,9 +4,7 @@ import { EvalError, EvalErrorCode } from '@/core/errors';
 
 export const llmConfigSchema = z.object({
     provider: z.enum(['openai', 'gemini'], {
-        errorMap: () => ({
-            message: "provider must be 'openai' or 'gemini'",
-        }),
+        error: "provider must be 'openai' or 'gemini'",
     }),
     apiKey: z.string().optional(),
     defaultModel: z.string().optional(),
