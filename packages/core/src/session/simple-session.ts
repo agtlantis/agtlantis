@@ -7,7 +7,7 @@ import type {
   LanguageModelUsage,
   ToolSet,
 } from 'ai';
-import merge from 'lodash/merge';
+import { deepMerge } from '@/utils/deep-merge';
 import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
 import type { FileManager } from '@/provider/types';
@@ -132,12 +132,10 @@ export class SimpleSession {
     const languageModel = this.getModel(requestedModel);
     const modelId = this.extractModelId(languageModel);
 
-    // Deep merge default + per-call options (per-call takes precedence)
     const mergedProviderOptions = (this.defaultProviderOptions || providerOptions)
-      ? merge({}, this.defaultProviderOptions ?? {}, providerOptions ?? {})
+      ? deepMerge(this.defaultProviderOptions ?? {}, providerOptions ?? {}) as ProviderOptions
       : undefined;
 
-    // Merge default tools with per-call tools (per-call takes precedence)
     const mergedTools = (this.defaultTools || tools)
       ? { ...this.defaultTools, ...tools }
       : undefined;
@@ -213,12 +211,10 @@ export class SimpleSession {
     const languageModel = this.getModel(requestedModel);
     const modelId = this.extractModelId(languageModel);
 
-    // Deep merge default + per-call options (per-call takes precedence)
     const mergedProviderOptions = (this.defaultProviderOptions || providerOptions)
-      ? merge({}, this.defaultProviderOptions ?? {}, providerOptions ?? {})
+      ? deepMerge(this.defaultProviderOptions ?? {}, providerOptions ?? {}) as ProviderOptions
       : undefined;
 
-    // Merge default tools with per-call tools (per-call takes precedence)
     const mergedTools = (this.defaultTools || tools)
       ? { ...this.defaultTools, ...tools }
       : undefined;

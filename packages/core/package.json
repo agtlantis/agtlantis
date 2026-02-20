@@ -32,7 +32,6 @@
     },
     "dependencies": {
         "handlebars": "^4.7.8",
-        "lodash": "^4.17.23",
         "yaml": "^2.8.2",
         "zod-to-json-schema": "^3.25.1"
     },
@@ -58,7 +57,6 @@
         "@ai-sdk/google": "^3.0.10",
         "@ai-sdk/openai": "^3.0.12",
         "@google/genai": "^1.37.0",
-        "@types/lodash": "^4.17.23",
         "ai": "^6.0.39",
         "dotenv": "^17.2.3",
         "tsup": "^8.5.1",
