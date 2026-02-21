@@ -4,6 +4,7 @@ import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
 import type { ProviderPricing } from '@/pricing';
 import { validateProviderPricing } from '@/pricing';
+import type { GenerationOptions } from '@/session';
 import { GoogleFileManager } from './file-manager';
 import { SimpleSession } from '@/session/simple-session';
 import { StreamingSession } from '@/session/streaming-session';
@@ -35,65 +36,38 @@ export interface GoogleProviderConfig {
     safetySettings?: SafetySetting[];
 }
 
+interface GoogleProviderState {
+    apiKey: string;
+    defaultModelId: string | null;
+    logger: Logger;
+    safetySettings?: SafetySetting[];
+    pricingConfig?: ProviderPricing;
+    defaultOptions?: GoogleGenerativeAIProviderOptions;
+    searchEnabled: boolean;
+    urlContextEnabled: boolean;
+    fileCache?: FileCache;
+    defaultGenOptions?: GenerationOptions;
+}
+
 export class GoogleProvider extends BaseProvider {
     private readonly google: ReturnType<typeof createGoogleGenerativeAI>;
 
-    constructor(
-        private readonly apiKey: string,
-        private readonly defaultModelId: string | null,
-        private readonly logger: Logger,
-        private readonly safetySettings?: SafetySetting[],
-        private readonly pricingConfig?: ProviderPricing,
-        private readonly defaultOptions?: GoogleGenerativeAIProviderOptions,
-        private readonly searchEnabled: boolean = false,
-        private readonly urlContextEnabled: boolean = false,
-        private readonly fileCache?: FileCache,
-    ) {
+    constructor(private readonly config: GoogleProviderState) {
         super();
-        this.google = createGoogleGenerativeAI({ apiKey });
+        this.google = createGoogleGenerativeAI({ apiKey: config.apiKey });
     }
 
     withDefaultModel(modelId: string): GoogleProvider {
-        return new GoogleProvider(
-            this.apiKey,
-            modelId,
-            this.logger,
-            this.safetySettings,
-            this.pricingConfig,
-            this.defaultOptions,
-            this.searchEnabled,
-            this.urlContextEnabled,
-            this.fileCache,
-        );
+        return new GoogleProvider({ ...this.config, defaultModelId: modelId });
     }
 
     withLogger(newLogger: Logger): GoogleProvider {
-        return new GoogleProvider(
-            this.apiKey,
-            this.defaultModelId,
-            newLogger,
-            this.safetySettings,
-            this.pricingConfig,
-            this.defaultOptions,
-            this.searchEnabled,
-            this.urlContextEnabled,
-            this.fileCache,
-        );
+        return new GoogleProvider({ ...this.config, logger: newLogger });
     }
 
     withPricing(pricing: ProviderPricing): GoogleProvider {
         validateProviderPricing(pricing, 'google');
-        return new GoogleProvider(
-            this.apiKey,
-            this.defaultModelId,
-            this.logger,
-            this.safetySettings,
-            pricing,
-            this.defaultOptions,
-            this.searchEnabled,
-            this.urlContextEnabled,
-            this.fileCache,
-        );
+        return new GoogleProvider({ ...this.config, pricingConfig: pricing });
     }
 
     /**
@@ -110,17 +84,11 @@ export class GoogleProvider extends BaseProvider {
      * ```
      */
     withDefaultOptions(options: GoogleGenerativeAIProviderOptions): GoogleProvider {
-        return new GoogleProvider(
-            this.apiKey,
-            this.defaultModelId,
-            this.logger,
-            this.safetySettings,
-            this.pricingConfig,
-            options,
-            this.searchEnabled,
-            this.urlContextEnabled,
-            this.fileCache,
-        );
+        return new GoogleProvider({ ...this.config, defaultOptions: options });
+    }
+
+    withDefaultGenerationOptions(options: GenerationOptions): GoogleProvider {
+        return new GoogleProvider({ ...this.config, defaultGenOptions: options });
     }
 
     /**
@@ -135,17 +103,7 @@ export class GoogleProvider extends BaseProvider {
      * ```
      */
     withSearchEnabled(): GoogleProvider {
-        return new GoogleProvider(
-            this.apiKey,
-            this.defaultModelId,
-            this.logger,
-            this.safetySettings,
-            this.pricingConfig,
-            this.defaultOptions,
-            true,
-            this.urlContextEnabled,
-            this.fileCache,
-        );
+        return new GoogleProvider({ ...this.config, searchEnabled: true });
     }
 
     /**
@@ -160,17 +118,7 @@ export class GoogleProvider extends BaseProvider {
      * ```
      */
     withUrlContextEnabled(): GoogleProvider {
-        return new GoogleProvider(
-            this.apiKey,
-            this.defaultModelId,
-            this.logger,
-            this.safetySettings,
-            this.pricingConfig,
-            this.defaultOptions,
-            this.searchEnabled,
-            true,
-            this.fileCache,
-        );
+        return new GoogleProvider({ ...this.config, urlContextEnabled: true });
     }
 
     /**
@@ -190,40 +138,32 @@ export class GoogleProvider extends BaseProvider {
      * ```
      */
     withFileCache(cache?: FileCache): GoogleProvider {
-        return new GoogleProvider(
-            this.apiKey,
-            this.defaultModelId,
-            this.logger,
-            this.safetySettings,
-            this.pricingConfig,
-            this.defaultOptions,
-            this.searchEnabled,
-            this.urlContextEnabled,
-            cache ?? new InMemoryFileCache(),
-        );
+        return new GoogleProvider({ ...this.config, fileCache: cache ?? new InMemoryFileCache() });
     }
 
     private getSessionConfig() {
-        // Build default tools based on enabled grounding features
+        const { searchEnabled, urlContextEnabled } = this.config;
+
         const defaultTools = {
-            ...(this.searchEnabled && { google_search: this.google.tools.googleSearch({}) }),
-            ...(this.urlContextEnabled && { url_context: this.google.tools.urlContext({}) }),
+            ...(searchEnabled && { google_search: this.google.tools.googleSearch({}) }),
+            ...(urlContextEnabled && { url_context: this.google.tools.urlContext({}) }),
         };
-        const hasDefaultTools = this.searchEnabled || this.urlContextEnabled;
+        const hasDefaultTools = searchEnabled || urlContextEnabled;
 
         return {
-            defaultLanguageModel: this.defaultModelId
-                ? this.createModel(this.defaultModelId)
+            defaultLanguageModel: this.config.defaultModelId
+                ? this.createModel(this.config.defaultModelId)
                 : null,
             modelFactory: (modelId: string) => this.createModel(modelId),
             providerType: 'google' as const,
-            providerPricing: this.pricingConfig,
-            fileManager: new GoogleFileManager(this.apiKey, { cache: this.fileCache }),
-            logger: this.logger,
-            defaultProviderOptions: this.defaultOptions
-                ? { google: this.defaultOptions }
+            providerPricing: this.config.pricingConfig,
+            fileManager: new GoogleFileManager(this.config.apiKey, { cache: this.config.fileCache }),
+            logger: this.config.logger,
+            defaultProviderOptions: this.config.defaultOptions
+                ? { google: this.config.defaultOptions }
                 : undefined,
             defaultTools: hasDefaultTools ? defaultTools : undefined,
+            defaultGenerationOptions: this.config.defaultGenOptions,
         };
     }
 
@@ -242,25 +182,27 @@ export class GoogleProvider extends BaseProvider {
      * include the second parameter, but it's supported at runtime.
      */
     private createModel(modelId: string): LanguageModel {
-        if (this.safetySettings) {
+        if (this.config.safetySettings) {
             return (
                 this.google as (
                     id: string,
                     opts?: { safetySettings?: SafetySetting[] }
                 ) => LanguageModel
-            )(modelId, { safetySettings: this.safetySettings });
+            )(modelId, { safetySettings: this.config.safetySettings });
         }
         return this.google(modelId);
     }
 }
 
 export function createGoogleProvider(config: GoogleProviderConfig): GoogleProvider {
-    return new GoogleProvider(
-        config.apiKey,
-        null, // No default model - must be set with withDefaultModel()
-        noopLogger,
-        config.safetySettings
-    );
+    return new GoogleProvider({
+        apiKey: config.apiKey,
+        defaultModelId: null,
+        logger: noopLogger,
+        safetySettings: config.safetySettings,
+        searchEnabled: false,
+        urlContextEnabled: false,
+    });
 }
 
 // Re-export provider options type for consumers

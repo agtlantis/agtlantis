@@ -4,6 +4,7 @@ import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
 import type { ProviderPricing } from '@/pricing';
 import { validateProviderPricing } from '@/pricing';
+import type { GenerationOptions } from '@/session';
 import { NoOpFileManager } from '../noop-file-manager';
 import { SimpleSession } from '@/session/simple-session';
 import { StreamingSession } from '@/session/streaming-session';
@@ -15,65 +16,41 @@ export interface OpenAIProviderConfig {
     organization?: string;
 }
 
+interface OpenAIProviderState {
+    apiKey: string;
+    defaultModelId: string | null;
+    logger: Logger;
+    baseURL?: string;
+    organization?: string;
+    pricingConfig?: ProviderPricing;
+    defaultOptions?: OpenAIChatLanguageModelOptions;
+    fileCache?: FileCache;
+    defaultGenOptions?: GenerationOptions;
+}
+
 class OpenAIProvider extends BaseProvider {
     private readonly openai: ReturnType<typeof createOpenAI>;
 
-    constructor(
-        private readonly apiKey: string,
-        private readonly defaultModelId: string | null,
-        private readonly logger: Logger,
-        private readonly baseURL?: string,
-        private readonly organization?: string,
-        private readonly pricingConfig?: ProviderPricing,
-        private readonly defaultOptions?: OpenAIChatLanguageModelOptions,
-        private readonly fileCache?: FileCache,
-    ) {
+    constructor(private readonly config: OpenAIProviderState) {
         super();
         this.openai = createOpenAI({
-            apiKey,
-            baseURL,
-            organization,
+            apiKey: config.apiKey,
+            baseURL: config.baseURL,
+            organization: config.organization,
         });
     }
 
     withDefaultModel(modelId: string): OpenAIProvider {
-        return new OpenAIProvider(
-            this.apiKey,
-            modelId,
-            this.logger,
-            this.baseURL,
-            this.organization,
-            this.pricingConfig,
-            this.defaultOptions,
-            this.fileCache,
-        );
+        return new OpenAIProvider({ ...this.config, defaultModelId: modelId });
     }
 
     withLogger(newLogger: Logger): OpenAIProvider {
-        return new OpenAIProvider(
-            this.apiKey,
-            this.defaultModelId,
-            newLogger,
-            this.baseURL,
-            this.organization,
-            this.pricingConfig,
-            this.defaultOptions,
-            this.fileCache,
-        );
+        return new OpenAIProvider({ ...this.config, logger: newLogger });
     }
 
     withPricing(pricing: ProviderPricing): OpenAIProvider {
         validateProviderPricing(pricing, 'openai');
-        return new OpenAIProvider(
-            this.apiKey,
-            this.defaultModelId,
-            this.logger,
-            this.baseURL,
-            this.organization,
-            pricing,
-            this.defaultOptions,
-            this.fileCache,
-        );
+        return new OpenAIProvider({ ...this.config, pricingConfig: pricing });
     }
 
     /**
@@ -91,16 +68,11 @@ class OpenAIProvider extends BaseProvider {
      * ```
      */
     withDefaultOptions(options: OpenAIChatLanguageModelOptions): OpenAIProvider {
-        return new OpenAIProvider(
-            this.apiKey,
-            this.defaultModelId,
-            this.logger,
-            this.baseURL,
-            this.organization,
-            this.pricingConfig,
-            options,
-            this.fileCache,
-        );
+        return new OpenAIProvider({ ...this.config, defaultOptions: options });
+    }
+
+    withDefaultGenerationOptions(options: GenerationOptions): OpenAIProvider {
+        return new OpenAIProvider({ ...this.config, defaultGenOptions: options });
     }
 
     /**
@@ -114,29 +86,23 @@ class OpenAIProvider extends BaseProvider {
      * ```
      */
     withFileCache(cache?: FileCache): OpenAIProvider {
-        return new OpenAIProvider(
-            this.apiKey,
-            this.defaultModelId,
-            this.logger,
-            this.baseURL,
-            this.organization,
-            this.pricingConfig,
-            this.defaultOptions,
-            cache,
-        );
+        return new OpenAIProvider({ ...this.config, fileCache: cache });
     }
 
     private getSessionConfig() {
         return {
-            defaultLanguageModel: this.defaultModelId ? this.openai(this.defaultModelId) : null,
+            defaultLanguageModel: this.config.defaultModelId
+                ? this.openai(this.config.defaultModelId)
+                : null,
             modelFactory: (modelId: string) => this.openai(modelId),
             providerType: 'openai' as const,
-            providerPricing: this.pricingConfig,
+            providerPricing: this.config.pricingConfig,
             fileManager: new NoOpFileManager(),
-            logger: this.logger,
-            defaultProviderOptions: this.defaultOptions
-                ? { openai: this.defaultOptions }
+            logger: this.config.logger,
+            defaultProviderOptions: this.config.defaultOptions
+                ? { openai: this.config.defaultOptions }
                 : undefined,
+            defaultGenerationOptions: this.config.defaultGenOptions,
         };
     }
 
@@ -152,13 +118,13 @@ class OpenAIProvider extends BaseProvider {
 }
 
 export function createOpenAIProvider(config: OpenAIProviderConfig): OpenAIProvider {
-    return new OpenAIProvider(
-        config.apiKey,
-        null, // No default model - must be set with withDefaultModel()
-        noopLogger,
-        config.baseURL,
-        config.organization
-    );
+    return new OpenAIProvider({
+        apiKey: config.apiKey,
+        defaultModelId: null,
+        logger: noopLogger,
+        baseURL: config.baseURL,
+        organization: config.organization,
+    });
 }
 
 // Re-export provider options type for consumers

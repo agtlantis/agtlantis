@@ -1,5 +1,6 @@
 import type { Logger } from '@/observability/logger';
 import type { ProviderPricing } from '@/pricing';
+import type { GenerationOptions } from '@/session';
 import type { SessionEvent, StreamingExecution, SimpleExecution, ExecutionOptions } from '../execution/types';
 import { StreamingExecutionHost } from '../execution/streaming-host';
 import { SimpleExecutionHost } from '../execution/simple-host';
@@ -35,6 +36,8 @@ export abstract class BaseProvider implements Provider {
     abstract withPricing(pricing: ProviderPricing): Provider;
 
     abstract withDefaultOptions(options: Record<string, unknown>): Provider;
+
+    abstract withDefaultGenerationOptions(options: GenerationOptions): Provider;
 
     streamingExecution<TEvent extends { type: string }>(
         generator: (

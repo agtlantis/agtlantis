@@ -25,6 +25,7 @@ import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
 import type { ProviderPricing } from '@/pricing';
 import { BaseProvider } from '@/provider/base-provider';
+import type { GenerationOptions } from '@/session';
 import { SimpleSession } from '@/session/simple-session';
 import { StreamingSession } from '@/session/streaming-session';
 import { NoOpFileManager } from '@/provider/noop-file-manager';
@@ -146,6 +147,13 @@ export class MockProvider extends BaseProvider {
      * Mock implementation - returns same provider since mocks don't use provider options.
      */
     withDefaultOptions(_options: Record<string, unknown>): MockProvider {
+        return this;
+    }
+
+    /**
+     * Mock implementation - returns same provider since mocks don't use generation options.
+     */
+    withDefaultGenerationOptions(_options: GenerationOptions): MockProvider {
         return this;
     }
 

@@ -12,6 +12,7 @@ import { SimpleSession, StreamingSession } from '@/session';
 import type {
     GenerateTextParams,
     GenerateTextResultTyped,
+    GenerationOptions,
     OutputSpec,
     StreamTextParams,
     StreamTextResultTyped,
@@ -120,6 +121,12 @@ export interface Provider {
      * The actual options type depends on the provider (Google, OpenAI, etc.).
      */
     withDefaultOptions(options: Record<string, unknown>): Provider;
+
+    /**
+     * Set default generation options (standard AI SDK parameters) for all LLM calls.
+     * Per-call parameters override these defaults.
+     */
+    withDefaultGenerationOptions(options: GenerationOptions): Provider;
 
     streamingExecution<TEvent extends { type: string }>(
         generator: (

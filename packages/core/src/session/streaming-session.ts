@@ -4,7 +4,7 @@ import type { Logger } from '@/observability/logger';
 import { noopLogger } from '@/observability/logger';
 import type { FileManager } from '@/provider/types';
 import type { ProviderType, ProviderPricing } from '@/pricing/types';
-import type { SessionSummary } from './types';
+import type { GenerationOptions, SessionSummary } from './types';
 import { SimpleSession } from './simple-session';
 import type { SessionEvent, EmittableEventInput, ExtractResult } from '@/execution/types';
 
@@ -21,6 +21,7 @@ export interface StreamingSessionOptions {
   signal?: AbortSignal;
   defaultProviderOptions?: ProviderOptions;
   defaultTools?: ToolSet;
+  defaultGenerationOptions?: GenerationOptions;
 }
 
 export class StreamingSession<TEvent extends { type: string }> extends SimpleSession {
@@ -39,6 +40,7 @@ export class StreamingSession<TEvent extends { type: string }> extends SimpleSes
       signal: options.signal,
       defaultProviderOptions: options.defaultProviderOptions,
       defaultTools: options.defaultTools,
+      defaultGenerationOptions: options.defaultGenerationOptions,
     });
 
     this.lastEventTime = this._startTime;

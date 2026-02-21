@@ -1,4 +1,5 @@
 export * from './types';
+export type { GenerationOptions } from './types';
 
 export type { ProviderType } from './usage-extractors';
 

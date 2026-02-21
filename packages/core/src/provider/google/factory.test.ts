@@ -159,6 +159,41 @@ describe('createGoogleProvider', () => {
             expect(provider.withDefaultOptions).toBeTypeOf('function');
         });
 
+        it('should return new instance on withDefaultGenerationOptions()', () => {
+            const provider1 = createGoogleProvider({ apiKey: 'test-api-key' });
+            const provider2 = provider1.withDefaultGenerationOptions({
+                maxOutputTokens: 65536,
+                temperature: 0.7,
+            });
+
+            expect(provider1).not.toBe(provider2);
+        });
+
+        it('should allow chaining withDefaultGenerationOptions with other fluent methods', () => {
+            const provider = createGoogleProvider({ apiKey: 'test-api-key' })
+                .withDefaultModel('gemini-2.5-flash')
+                .withDefaultGenerationOptions({ maxOutputTokens: 65536, temperature: 0.7 })
+                .withDefaultOptions({
+                    thinkingConfig: { includeThoughts: true },
+                } as GoogleGenerativeAIProviderOptions)
+                .withLogger({ onLLMCallStart: vi.fn() });
+
+            expect(provider).toBeDefined();
+            expect(provider.withDefaultGenerationOptions).toBeTypeOf('function');
+        });
+
+        it('should preserve defaultGenerationOptions through other fluent method calls', () => {
+            const provider = createGoogleProvider({ apiKey: 'test-api-key' })
+                .withDefaultGenerationOptions({ maxOutputTokens: 65536 })
+                .withDefaultModel('gemini-2.5-flash')
+                .withLogger({})
+                .withSearchEnabled()
+                .withFileCache();
+
+            expect(provider).toBeDefined();
+            expect(provider.withDefaultGenerationOptions).toBeTypeOf('function');
+        });
+
         it('should preserve defaultOptions through other fluent method calls', () => {
             const options = {
                 thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' },

@@ -198,6 +198,36 @@ const openaiProvider = createOpenAIProvider({
   });
 ```
 
+**Setting Default Generation Options:**
+
+Set standard AI SDK generation parameters as defaults. Unlike `withDefaultOptions` (provider-specific), `withDefaultGenerationOptions` applies to standard parameters that work across all providers.
+
+```typescript
+import { createGoogleProvider } from '@agtlantis/core';
+
+const provider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY!,
+}).withDefaultModel('gemini-2.5-flash')
+  .withDefaultGenerationOptions({
+    maxOutputTokens: 65536,
+    temperature: 0.7,
+  });
+
+// Per-call override is still possible
+const execution = provider.simpleExecution(async (session) => {
+  const result = await session.generateText({
+    prompt: 'Creative writing task...',
+    temperature: 1.0, // Overrides the default 0.7
+  });
+  return result.text;
+});
+```
+
+| Method | Scope | Merge strategy |
+|--------|-------|----------------|
+| `withDefaultOptions` | Provider-specific (Google's `thinkingConfig`, OpenAI's `reasoningEffort`) | Deep merge via `providerOptions` |
+| `withDefaultGenerationOptions` | Standard AI SDK params (`maxOutputTokens`, `temperature`, etc.) | Simple spread (per-call wins) |
+
 ### Simple Execution
 
 Use `simpleExecution()` when you just need a result without streaming intermediate events.

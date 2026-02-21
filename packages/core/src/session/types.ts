@@ -4,6 +4,7 @@
  */
 
 import type {
+  CallSettings,
   LanguageModelUsage,
   generateText as aiGenerateText,
   streamText as aiStreamText,
@@ -12,9 +13,26 @@ import type {
   StreamTextResult,
   ToolSet,
 } from 'ai';
+
 import type { ExecutionMetadata } from '@/observability/types';
 import type { ProviderType } from '@/pricing/types';
 import { createZeroUsage } from './usage-extractors';
+
+/**
+ * Standard AI SDK generation parameters that can be set as defaults at the Provider level.
+ * Per-call parameters override these defaults via simple spread merge.
+ */
+export type GenerationOptions = Pick<
+    CallSettings,
+    | 'maxOutputTokens'
+    | 'temperature'
+    | 'topP'
+    | 'topK'
+    | 'presencePenalty'
+    | 'frequencyPenalty'
+    | 'stopSequences'
+    | 'seed'
+>;
 
 /**
  * Structural interface matching AI SDK's internal Output<OUTPUT, PARTIAL>.

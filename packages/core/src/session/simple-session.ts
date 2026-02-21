@@ -18,6 +18,7 @@ import {
   type DefaultOutput,
   type GenerateTextParams,
   type GenerateTextResultTyped,
+  type GenerationOptions,
   type StreamTextParams,
   type StreamTextResultTyped,
   type LLMCallRecord,
@@ -57,6 +58,11 @@ export interface SimpleSessionOptions {
    * These will be merged with per-call tools (per-call takes precedence).
    */
   defaultTools?: ToolSet;
+  /**
+   * Default generation options (standard AI SDK parameters) for all LLM calls.
+   * Per-call parameters override these defaults via simple spread.
+   */
+  defaultGenerationOptions?: GenerationOptions;
 }
 
 export class SimpleSession {
@@ -66,6 +72,7 @@ export class SimpleSession {
   private readonly providerPricing: ProviderPricing | undefined;
   private readonly defaultProviderOptions: ProviderOptions | undefined;
   private readonly defaultTools: ToolSet | undefined;
+  private readonly defaultGenerationOptions: GenerationOptions | undefined;
   private readonly _fileManager: FileManager;
   private readonly logger: Logger;
   private readonly sessionStartTime: number;
@@ -83,6 +90,7 @@ export class SimpleSession {
     this.providerPricing = options.providerPricing;
     this.defaultProviderOptions = options.defaultProviderOptions;
     this.defaultTools = options.defaultTools;
+    this.defaultGenerationOptions = options.defaultGenerationOptions;
     this._fileManager = options.fileManager;
     this.logger = options.logger ?? noopLogger;
     this.sessionStartTime = options.startTime ?? Date.now();
@@ -151,6 +159,7 @@ export class SimpleSession {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await aiGenerateText({
+        ...this.defaultGenerationOptions,
         ...restParams,
         tools: mergedTools,
         providerOptions: mergedProviderOptions,
@@ -229,6 +238,7 @@ export class SimpleSession {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = aiStreamText({
+      ...this.defaultGenerationOptions,
       ...restParams,
       tools: mergedTools,
       providerOptions: mergedProviderOptions,

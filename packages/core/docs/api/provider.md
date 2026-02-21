@@ -49,6 +49,9 @@ import {
   type GoogleGenerativeAIProviderOptions,
   type OpenAIChatLanguageModelOptions,
 
+  // Generation options (for withDefaultGenerationOptions)
+  type GenerationOptions,
+
   // Errors
   RateLimitError,
   TimeoutError,
@@ -69,6 +72,7 @@ interface Provider {
   withLogger(logger: Logger): Provider;
   withPricing(pricing: ProviderPricing): Provider;
   withDefaultOptions(options: Record<string, unknown>): Provider;
+  withDefaultGenerationOptions(options: GenerationOptions): Provider;
 
   streamingExecution<TEvent extends { type: string }>(
     generator: (session: StreamingSession<TEvent>) => AsyncGenerator<
@@ -91,6 +95,7 @@ interface Provider {
 | `withLogger(logger)` | `Provider` | Returns new provider with logger for observability |
 | `withPricing(pricing)` | `Provider` | Returns new provider with custom pricing config |
 | `withDefaultOptions(options)` | `Provider` | Returns new provider with default provider-specific options |
+| `withDefaultGenerationOptions(options)` | `Provider` | Returns new provider with default standard generation options (`maxOutputTokens`, `temperature`, etc.) |
 | `streamingExecution(generator)` | `StreamingExecution` | Creates streaming execution with event emission |
 | `simpleExecution(fn)` | `SimpleExecution` | Creates simple Promise-based execution |
 
@@ -154,6 +159,37 @@ interface SimpleSession {
   recordToolCall(summary: ToolCallSummary): void;
 }
 ```
+
+### GenerationOptions
+
+Standard AI SDK generation parameters that can be set as defaults at the Provider level.
+
+```typescript
+type GenerationOptions = Pick<
+    CallSettings,
+    | 'maxOutputTokens'
+    | 'temperature'
+    | 'topP'
+    | 'topK'
+    | 'presencePenalty'
+    | 'frequencyPenalty'
+    | 'stopSequences'
+    | 'seed'
+>;
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `maxOutputTokens` | `number` | Maximum number of tokens to generate |
+| `temperature` | `number` | Sampling temperature (0-2) |
+| `topP` | `number` | Nucleus sampling threshold |
+| `topK` | `number` | Top-K sampling |
+| `presencePenalty` | `number` | Presence penalty (-2 to 2) |
+| `frequencyPenalty` | `number` | Frequency penalty (-2 to 2) |
+| `stopSequences` | `string[]` | Stop sequences |
+| `seed` | `number` | Random seed for deterministic output |
+
+All fields are optional. Only set the ones you need — unset fields have no effect.
 
 ### FileManager
 
@@ -388,6 +424,12 @@ const thinkingProvider = createGoogleProvider({
   .withDefaultOptions({
     thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' }
   });
+
+// With default generation options (standard AI SDK parameters)
+const generationProvider = createGoogleProvider({
+  apiKey: process.env.GOOGLE_AI_API_KEY!,
+}).withDefaultModel('gemini-2.5-flash')
+  .withDefaultGenerationOptions({ maxOutputTokens: 65536, temperature: 0.7 });
 
 // With Google Search grounding
 const searchProvider = createGoogleProvider({

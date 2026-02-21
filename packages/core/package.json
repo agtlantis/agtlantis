@@ -1,6 +1,6 @@
 {
     "name": "@agtlantis/core",
-    "version": "0.4.1",
+    "version": "0.5.0",
     "description": "AI SDK 위에서 Agent와 Pipeline을 쉽고 일관되게 구축하는 프레임워크",
     "type": "module",
     "main": "./dist/index.cjs",

@@ -1246,6 +1246,91 @@ describe('SimpleSession', () => {
     });
   });
 
+  describe('defaultGenerationOptions', () => {
+    it('should apply defaults to generateText when set', async () => {
+      mockGenerateText.mockResolvedValue({ text: 'response', usage: createMockUsage() });
+
+      const session = new SimpleSession({
+        defaultLanguageModel: createMockModel(),
+        providerType: TEST_PROVIDER_TYPE,
+        fileManager: createMockFileManager(),
+        defaultGenerationOptions: { maxOutputTokens: 65536, temperature: 0.7 },
+      });
+
+      await session.generateText({ prompt: 'test' });
+
+      expect(mockGenerateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          maxOutputTokens: 65536,
+          temperature: 0.7,
+          prompt: 'test',
+        })
+      );
+    });
+
+    it('should apply defaults to streamText when set', () => {
+      mockStreamText.mockReturnValue({
+        textStream: (async function* () { yield 'data'; })(),
+        usage: Promise.resolve(createMockUsage()),
+      });
+
+      const session = new SimpleSession({
+        defaultLanguageModel: createMockModel(),
+        providerType: TEST_PROVIDER_TYPE,
+        fileManager: createMockFileManager(),
+        defaultGenerationOptions: { maxOutputTokens: 8192, topP: 0.9 },
+      });
+
+      session.streamText({ prompt: 'test' });
+
+      expect(mockStreamText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          maxOutputTokens: 8192,
+          topP: 0.9,
+          prompt: 'test',
+        })
+      );
+    });
+
+    it('should allow per-call override of defaults', async () => {
+      mockGenerateText.mockResolvedValue({ text: 'response', usage: createMockUsage() });
+
+      const session = new SimpleSession({
+        defaultLanguageModel: createMockModel(),
+        providerType: TEST_PROVIDER_TYPE,
+        fileManager: createMockFileManager(),
+        defaultGenerationOptions: { maxOutputTokens: 65536, temperature: 0.7 },
+      });
+
+      await session.generateText({ prompt: 'test', temperature: 0.2 });
+
+      expect(mockGenerateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          maxOutputTokens: 65536,
+          temperature: 0.2,
+        })
+      );
+    });
+
+    it('should not affect calls when not set', async () => {
+      mockGenerateText.mockResolvedValue({ text: 'response', usage: createMockUsage() });
+      const model = createMockModel();
+
+      const session = new SimpleSession({
+        defaultLanguageModel: model,
+        providerType: TEST_PROVIDER_TYPE,
+        fileManager: createMockFileManager(),
+      });
+
+      await session.generateText({ prompt: 'test' });
+
+      expect(mockGenerateText).toHaveBeenCalledWith({
+        prompt: 'test',
+        model,
+      });
+    });
+  });
+
   describe('notifyExecutionStart', () => {
     it('should call Logger.onExecutionStart', () => {
       const logger = createMockLogger();

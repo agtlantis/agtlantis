@@ -26,6 +26,7 @@ import {
   type ToolCallSummary,
   type AdditionalCost,
   type EventMetrics,
+  type GenerationOptions,
   // Event type helpers
   type CompletionEvent,
   type ErrorEvent,

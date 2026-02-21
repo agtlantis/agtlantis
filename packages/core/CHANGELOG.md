@@ -5,7 +5,14 @@ All notable changes to @agtlantis/core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.0]
+
+### Added
+
+- **Default Generation Options**: `withDefaultGenerationOptions()` method for providers
+  - Set standard AI SDK generation parameters (`maxOutputTokens`, `temperature`, `topP`, `topK`, etc.) as defaults at the Provider level
+  - Per-call parameters override defaults via simple spread merge
+  - New `GenerationOptions` type exported from `@agtlantis/core`
 
 ### Changed
 
