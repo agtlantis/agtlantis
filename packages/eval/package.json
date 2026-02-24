@@ -1,6 +1,6 @@
 {
   "name": "@agtlantis/eval",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "LLM-as-Judge based AI Agent testing library with multi-turn conversations, AI simulated users, and statistical analysis",
   "type": "module",
   "main": "./dist/index.cjs",
