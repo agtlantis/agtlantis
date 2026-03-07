@@ -6,8 +6,8 @@ import {
   ValidationErrorCode,
   type ReadonlyValidationHistory,
   type ValidationAttempt,
-} from './index';
-import { AgtlantisError } from '../errors';
+} from './index.js';
+import { AgtlantisError } from '../errors/index.js';
 
 interface TestResult {
   value: number;

@@ -1,8 +1,8 @@
 import { readFile, stat } from 'node:fs/promises';
 import * as path from 'node:path';
 
-import { FileError, FileErrorCode } from '../errors';
-import { FileSource, FileSourceData, isFileSource, isFileSourcePath } from './types';
+import { FileError, FileErrorCode } from '../errors/index.js';
+import { FileSource, FileSourceData, isFileSource, isFileSourcePath } from './types.js';
 
 export const EXTENSION_TO_MIME: Record<string, string> = {
     '.pdf': 'application/pdf',

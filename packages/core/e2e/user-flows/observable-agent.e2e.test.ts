@@ -5,13 +5,13 @@ import {
     createInvalidTestProvider,
     E2E_CONFIG,
 } from '@e2e/helpers';
-import { createLogger } from '@/observability/logger';
+import { createLogger } from '../../src/observability/logger.js';
 import type {
     LLMCallEndEvent,
     ExecutionStartEvent,
     ExecutionDoneEvent,
     ExecutionErrorEvent,
-} from '@/observability';
+} from '../../src/observability/index.js';
 
 describeEachProvider('Observable Agent', (providerType) => {
     describe('LLM Event Sequence', () => {

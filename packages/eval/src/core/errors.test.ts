@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { EvalError, EvalErrorCode } from './errors'
+import { EvalError, EvalErrorCode } from './errors.js'
 
 describe('EvalErrorCode', () => {
   it('should have all expected error codes', () => {

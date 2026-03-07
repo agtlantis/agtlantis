@@ -7,21 +7,21 @@ import type {
   NoImprovementCondition,
   MaxCostCondition,
   CustomCycleCondition,
-} from './types'
+} from './types.js'
 import {
   isTargetScoreCondition,
   isMaxRoundsCondition,
   isNoImprovementCondition,
   isMaxCostCondition,
   isCustomCycleCondition,
-} from './types'
-import { EvalError, EvalErrorCode } from '@/core/errors'
+} from './types.js'
+import { EvalError, EvalErrorCode } from '../core/errors.js'
 import {
   createAndCheck,
   createOrCheck,
   createNotCheck,
   formatCompositeDescription,
-} from '../utils/condition-composites'
+} from '../utils/condition-composites.js'
 
 /** Terminates when the average score reaches or exceeds threshold. */
 export function targetScore(threshold: number): TargetScoreCondition {

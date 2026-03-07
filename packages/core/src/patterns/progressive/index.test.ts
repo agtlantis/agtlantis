@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { z } from 'zod';
-import { defineProgressivePattern, ProgressivePattern } from './index';
-import type { CompletionEvent } from '@/execution/types';
-import type { EventMetrics } from '@/observability';
-import type { StreamingSession } from '@/session/streaming-session';
+import { defineProgressivePattern, ProgressivePattern } from './index.js';
+import type { CompletionEvent } from '../../execution/types.js';
+import type { EventMetrics } from '../../observability/index.js';
+import type { StreamingSession } from '../../session/streaming-session.js';
 
 type TestProgress = { stage: string; message: string } | { stage: string; progress: number };
 type TestResult = { summary: string; score: number };

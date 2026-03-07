@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { EvalError, EvalErrorCode } from '@/core/errors';
+import { EvalError, EvalErrorCode } from '../../core/errors.js';
 
 export const llmConfigSchema = z.object({
     provider: z.enum(['openai', 'gemini'], {

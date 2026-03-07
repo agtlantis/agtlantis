@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isAbortError, normalizeError, determineResultStatus, createHookRunner } from './shared';
+import { isAbortError, normalizeError, determineResultStatus, createHookRunner } from './shared.js';
 
 describe('shared utilities', () => {
   describe('isAbortError', () => {

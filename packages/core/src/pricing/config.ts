@@ -10,9 +10,9 @@
  * @module pricing/config
  */
 
-import type { ModelPricing, PricingConfig, ProviderType } from './types';
-import { validatePricingConfig } from './validator';
-import { DEFAULT_PRICING_CONFIG, DEFAULT_FALLBACK_PRICING } from './defaults';
+import type { ModelPricing, PricingConfig, ProviderType } from './types.js';
+import { validatePricingConfig } from './validator.js';
+import { DEFAULT_PRICING_CONFIG, DEFAULT_FALLBACK_PRICING } from './defaults.js';
 
 let globalConfig: PricingConfig | undefined;
 

@@ -8,9 +8,9 @@ import {
   naturalLanguage,
   not,
   or,
-} from './conditions'
-import { checkCondition } from './termination'
-import type { ConversationContext } from './types'
+} from './conditions.js'
+import { checkCondition } from './termination.js'
+import type { ConversationContext } from './types.js'
 
 // Helper to create a basic context
 function createContext<TInput, TOutput>(

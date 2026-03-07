@@ -5,19 +5,19 @@
  */
 
 import { vi } from 'vitest';
-import type { SessionStreamGeneratorFn } from '../types';
-import { SimpleExecutionHost } from '../simple-host';
-import { StreamingExecutionHost } from '../streaming-host';
-import { SimpleSession } from '../../session/simple-session';
-import { StreamingSession } from '../../session/streaming-session';
+import type { SessionStreamGeneratorFn } from '../types.js';
+import { SimpleExecutionHost } from '../simple-host.js';
+import { StreamingExecutionHost } from '../streaming-host.js';
+import { SimpleSession } from '../../session/simple-session.js';
+import { StreamingSession } from '../../session/streaming-session.js';
 import {
   TEST_PROVIDER_TYPE,
   TestEvent,
   createMockModel,
   createMockFileManager,
-} from './fixtures';
-import type { AbortScenario } from './helpers';
-import type { Logger } from '@/observability/logger';
+} from './fixtures.js';
+import type { AbortScenario } from './helpers.js';
+import type { Logger } from '../../observability/logger.js';
 
 // ============================================================================
 // Types

@@ -9,10 +9,10 @@ import {
     PromptInvalidFormatError,
     PromptNotFoundError,
     PromptTemplateError,
-} from './errors';
-import { createFilePromptRepository } from './file-prompt-repository';
-import { PromptTemplate } from './prompt-template';
-import type { PromptTemplateData } from './types';
+} from './errors.js';
+import { createFilePromptRepository } from './file-prompt-repository.js';
+import { PromptTemplate } from './prompt-template.js';
+import type { PromptTemplateData } from './types.js';
 
 describe('createFilePromptRepository', () => {
     let testDir: string;

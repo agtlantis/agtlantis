@@ -6,9 +6,9 @@
  */
 import type { Provider } from '@agtlantis/core';
 
-import type { AgentResult, EvalAgent } from '../../src/index';
-import { bookingAgentPrompt } from './prompt';
-import type { BookingInput, BookingOutput, BookingState } from './types';
+import type { AgentResult, EvalAgent } from '../../src/index.js';
+import { bookingAgentPrompt } from './prompt.js';
+import type { BookingInput, BookingOutput, BookingState } from './types.js';
 
 /**
  * Create a Booking Agent
@@ -119,4 +119,4 @@ function normalizeBookingState(booking: Partial<BookingState>): BookingState {
 }
 
 // Re-export types for convenience
-export type { BookingInput, BookingOutput, BookingState, ConversationMessage } from './types';
+export type { BookingInput, BookingOutput, BookingState, ConversationMessage } from './types.js';

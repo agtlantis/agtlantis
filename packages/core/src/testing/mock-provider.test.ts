@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { mock } from './mock';
-import { MockProvider, createMockProvider } from './mock-provider';
-import { collectEvents } from './helpers';
-import type { TestEvent } from './fixtures';
+import { mock } from './mock.js';
+import { MockProvider, createMockProvider } from './mock-provider.js';
+import { collectEvents } from './helpers.js';
+import type { TestEvent } from './fixtures.js';
 
 describe('MockProvider', () => {
     describe('simpleExecution', () => {

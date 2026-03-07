@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mock } from '@agtlantis/core/testing'
-import { aiUser } from './ai-user'
-import type { ConversationContext } from './types'
+import { aiUser } from './ai-user.js'
+import type { ConversationContext } from './types.js'
 
 // Helper to create a basic context
 function createContext<TInput, TOutput>(

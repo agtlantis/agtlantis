@@ -7,7 +7,7 @@
  * @module pricing/validator
  */
 
-import type { ModelPricing, PricingConfig, ProviderPricing } from './types';
+import type { ModelPricing, PricingConfig, ProviderPricing } from './types.js';
 
 function validatePriceValue(
   value: number,

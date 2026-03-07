@@ -24,18 +24,18 @@ import {
     TEST_PRICING_CONFIG,
     logEvalReportIO,
     saveEvalReport,
-} from '@e2e/shared';
+} from '../../shared/index.js';
 import type { ZodSchema } from 'zod';
 
-import type { EvalSuite } from '@/core/suite';
-import type { AgentPrompt } from '@/core/types';
-import type { ValidatorCriterion } from '@/core/types';
-import type { TestCase } from '@/core/types';
-import { schema } from '@/judge/criteria';
-import type { EvalReport } from '@/reporter/types';
+import type { EvalSuite } from '../../../src/core/suite.js';
+import type { AgentPrompt } from '../../../src/core/types.js';
+import type { ValidatorCriterion } from '../../../src/core/types.js';
+import type { TestCase } from '../../../src/core/types.js';
+import { schema } from '../../../src/judge/criteria/index.js';
+import type { EvalReport } from '../../../src/reporter/types.js';
 
-import { OrderSchema, PersonSchema, SCHEMAS, type SchemaName } from './fixtures/schema-definitions';
-import type { ExtractorInput } from './fixtures/test-cases';
+import { OrderSchema, PersonSchema, SCHEMAS, type SchemaName } from './fixtures/schema-definitions.js';
+import type { ExtractorInput } from './fixtures/test-cases.js';
 
 // ============================================================================
 // Shared Infrastructure Re-exports
@@ -55,16 +55,16 @@ export {
     logEvalReportIO,
     saveEvalReport,
     E2E_PATHS,
-} from '@e2e/shared';
+} from '../../shared/index.js';
 
-export type { VerbosityLevel } from '@e2e/shared';
+export type { VerbosityLevel } from '../../shared/index.js';
 
 // ============================================================================
 // Re-export Schema Definitions & Test Cases
 // ============================================================================
 
-export { PersonSchema, OrderSchema, SCHEMAS, type SchemaName } from './fixtures/schema-definitions';
-export type { Person, Order, OrderItem } from './fixtures/schema-definitions';
+export { PersonSchema, OrderSchema, SCHEMAS, type SchemaName } from './fixtures/schema-definitions.js';
+export type { Person, Order, OrderItem } from './fixtures/schema-definitions.js';
 
 export {
     type ExtractorInput,
@@ -78,7 +78,7 @@ export {
     INVALID_EXTRACTION_MINIMAL,
     getValidCases,
     getInvalidCases,
-} from './fixtures/test-cases';
+} from './fixtures/test-cases.js';
 
 // ============================================================================
 // Schema-Specific Paths

@@ -3,8 +3,8 @@
  *
  * Conversational prompt for a restaurant reservation assistant.
  */
-import type { AgentPrompt } from '../../src/index';
-import type { BookingInput, BookingOutput } from './types';
+import type { AgentPrompt } from '../../src/index.js';
+import type { BookingInput, BookingOutput } from './types.js';
 
 /**
  * Booking Agent Prompt

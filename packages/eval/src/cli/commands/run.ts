@@ -16,7 +16,7 @@ import type {
   CLISingleTurnTestCase,
   CLIMultiTurnTestCase,
 } from '../config/types.js'
-import type { EvalReport } from '@/reporter/types'
+import type { EvalReport } from '../../reporter/types.js'
 import {
   createEvalSuite,
   createJudge,

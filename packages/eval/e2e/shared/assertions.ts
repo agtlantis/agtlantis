@@ -5,8 +5,8 @@
  * These provide a readable, chainable API for verifying test results.
  */
 
-import type { Suggestion } from '@/improver/types'
-import type { RoundYield, ImprovementCycleResult } from '@/improvement-cycle/types'
+import type { Suggestion } from '../../src/improver/types.js'
+import type { RoundYield, ImprovementCycleResult } from '../../src/improvement-cycle/types.js'
 import type {
   ScoreAssertions,
   CostAssertions,
@@ -14,7 +14,7 @@ import type {
   PromptAssertions,
   RoundAssertions,
   ResultAssertions,
-} from './types'
+} from './types.js'
 
 export function createScoreAssertions(score: number): ScoreAssertions {
   return {

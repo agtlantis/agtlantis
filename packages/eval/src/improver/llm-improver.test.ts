@@ -1,13 +1,13 @@
 import { mock } from '@agtlantis/core/testing';
 import { describe, expect, it } from 'vitest';
 
-import { EvalErrorCode } from '@/core/errors';
-import type { AgentPrompt, SingleTurnResult } from '@/core/types';
-import { MOCK_LATENCY, createMockUsage } from '@/testing';
+import { EvalErrorCode } from '../core/errors.js';
+import type { AgentPrompt, SingleTurnResult } from '../core/types.js';
+import { MOCK_LATENCY, createMockUsage } from '../testing/index.js';
 
-import { createImprover } from './llm-improver';
-import { defaultImproverPrompt } from './prompts/default';
-import type { ImproverConfig } from './types';
+import { createImprover } from './llm-improver.js';
+import { defaultImproverPrompt } from './prompts/default.js';
+import type { ImproverConfig } from './types.js';
 
 describe('createImprover', () => {
     const mockAgentPrompt: AgentPrompt<any> = {

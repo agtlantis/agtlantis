@@ -1,4 +1,4 @@
-import type { FileCache, UploadedFile } from './types';
+import type { FileCache, UploadedFile } from './types.js';
 
 export interface InMemoryFileCacheOptions {
     defaultTTL?: number;

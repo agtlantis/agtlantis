@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { EvalError, EvalErrorCode } from '@/core/errors.js';
+import { EvalError, EvalErrorCode } from '../../core/errors.js';
 
 import {
     validateYamlEvalFile,

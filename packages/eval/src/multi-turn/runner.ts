@@ -1,10 +1,10 @@
 import { resolveFileSourcesInInput } from '@agtlantis/core';
 
-import { EvalError, EvalErrorCode } from '@/core/errors';
-import type { AgentMetadata, EvalAgent, EvalTokenUsage, MetricsResult } from '@/core/types';
-import type { Judge } from '@/judge/types';
+import { EvalError, EvalErrorCode } from '../core/errors.js';
+import type { AgentMetadata, EvalAgent, EvalTokenUsage, MetricsResult } from '../core/types.js';
+import type { Judge } from '../judge/types.js';
 
-import { checkTermination } from './termination';
+import { checkTermination } from './termination.js';
 import type {
     ConversationContext,
     FollowUpInput,
@@ -12,8 +12,8 @@ import type {
     MultiTurnTestResult,
     TerminationCheckResult,
     TerminationCondition,
-} from './types';
-import { isTerminated } from './types';
+} from './types.js';
+import { isTerminated } from './types.js';
 
 export interface MultiTurnExecuteContext<TInput, TOutput> {
     agent: EvalAgent<TInput, TOutput>;

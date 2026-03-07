@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { FileSource } from './types';
+import type { FileSource } from './types.js';
 
 export async function computeFileSourceHash(source: FileSource): Promise<string> {
     if (source.hash) {

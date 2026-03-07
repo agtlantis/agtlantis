@@ -1,1 +1,1 @@
-export * from './progressive';
+export * from './progressive/index.js';

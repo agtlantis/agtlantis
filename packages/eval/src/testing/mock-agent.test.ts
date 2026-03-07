@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createMockAgent, createMockJudge } from './mock-agent'
+import { createMockAgent, createMockJudge } from './mock-agent.js'
 
 describe('createMockAgent', () => {
   it('should return configured response', async () => {

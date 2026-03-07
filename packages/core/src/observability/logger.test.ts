@@ -8,9 +8,9 @@ import type {
   ExecutionEmitEvent,
   ExecutionDoneEvent,
   ExecutionErrorEvent,
-} from './logger';
-import { noopLogger, createLogger } from './logger';
-import { createMockUsage, createMockSessionSummary } from '@/testing';
+} from './logger.js';
+import { noopLogger, createLogger } from './logger.js';
+import { createMockUsage, createMockSessionSummary } from '../testing/index.js';
 
 describe('Logger', () => {
   describe('Logger interface', () => {

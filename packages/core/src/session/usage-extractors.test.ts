@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LanguageModelUsage } from 'ai';
-import { createZeroUsage, detectProviderType, mergeUsages } from './usage-extractors';
-import { createTestUsage } from './test-utils';
+import { createZeroUsage, detectProviderType, mergeUsages } from './usage-extractors.js';
+import { createTestUsage } from './test-utils.js';
 
 describe('mergeUsages', () => {
   describe('empty array', () => {

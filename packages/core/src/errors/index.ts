@@ -3,18 +3,18 @@ export {
   ConfigurationErrorCode,
   FileErrorCode,
   type AgtlantisErrorCode,
-} from './types';
+} from './types.js';
 
 export type {
   AgtlantisErrorOptions,
   ExecutionErrorOptions,
   ConfigurationErrorOptions,
   FileErrorOptions,
-} from './types';
+} from './types.js';
 
 export {
   AgtlantisError,
   ExecutionError,
   ConfigurationError,
   FileError,
-} from './types';
+} from './types.js';

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateText, streamText } from 'ai';
-import { mock } from './mock';
+import { mock } from './mock.js';
 
 describe('mock.text', () => {
   it('should create model that returns text', async () => {

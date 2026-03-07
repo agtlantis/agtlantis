@@ -1,9 +1,9 @@
-import { SessionSummary } from '../session/types';
-import type { StreamingSession } from '../session/streaming-session';
-import type { ErrorEvent, ExtractResult, SessionEvent, SessionStreamGeneratorFn, StreamingExecution, StreamingResult } from './types';
-import { ERRORS } from './constants';
-import { combineSignals, Deferred } from './utils';
-import { isAbortError, normalizeError, createHookRunner, type HookRunner } from './shared';
+import { SessionSummary } from '../session/types.js';
+import type { StreamingSession } from '../session/streaming-session.js';
+import type { ErrorEvent, ExtractResult, SessionEvent, SessionStreamGeneratorFn, StreamingExecution, StreamingResult } from './types.js';
+import { ERRORS } from './constants.js';
+import { combineSignals, Deferred } from './utils.js';
+import { isAbortError, normalizeError, createHookRunner, type HookRunner } from './shared.js';
 
 /**
  * Internal result structure for tracking streaming execution outcome.

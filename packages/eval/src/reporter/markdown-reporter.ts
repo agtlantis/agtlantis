@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs'
-import type { Reporter, FileReporterOptions, EvalReport, ReportMarkdownOptions } from './types'
-import { reportToMarkdown } from './markdown'
-import { buildOutputPath } from './format-utils'
+import type { Reporter, FileReporterOptions, EvalReport, ReportMarkdownOptions } from './types.js'
+import { reportToMarkdown } from './markdown.js'
+import { buildOutputPath } from './format-utils.js'
 
 export interface MarkdownReporterOptions extends FileReporterOptions {
   /** Markdown generation options */

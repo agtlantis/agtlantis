@@ -12,8 +12,8 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
-import { runImprovementCycleAuto } from '@/improvement-cycle/runner'
-import { targetScore, maxRounds, maxCost } from '@/improvement-cycle/conditions'
+import { runImprovementCycleAuto } from '../../../src/improvement-cycle/runner.js'
+import { targetScore, maxRounds, maxCost } from '../../../src/improvement-cycle/conditions.js'
 
 import {
   E2E_CONFIG,
@@ -27,14 +27,14 @@ import {
   TEST_TIMEOUTS,
   TEST_PRICING_CONFIG,
   E2E_IMPROVEMENT_TERMINATION,
-} from './setup'
-import { MATH_IMPROVEMENT_CASES_MINIMAL } from './fixtures/test-cases'
+} from './setup.js'
+import { MATH_IMPROVEMENT_CASES_MINIMAL } from './fixtures/test-cases.js'
 
 import type { Provider } from '@agtlantis/core'
-import type { Judge } from '@/judge/types'
-import type { Improver } from '@/improver/types'
-import type { AgentPrompt } from '@/core/types'
-import type { MathInput, MathOutput } from './fixtures/test-cases'
+import type { Judge } from '../../../src/judge/types.js'
+import type { Improver } from '../../../src/improver/types.js'
+import type { AgentPrompt } from '../../../src/core/types.js'
+import type { MathInput, MathOutput } from './fixtures/test-cases.js'
 
 describe.skipIf(!E2E_CONFIG.enabled)('Full Improvement Cycle', () => {
   let provider: Provider

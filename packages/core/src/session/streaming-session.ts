@@ -1,12 +1,12 @@
 import type { LanguageModel, ToolSet } from 'ai';
-import type { EventMetrics } from '@/observability';
-import type { Logger } from '@/observability/logger';
-import { noopLogger } from '@/observability/logger';
-import type { FileManager } from '@/provider/types';
-import type { ProviderType, ProviderPricing } from '@/pricing/types';
-import type { GenerationOptions, SessionSummary } from './types';
-import { SimpleSession } from './simple-session';
-import type { SessionEvent, EmittableEventInput, ExtractResult } from '@/execution/types';
+import type { EventMetrics } from '../observability/index.js';
+import type { Logger } from '../observability/logger.js';
+import { noopLogger } from '../observability/logger.js';
+import type { FileManager } from '../provider/types.js';
+import type { ProviderType, ProviderPricing } from '../pricing/types.js';
+import type { GenerationOptions, SessionSummary } from './types.js';
+import { SimpleSession } from './simple-session.js';
+import type { SessionEvent, EmittableEventInput, ExtractResult } from '../execution/types.js';
 
 type ProviderOptions = Record<string, Record<string, unknown>>;
 

@@ -1,11 +1,11 @@
 import type { Task } from 'vitest';
-import { createOpenAIProvider } from '@/provider/openai/factory';
-import { createGoogleProvider } from '@/provider/google/factory';
-import { createLogger } from '@/observability/logger';
-import type { Provider } from '@/provider/types';
-import type { Logger, EventMetrics } from '@/observability';
-import { E2E_CONFIG, type ProviderType } from './env';
-import { recordCostMeta } from './cost-meta';
+import { createOpenAIProvider } from '../../src/provider/openai/factory.js';
+import { createGoogleProvider } from '../../src/provider/google/factory.js';
+import { createLogger } from '../../src/observability/logger.js';
+import type { Provider } from '../../src/provider/types.js';
+import type { Logger, EventMetrics } from '../../src/observability/index.js';
+import { E2E_CONFIG, type ProviderType } from './env.js';
+import { recordCostMeta } from './cost-meta.js';
 
 const INVALID_API_KEY = 'invalid-api-key-for-testing';
 

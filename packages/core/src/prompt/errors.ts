@@ -4,7 +4,7 @@
  * Each error type has a specific code and context for precise error handling.
  */
 
-import { AgtlantisError, type AgtlantisErrorCode } from '../errors';
+import { AgtlantisError, type AgtlantisErrorCode } from '../errors/index.js';
 
 // =============================================================================
 // Prompt Error Codes
@@ -24,7 +24,7 @@ export enum PromptErrorCode {
 }
 
 // Extend AgtlantisErrorCode to include PromptErrorCode
-declare module '../errors' {
+declare module '../errors/index.js' {
   interface AgtlantisErrorCodeMap {
     prompt: PromptErrorCode;
   }

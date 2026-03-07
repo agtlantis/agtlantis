@@ -5,8 +5,8 @@
 
 import path from 'node:path'
 import { execa, type ExecaError } from 'execa'
-import type { AgentPrompt } from '@/core/types'
-import { PACKAGE_ROOT, E2E_PATHS, createPromptLoader } from '@e2e/shared'
+import type { AgentPrompt } from '../../src/core/types.js'
+import { PACKAGE_ROOT, E2E_PATHS, createPromptLoader } from '../shared/index.js'
 
 // Re-export everything from shared for backward compatibility
 export {
@@ -38,13 +38,13 @@ export {
   createTestDirectory,
   withTestFixture,
   createTestPath,
-} from '@e2e/shared'
+} from '../shared/index.js'
 
 export type {
   VerbosityLevel,
   RoundCostEntry,
   CostTracker,
-} from '@e2e/shared'
+} from '../shared/index.js'
 
 const FIXTURES_DIR = path.join(__dirname, 'fixtures', 'prompts')
 

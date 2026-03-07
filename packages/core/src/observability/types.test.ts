@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { EventMetrics, LanguageModelUsage, ExecutionMetadata } from './types';
-import { createMockUsage } from '@/testing';
+import type { EventMetrics, LanguageModelUsage, ExecutionMetadata } from './types.js';
+import { createMockUsage } from '../testing/index.js';
 
 describe('Observability Types', () => {
   describe('EventMetrics', () => {

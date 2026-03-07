@@ -11,8 +11,8 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
-import { createEvalSuite } from '@/core/suite'
-import { applyPromptSuggestions } from '@/improver/utils'
+import { createEvalSuite } from '../../../src/core/suite.js'
+import { applyPromptSuggestions } from '../../../src/improver/utils.js'
 
 import {
   E2E_CONFIG,
@@ -24,16 +24,16 @@ import {
   TEST_TIMEOUTS,
   logEvalReportIO,
   TEST_PRICING_CONFIG,
-} from './setup'
-import { MATH_IMPROVEMENT_CASES_MINIMAL } from './fixtures/test-cases'
+} from './setup.js'
+import { MATH_IMPROVEMENT_CASES_MINIMAL } from './fixtures/test-cases.js'
 
 import type { Provider } from '@agtlantis/core'
-import type { Judge } from '@/judge/types'
-import type { Improver } from '@/improver/types'
-import type { Suggestion } from '@/improver/types'
-import type { AgentPrompt, EvalAgent } from '@/core/types'
-import type { EvalReport } from '@/reporter/types'
-import type { MathInput, MathOutput } from './fixtures/test-cases'
+import type { Judge } from '../../../src/judge/types.js'
+import type { Improver } from '../../../src/improver/types.js'
+import type { Suggestion } from '../../../src/improver/types.js'
+import type { AgentPrompt, EvalAgent } from '../../../src/core/types.js'
+import type { EvalReport } from '../../../src/reporter/types.js'
+import type { MathInput, MathOutput } from './fixtures/test-cases.js'
 
 describe.skipIf(!E2E_CONFIG.enabled)('Suggestion Application', () => {
   let provider: Provider

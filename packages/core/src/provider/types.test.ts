@@ -11,7 +11,7 @@ import {
     isFileSourceData,
     isFileSourcePath,
     isFileSourceUrl,
-} from './types';
+} from './types.js';
 
 // ============================================================================
 // FileSource Type Guards

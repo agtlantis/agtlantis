@@ -8,7 +8,7 @@ import Handlebars from 'handlebars';
 
 // Note: PromptTemplate class uses compileTemplate, not the other way around
 // This avoids circular dependencies
-import { PromptTemplateError } from './errors';
+import { PromptTemplateError } from './errors.js';
 
 // =============================================================================
 // Handlebars Instance Setup

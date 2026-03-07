@@ -5,9 +5,9 @@ export type {
   JudgePrompt,
   EvalContext,
   JudgeResult,
-} from './types'
+} from './types.js'
 
-export { createJudge } from './llm-judge'
+export { createJudge } from './llm-judge.js'
 
-export { accuracy, consistency, relevance, schema } from './criteria/index'
-export type { CriterionOptions, SchemaOptions } from './criteria/index'
+export { accuracy, consistency, relevance, schema } from './criteria/index.js'
+export type { CriterionOptions, SchemaOptions } from './criteria/index.js'

@@ -1,7 +1,7 @@
 import type { LanguageModelUsage } from 'ai';
-import type { ProviderType } from '@/pricing/types';
+import type { ProviderType } from '../pricing/types.js';
 
-export type { ProviderType } from '@/pricing/types';
+export type { ProviderType } from '../pricing/types.js';
 
 export function mergeUsages(usages: LanguageModelUsage[]): LanguageModelUsage {
   if (usages.length === 0) {

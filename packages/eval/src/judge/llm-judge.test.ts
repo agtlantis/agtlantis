@@ -4,8 +4,8 @@ import { createJudge } from './llm-judge.js'
 import { mock } from '@agtlantis/core/testing'
 import { defaultJudgePrompt } from './prompts/default.js'
 import { accuracy, consistency, relevance, schema } from './criteria/index.js'
-import { EvalError, EvalErrorCode } from '@/core/errors.js'
-import { TEST_SCORES, createMockUsage } from '@/testing'
+import { EvalError, EvalErrorCode } from '../core/errors.js'
+import { TEST_SCORES, createMockUsage } from '../testing/index.js'
 import type { JudgeConfig } from './types.js'
 
 describe('createJudge', () => {

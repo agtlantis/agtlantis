@@ -3,8 +3,8 @@
  * Designed for simplicity and cost-effectiveness.
  */
 
-import type { TestCase } from '@/core/types'
-import type { MultiTurnTestCase } from '@/multi-turn/types'
+import type { TestCase } from '../../../src/core/types.js'
+import type { MultiTurnTestCase } from '../../../src/multi-turn/types.js'
 
 export interface MathInput {
   problem: string

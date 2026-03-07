@@ -10,8 +10,8 @@ import { existsSync, mkdirSync, rmSync, copyFileSync } from 'node:fs'
 import path from 'node:path'
 import { beforeAll, afterAll } from 'vitest'
 
-import { E2E_CONFIG } from './config'
-import { createTimestampedPath } from './paths'
+import { E2E_CONFIG } from './config.js'
+import { createTimestampedPath } from './paths.js'
 
 /**
  * Creates a managed test directory with auto-cleanup via Vitest hooks.

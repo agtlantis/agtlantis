@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import type { LanguageModel, LanguageModelUsage } from 'ai';
-import type { Logger } from '@/observability/logger';
-import type { FileManager } from '@/provider/types';
+import type { Logger } from '../observability/logger.js';
+import type { FileManager } from '../provider/types.js';
 
 export const TEST_PROVIDER_TYPE = 'google' as const;
 

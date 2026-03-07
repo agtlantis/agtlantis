@@ -1,4 +1,4 @@
-import type { Criterion } from '@/core/types.js'
+import type { Criterion } from '../../core/types.js'
 
 export { schema, type SchemaOptions } from './validate-schema.js'
 

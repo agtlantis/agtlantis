@@ -7,7 +7,7 @@ import {
   ExecutionErrorCode,
   ConfigurationErrorCode,
   FileErrorCode,
-} from './types';
+} from './types.js';
 
 describe('Error Classes', () => {
   describe('AgtlantisError', () => {

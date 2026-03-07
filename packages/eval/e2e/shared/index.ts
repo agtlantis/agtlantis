@@ -21,10 +21,10 @@ export type {
   ResultAssertions,
   HITLCycle,
   VitestTaskContext,
-} from './types'
+} from './types.js'
 
-export { E2E_CONFIG } from './config'
-export type { E2EConfig } from './config'
+export { E2E_CONFIG } from './config.js'
+export type { E2EConfig } from './config.js'
 
 export {
   skipIfNoRealE2E,
@@ -43,9 +43,9 @@ export {
   TEST_TIMEOUTS,
   toEvalTokenUsage,
   createPromptLoader,
-} from './setup'
+} from './setup.js'
 
-export { createCostTracker, createTempHistoryPath, logCostIfVerbose } from './cost-tracker'
+export { createCostTracker, createTempHistoryPath, logCostIfVerbose } from './cost-tracker.js'
 
 export {
   formatCost,
@@ -63,9 +63,9 @@ export {
   saveEvalReport,
   slugify,
   getTestSlug,
-} from './observability'
+} from './observability.js'
 
-export { saveCycleJson, logCycle, cycleToMarkdown } from '@/reporter'
+export { saveCycleJson, logCycle, cycleToMarkdown } from '../../src/reporter/index.js'
 
 export {
   createScoreAssertions,
@@ -74,7 +74,7 @@ export {
   createPromptAssertions,
   createRoundAssertions,
   createResultAssertions,
-} from './assertions'
+} from './assertions.js'
 
 export {
   E2E_ROOT,
@@ -83,11 +83,11 @@ export {
   E2E_PATHS,
   createTimestampedPath,
   createSubdir,
-} from './paths'
-export type { E2EPathKey } from './paths'
+} from './paths.js'
+export type { E2EPathKey } from './paths.js'
 
 export {
   createTestDirectory,
   withTestFixture,
   createTestPath,
-} from './test-lifecycle'
+} from './test-lifecycle.js'

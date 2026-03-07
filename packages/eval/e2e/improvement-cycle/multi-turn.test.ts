@@ -3,12 +3,12 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { E2E_CONFIG, TEST_TIMEOUTS } from './setup'
+import { E2E_CONFIG, TEST_TIMEOUTS } from './setup.js'
 import {
   e2e,
   RECOMMENDER_MULTI_TURN_CASES_MINIMAL,
   isMultiTurnResult,
-} from './test-helper'
+} from './test-helper.js'
 
 describe.skipIf(!E2E_CONFIG.enabled)('Real E2E: Multi-turn', () => {
   it(

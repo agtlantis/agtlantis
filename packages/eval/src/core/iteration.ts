@@ -16,8 +16,8 @@ import type {
   TestResultWithVerdict,
 } from './types.js'
 import { isMultiTurnResult } from './types.js'
-import { EvalError, EvalErrorCode } from './errors'
-import { SCORE } from './constants'
+import { EvalError, EvalErrorCode } from './errors.js'
+import { SCORE } from './constants.js'
 
 /**
  * Calculate iteration statistics from multiple test results.

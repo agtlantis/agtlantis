@@ -1,6 +1,6 @@
 import type { Provider } from '@agtlantis/core';
 
-import type { Criterion, FileContent, JudgeMetadata, Verdict } from '@/core/types';
+import type { Criterion, FileContent, JudgeMetadata, Verdict } from '../core/types.js';
 
 /**
  * Context passed to JudgePrompt.renderUserPrompt().

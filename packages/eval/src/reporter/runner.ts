@@ -1,9 +1,9 @@
-import type { EvalSuite } from '@/core/suite'
-import type { TestCase } from '@/core/types'
-import type { EvalReport, LogVerbosity } from './types'
-import type { EvalPricingConfig } from './cost-helpers'
-import { JsonReporter } from './json-reporter'
-import { ConsoleReporter } from './console-reporter'
+import type { EvalSuite } from '../core/suite.js'
+import type { TestCase } from '../core/types.js'
+import type { EvalReport, LogVerbosity } from './types.js'
+import type { EvalPricingConfig } from './cost-helpers.js'
+import { JsonReporter } from './json-reporter.js'
+import { ConsoleReporter } from './console-reporter.js'
 
 /**
  * Options for creating a report runner.

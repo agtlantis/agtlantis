@@ -1,6 +1,6 @@
-import { EvalTestResult } from '@/core/types'
-import { Suggestion, AggregatedMetrics } from '@/improver/types'
-import type { CostSummary, EvalPricingConfig } from './cost-helpers'
+import { EvalTestResult } from '../core/types.js'
+import { Suggestion, AggregatedMetrics } from '../improver/types.js'
+import type { CostSummary, EvalPricingConfig } from './cost-helpers.js'
 
 /**
  * Reporter interface for saving/logging evaluation reports.

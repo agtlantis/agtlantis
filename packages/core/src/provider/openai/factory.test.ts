@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createOpenAIProvider, type OpenAIProviderConfig } from './factory';
-import { NoOpFileManager } from '../noop-file-manager';
+import { createOpenAIProvider, type OpenAIProviderConfig } from './factory.js';
+import { NoOpFileManager } from '../noop-file-manager.js';
 
 // Mock @ai-sdk/openai
 const mockModel = { modelId: 'gpt-4o' };

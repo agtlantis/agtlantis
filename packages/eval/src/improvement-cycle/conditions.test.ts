@@ -19,15 +19,15 @@ import {
   and,
   or,
   not,
-} from './conditions'
+} from './conditions.js'
 import type {
   CycleContext,
   RoundResult,
   RoundCost,
   SerializedPrompt,
-} from './types'
-import type { EvalReport } from '@/reporter/types'
-import { EvalError } from '@/core/errors'
+} from './types.js'
+import type { EvalReport } from '../reporter/types.js'
+import { EvalError } from '../core/errors.js'
 
 // =============================================================================
 // Test Fixtures

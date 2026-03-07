@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { reportToMarkdown } from '@/reporter/markdown'
-import type { EvalReport, ReportMarkdownOptions } from '@/reporter/types'
+import { reportToMarkdown } from '../../reporter/markdown.js'
+import type { EvalReport, ReportMarkdownOptions } from '../../reporter/types.js'
 
 export interface GenerateReportOptions {
   /** Output directory (default: './reports') */

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { writeFile } from 'node:fs/promises'
-import { reportToMarkdown, saveReportMarkdown, compareReports } from './markdown'
-import type { EvalReport } from './types'
+import { reportToMarkdown, saveReportMarkdown, compareReports } from './markdown.js'
+import type { EvalReport } from './types.js'
 
 // Mock fs/promises
 vi.mock('node:fs/promises', () => ({

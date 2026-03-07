@@ -31,13 +31,13 @@ import {
   type MultiTurnTestCase,
   type MultiTurnExecuteContext,
   type ConversationContext,
-} from '../src/index'
+} from '../src/index.js'
 import {
   createBookingAgent,
   type BookingInput,
   type BookingOutput,
   type ConversationMessage,
-} from './multi-turn-agent/agent'
+} from './multi-turn-agent/agent.js'
 
 // ============================================================================
 // Helper: Build conversation history from test framework context

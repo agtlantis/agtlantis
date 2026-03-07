@@ -28,10 +28,10 @@
  */
 
 // Types
-export type { PromptTemplateData, PromptRenderer, PromptRepository, FileSystem } from './types';
+export type { PromptTemplateData, PromptRenderer, PromptRepository, FileSystem } from './types.js';
 
 // PromptTemplate class
-export { PromptTemplate } from './prompt-template';
+export { PromptTemplate } from './prompt-template.js';
 
 // Errors
 export {
@@ -42,14 +42,14 @@ export {
     PromptTemplateError,
     PromptIOError,
     type PromptErrorOptions,
-} from './errors';
+} from './errors.js';
 
 // Template utilities
-export { compileTemplate } from './template';
+export { compileTemplate } from './template.js';
 
 // Repository implementations
 export {
     FilePromptRepository,
     createFilePromptRepository,
     type FilePromptRepositoryOptions,
-} from './file-prompt-repository';
+} from './file-prompt-repository.js';

@@ -1,7 +1,7 @@
-import type { ImprovementCycleResult } from '@/improvement-cycle/types'
-import type { LogVerbosity } from './types'
-import { ConsoleReporter } from './console-reporter'
-import { formatScoreDelta } from './format-utils'
+import type { ImprovementCycleResult } from '../improvement-cycle/types.js'
+import type { LogVerbosity } from './types.js'
+import { ConsoleReporter } from './console-reporter.js'
+import { formatScoreDelta } from './format-utils.js'
 
 /**
  * Options for logging an ImprovementCycleResult to console.

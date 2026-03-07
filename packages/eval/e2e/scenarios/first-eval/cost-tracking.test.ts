@@ -6,9 +6,9 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
-import { createEvalSuite } from '@/core/suite'
-import { calculateReportCosts } from '@/reporter/cost-helpers'
-import type { EvalAgent } from '@/core/types'
+import { createEvalSuite } from '../../../src/core/suite.js'
+import { calculateReportCosts } from '../../../src/reporter/cost-helpers.js'
+import type { EvalAgent } from '../../../src/core/types.js'
 import {
   E2E_CONFIG,
   TEST_TIMEOUTS,
@@ -18,8 +18,8 @@ import {
   createLLMAgent,
   loadPromptFixture,
   runAndSave,
-} from './setup'
-import { GREETING_TEST_CASES, GREETING_TEST_CASES_MINIMAL, type GreetingInput } from './fixtures/test-cases'
+} from './setup.js'
+import { GREETING_TEST_CASES, GREETING_TEST_CASES_MINIMAL, type GreetingInput } from './fixtures/test-cases.js'
 
 describe.skipIf(!E2E_CONFIG.enabled)('First Evaluation: Cost Tracking', () => {
   let agent: EvalAgent<GreetingInput, string>

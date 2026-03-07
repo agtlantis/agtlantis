@@ -1,6 +1,6 @@
-import type { Reporter, ConsoleReporterOptions, EvalReport, LogVerbosity } from './types'
-import { calculateReportCosts, type EvalPricingConfig } from './cost-helpers'
-import { truncate } from '@/utils/json'
+import type { Reporter, ConsoleReporterOptions, EvalReport, LogVerbosity } from './types.js'
+import { calculateReportCosts, type EvalPricingConfig } from './cost-helpers.js'
+import { truncate } from '../utils/json.js'
 
 /**
  * Reporter that logs EvalReport to console.

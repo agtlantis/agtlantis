@@ -1,7 +1,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
-import type { ImprovementCycleResult } from '@/improvement-cycle/types'
-import { toISOStringIfDate } from './format-utils'
+import type { ImprovementCycleResult } from '../improvement-cycle/types.js'
+import { toISOStringIfDate } from './format-utils.js'
 
 /**
  * Options for saving an ImprovementCycleResult as JSON.

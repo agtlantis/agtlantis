@@ -3,22 +3,22 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { existsSync, readFileSync } from 'node:fs'
-import { setupCleanDir } from '@/testing/test-utils'
-import { MOCK_LATENCY } from '@/testing/constants'
+import { setupCleanDir } from '../testing/test-utils.js'
+import { MOCK_LATENCY } from '../testing/constants.js'
 import path from 'node:path'
-import type { EvalReport } from './types'
-import type { EvalPricingConfig } from './cost-helpers'
-import { JsonReporter } from './json-reporter'
-import { MarkdownReporter } from './markdown-reporter'
-import { ConsoleReporter } from './console-reporter'
-import { CompositeReporter } from './composite-reporter'
+import type { EvalReport } from './types.js'
+import type { EvalPricingConfig } from './cost-helpers.js'
+import { JsonReporter } from './json-reporter.js'
+import { MarkdownReporter } from './markdown-reporter.js'
+import { ConsoleReporter } from './console-reporter.js'
+import { CompositeReporter } from './composite-reporter.js'
 import {
   createJsonReporter,
   createMarkdownReporter,
   createConsoleReporter,
   createCompositeReporter,
   createDefaultReporter,
-} from './factory'
+} from './factory.js'
 
 const TEST_OUTPUT_DIR = path.join(__dirname, '../../test-output/reporters')
 

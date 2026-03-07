@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { EvalError, EvalErrorCode } from '@/core/errors.js';
+import { EvalError, EvalErrorCode } from '../../core/errors.js';
 
 import type { YamlEvalFile } from './types.js';
 

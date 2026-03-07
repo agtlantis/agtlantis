@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { defineProgressivePattern } from '@/patterns/progressive';
+import { defineProgressivePattern } from '../../../src/patterns/progressive/index.js';
 import {
   describeEachProvider,
   createTestProvider,
@@ -10,7 +10,7 @@ import {
   multiStageResultSchema,
   type MultiStageProgress,
   type MultiStageResult,
-} from './fixtures/schemas';
+} from './fixtures/schemas.js';
 
 const pattern = defineProgressivePattern({
   progressSchema: multiStageProgressSchema,

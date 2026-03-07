@@ -6,14 +6,14 @@ import type {
   MaxTurnsCondition,
   TerminationCheckResult,
   TerminationCondition,
-} from './types'
+} from './types.js'
 import {
   isCustomCondition,
   isFieldSetCondition,
   isFieldValueCondition,
   isMaxTurnsCondition,
-} from './types'
-import { EvalError, EvalErrorCode } from '@/core/errors'
+} from './types.js'
+import { EvalError, EvalErrorCode } from '../core/errors.js'
 
 /** Access a nested field value using dot notation (e.g., "result.recommendation"). */
 export function getFieldValue(obj: unknown, fieldPath: string): unknown {

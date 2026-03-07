@@ -1,5 +1,5 @@
 import type { Reporter, TestCase } from 'vitest/node';
-import { getCostMeta, type CostMeta } from '../helpers/cost-meta';
+import { getCostMeta, type CostMeta } from '../helpers/cost-meta.js';
 
 interface AggregatedCost {
   totalCost: number;

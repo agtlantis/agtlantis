@@ -1,5 +1,5 @@
 import type { LanguageModelUsage } from 'ai';
-import type { SessionSummary } from '../session/types';
+import type { SessionSummary } from '../session/types.js';
 
 /**
  * Logger interface for observability.

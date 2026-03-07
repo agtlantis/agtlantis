@@ -9,10 +9,10 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { EvalErrorCode } from '@/core/errors';
-import type { AgentPrompt } from '@/core/types';
-import type { EvalReport } from '@/reporter/types';
-import { MOCK_COSTS } from '@/testing/constants';
+import { EvalErrorCode } from '../core/errors.js';
+import type { AgentPrompt } from '../core/types.js';
+import type { EvalReport } from '../reporter/types.js';
+import { MOCK_COSTS } from '../testing/constants.js';
 
 import {
     type HistoryStorage,
@@ -24,8 +24,8 @@ import {
     resumeSession,
     saveHistory,
     serializePrompt,
-} from './history';
-import type { ImprovementHistory, RoundCost, RoundResult, SerializedPrompt } from './types';
+} from './history.js';
+import type { ImprovementHistory, RoundCost, RoundResult, SerializedPrompt } from './types.js';
 
 // =============================================================================
 // Test Fixtures

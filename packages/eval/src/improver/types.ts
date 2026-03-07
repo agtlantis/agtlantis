@@ -1,6 +1,6 @@
 import type { Provider } from '@agtlantis/core';
 
-import type { AgentPrompt, EvalTestResult, ImproverMetadata } from '@/core/types';
+import type { AgentPrompt, EvalTestResult, ImproverMetadata } from '../core/types.js';
 
 export interface AggregatedMetrics {
     avgLatencyMs: number;

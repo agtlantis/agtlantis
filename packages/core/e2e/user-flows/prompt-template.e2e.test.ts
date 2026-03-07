@@ -6,9 +6,9 @@ import {
     PromptInvalidFormatError,
     PromptNotFoundError,
     PromptTemplateError,
-} from '@/prompt/errors';
-import { createFilePromptRepository } from '@/prompt/file-prompt-repository';
-import { PromptTemplate } from '@/prompt/prompt-template';
+} from '../../src/prompt/errors.js';
+import { createFilePromptRepository } from '../../src/prompt/file-prompt-repository.js';
+import { PromptTemplate } from '../../src/prompt/prompt-template.js';
 
 const fixturesPath = path.join(__dirname, 'fixtures/prompts');
 

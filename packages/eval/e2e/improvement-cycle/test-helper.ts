@@ -21,9 +21,9 @@
  * const final = await cycle.stop()
  */
 
-import { runImprovementCycle } from '@/improvement-cycle/runner'
-import { maxRounds, maxCost, targetScore } from '@/improvement-cycle/conditions'
-import { saveCycleJson } from '@/reporter'
+import { runImprovementCycle } from '../../src/improvement-cycle/runner.js'
+import { maxRounds, maxCost, targetScore } from '../../src/improvement-cycle/conditions.js'
+import { saveCycleJson } from '../../src/reporter/index.js'
 
 import {
   createTestLLMClient,
@@ -33,7 +33,7 @@ import {
   loadPromptFixture,
   TEST_PRICING_CONFIG,
   E2E_CONFIG,
-} from '@e2e/improvement-cycle/setup'
+} from './setup.js'
 
 import {
   nullLogger,
@@ -42,7 +42,7 @@ import {
   createReportDir,
   createRoundAssertions,
   createResultAssertions,
-} from '@e2e/shared'
+} from '../shared/index.js'
 
 import type {
   VerbosityLevel,
@@ -52,15 +52,15 @@ import type {
   RoundAssertions,
   ResultAssertions,
   HITLCycle,
-} from '@e2e/shared'
+} from '../shared/index.js'
 
-import type { AgentPrompt, TestCase, EvalTestResult } from '@/core/types'
+import type { AgentPrompt, TestCase, EvalTestResult } from '../../src/core/types.js'
 import type {
   RoundYield,
   ImprovementCycleResult,
   CycleTerminationCondition,
-} from '@/improvement-cycle/types'
-import type { Suggestion } from '@/improver/types'
+} from '../../src/improvement-cycle/types.js'
+import type { Suggestion } from '../../src/improver/types.js'
 
 // Re-export types for backward compatibility
 export type {
@@ -73,9 +73,9 @@ export type {
   RoundSummary,
   CycleSummary,
   VerbosityLevel,
-} from '@e2e/shared'
+} from '../shared/index.js'
 
-export type { ScoreAssertions, CostAssertions, SuggestionAssertions, PromptAssertions } from '@e2e/shared'
+export type { ScoreAssertions, CostAssertions, SuggestionAssertions, PromptAssertions } from '../shared/index.js'
 
 let sharedLLM: ReturnType<typeof createTestLLMClient> | null = null
 
@@ -484,13 +484,13 @@ export {
   MATH_TEST_CASES_MINIMAL,
   QA_TEST_CASES_MINIMAL,
   RECOMMENDER_MULTI_TURN_CASES_MINIMAL,
-} from '@e2e/improvement-cycle/fixtures/test-cases'
+} from './fixtures/test-cases.js'
 
 export type {
   MathInput,
   QAInput,
   RecommenderInput,
-} from '@e2e/improvement-cycle/fixtures/test-cases'
+} from './fixtures/test-cases.js'
 
-export { isMultiTurnResult } from '@/core/types'
-export { loadHistory, resumeSession } from '@/improvement-cycle/history'
+export { isMultiTurnResult } from '../../src/core/types.js'
+export { loadHistory, resumeSession } from '../../src/improvement-cycle/history.js'

@@ -6,15 +6,15 @@ export {
   type TestBaseEvent,
   type TestEvent,
   type TestResult,
-} from './fixtures';
+} from './fixtures.js';
 
 export {
   collectEvents,
   consumeExecution,
   expectFileManagerInterface,
-} from './helpers';
+} from './helpers.js';
 
-export { mock, type ResponseOptions } from './mock';
+export { mock, type ResponseOptions } from './mock.js';
 
 export {
   MockProvider,
@@ -22,7 +22,7 @@ export {
   type MockProviderConfig,
   type ModelFactory,
   type MockCall,
-} from './mock-provider';
+} from './mock-provider.js';
 
 export { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 
@@ -68,6 +68,6 @@ export {
   // Logger helpers
   createOrderTrackingLogger,
   type LoggerEventType,
-} from '../execution/testing/fixtures';
+} from '../execution/testing/fixtures.js';
 
-export { createTestExecution, createTestErrorExecution, createTestCanceledExecution } from './test-execution';
+export { createTestExecution, createTestErrorExecution, createTestCanceledExecution } from './test-execution.js';

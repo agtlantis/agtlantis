@@ -1,6 +1,6 @@
 import path from 'path';
 import { defineConfig } from 'vitest/config';
-import { CostReporter } from './e2e/reporters/cost-reporter';
+import { CostReporter } from './e2e/reporters/cost-reporter.js';
 
 export default defineConfig({
   resolve: {

@@ -5,9 +5,9 @@ import type {
     ExtractResult,
     EmittableEventInput,
     ErrorEvent,
-} from '@/execution/types';
-import type { EventMetrics } from '@/observability';
-import { SessionSummary } from '@/session/types';
+} from '../execution/types.js';
+import type { EventMetrics } from '../observability/index.js';
+import { SessionSummary } from '../session/types.js';
 
 function createTestMetrics(): EventMetrics {
     return { timestamp: Date.now(), elapsedMs: 0, deltaMs: 0 };

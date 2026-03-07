@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createSemaphore } from './semaphore'
+import { createSemaphore } from './semaphore.js'
 
 describe('createSemaphore', () => {
   it('should allow up to limit concurrent operations', async () => {

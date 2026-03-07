@@ -1,5 +1,5 @@
-import type { FileManager } from '@/provider';
-import type { ErrorEvent, SessionEvent, StreamingExecution } from '@/execution/types';
+import type { FileManager } from '../provider/index.js';
+import type { ErrorEvent, SessionEvent, StreamingExecution } from '../execution/types.js';
 
 /**
  * Collects all events from a StreamingExecution into an array.

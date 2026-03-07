@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { ConversationContext, CustomCondition, TerminationCondition } from './types'
-import { checkCondition, checkTermination, getFieldValue } from './termination'
+import type { ConversationContext, CustomCondition, TerminationCondition } from './types.js'
+import { checkCondition, checkTermination, getFieldValue } from './termination.js'
 
 describe('getFieldValue', () => {
   it('should access a simple field', () => {

@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { EvalErrorCode } from '@/core/errors';
-import type { AgentPrompt } from '@/core/types';
+import { EvalErrorCode } from '../core/errors.js';
+import type { AgentPrompt } from '../core/types.js';
 
-import type { Suggestion } from './types';
+import type { Suggestion } from './types.js';
 import {
     applyPromptSuggestions,
     bumpVersion,
     suggestionDiff,
     suggestionPreview,
     suggestionSummary,
-} from './utils';
+} from './utils.js';
 
 describe('suggestionDiff', () => {
     const baseSuggestion: Suggestion = {

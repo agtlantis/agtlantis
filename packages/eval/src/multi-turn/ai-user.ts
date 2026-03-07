@@ -1,5 +1,5 @@
 import type { Provider } from '@agtlantis/core';
-import type { ConversationContext } from './types';
+import type { ConversationContext } from './types.js';
 
 export interface AIUserOptions<TInput, TOutput> {
     /** Provider for generating user responses */

@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { E2E_CONFIG, TEST_TIMEOUTS } from './setup'
-import { e2e, MATH_TEST_CASES_MINIMAL, QA_TEST_CASES_MINIMAL } from './test-helper'
+import { E2E_CONFIG, TEST_TIMEOUTS } from './setup.js'
+import { e2e, MATH_TEST_CASES_MINIMAL, QA_TEST_CASES_MINIMAL } from './test-helper.js'
 
 describe.skipIf(!E2E_CONFIG.enabled)('Real E2E: Full Cycle', () => {
   describe('Auto Mode', () => {

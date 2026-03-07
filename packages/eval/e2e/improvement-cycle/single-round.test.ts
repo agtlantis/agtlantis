@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { E2E_CONFIG, TEST_TIMEOUTS } from './setup'
-import type { RoundAssertions } from '@e2e/shared'
-import { e2e, MATH_TEST_CASES_MINIMAL, QA_TEST_CASES_MINIMAL } from './test-helper'
+import { E2E_CONFIG, TEST_TIMEOUTS } from './setup.js'
+import type { RoundAssertions } from '../shared/index.js'
+import { e2e, MATH_TEST_CASES_MINIMAL, QA_TEST_CASES_MINIMAL } from './test-helper.js'
 
 interface AgentTestConfig {
   name: string

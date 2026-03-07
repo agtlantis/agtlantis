@@ -5,10 +5,10 @@ import type {
     SessionEvent,
     SimpleExecution,
     StreamingExecution,
-} from '@/execution';
-import type { Logger } from '@/observability/logger';
-import type { ProviderPricing } from '@/pricing';
-import { SimpleSession, StreamingSession } from '@/session';
+} from '../execution/index.js';
+import type { Logger } from '../observability/logger.js';
+import type { ProviderPricing } from '../pricing/index.js';
+import { SimpleSession, StreamingSession } from '../session/index.js';
 import type {
     GenerateTextParams,
     GenerateTextResultTyped,
@@ -17,7 +17,7 @@ import type {
     StreamTextParams,
     StreamTextResultTyped,
     ToolCallSummary,
-} from '@/session';
+} from '../session/index.js';
 
 type DefaultOutput = OutputSpec<string, string>;
 

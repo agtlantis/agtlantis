@@ -9,7 +9,7 @@
  * @module pricing/defaults
  */
 
-import type { ModelPricing, PricingConfig, ProviderPricing } from './types';
+import type { ModelPricing, PricingConfig, ProviderPricing } from './types.js';
 
 /**
  * OpenAI model pricing.

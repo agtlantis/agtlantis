@@ -12,8 +12,8 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
-import { executeMultiTurnTestCase, type MultiTurnExecuteContext } from '@/multi-turn/runner'
-import type { EvalAgent } from '@/core/types'
+import { executeMultiTurnTestCase, type MultiTurnExecuteContext } from '../../../src/multi-turn/runner.js'
+import type { EvalAgent } from '../../../src/core/types.js'
 
 import {
   E2E_CONFIG,
@@ -22,7 +22,7 @@ import {
   createTestJudge,
   loadChatbotPrompt,
   createChatbotAgent,
-} from './setup'
+} from './setup.js'
 
 import {
   TERMINATION_DETECTION_CASES_MINIMAL,
@@ -30,7 +30,7 @@ import {
   TERMINATION_PASSWORD_RESET_CASE,
   type ChatbotInput,
   type ChatbotOutput,
-} from './fixtures/test-cases'
+} from './fixtures/test-cases.js'
 
 describe.skipIf(!E2E_CONFIG.enabled)('Real E2E: Termination Detection', () => {
   let agent: EvalAgent<ChatbotInput, ChatbotOutput>

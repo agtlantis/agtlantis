@@ -5,9 +5,9 @@
  */
 
 import path from 'node:path'
-import type { CostTracker, RoundCostEntry } from './types'
-import { E2E_PATHS } from './paths'
-import { E2E_CONFIG } from './config'
+import type { CostTracker, RoundCostEntry } from './types.js'
+import { E2E_PATHS } from './paths.js'
+import { E2E_CONFIG } from './config.js'
 
 /** Tracks costs per round with agent/judge/improver breakdown. */
 export function createCostTracker(): CostTracker {

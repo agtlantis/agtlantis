@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createMockAgent, createMockJudge } from '@/testing/mock-agent'
-import { EvalError, EvalErrorCode } from '@/core/errors'
-import type { MultiTurnTestCase } from './types'
-import { executeMultiTurnTestCase } from './runner'
+import { createMockAgent, createMockJudge } from '../testing/mock-agent.js'
+import { EvalError, EvalErrorCode } from '../core/errors.js'
+import type { MultiTurnTestCase } from './types.js'
+import { executeMultiTurnTestCase } from './runner.js'
 
 describe('executeMultiTurnTestCase', () => {
   describe('basic execution', () => {

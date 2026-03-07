@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createAbortScenario, createAlreadyAbortedSignal } from './helpers';
-import { allHostConfigs, type ExecutionHostTestConfig } from './host-configs';
+import { createAbortScenario, createAlreadyAbortedSignal } from './helpers.js';
+import { allHostConfigs, type ExecutionHostTestConfig } from './host-configs.js';
 
 vi.mock('ai', () => ({
   generateText: vi.fn(),

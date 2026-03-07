@@ -4,8 +4,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { existsSync, rmSync, readFileSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
-import { saveCycleJson } from './cycle-json'
-import type { ImprovementCycleResult } from '@/improvement-cycle/types'
+import { saveCycleJson } from './cycle-json.js'
+import type { ImprovementCycleResult } from '../improvement-cycle/types.js'
 
 const TEST_OUTPUT_DIR = path.join(__dirname, '../../test-output/cycle-json')
 

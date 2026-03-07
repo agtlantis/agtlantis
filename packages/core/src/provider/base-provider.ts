@@ -1,12 +1,12 @@
-import type { Logger } from '@/observability/logger';
-import type { ProviderPricing } from '@/pricing';
-import type { GenerationOptions } from '@/session';
-import type { SessionEvent, StreamingExecution, SimpleExecution, ExecutionOptions } from '../execution/types';
-import { StreamingExecutionHost } from '../execution/streaming-host';
-import { SimpleExecutionHost } from '../execution/simple-host';
-import type { SimpleSession } from '../session/simple-session';
-import type { StreamingSession } from '../session/streaming-session';
-import type { Provider } from './types';
+import type { Logger } from '../observability/logger.js';
+import type { ProviderPricing } from '../pricing/index.js';
+import type { GenerationOptions } from '../session/index.js';
+import type { SessionEvent, StreamingExecution, SimpleExecution, ExecutionOptions } from '../execution/types.js';
+import { StreamingExecutionHost } from '../execution/streaming-host.js';
+import { SimpleExecutionHost } from '../execution/simple-host.js';
+import type { SimpleSession } from '../session/simple-session.js';
+import type { StreamingSession } from '../session/streaming-session.js';
+import type { Provider } from './types.js';
 
 /**
  * Abstract base class for AI providers.

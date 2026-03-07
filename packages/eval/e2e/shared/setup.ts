@@ -15,21 +15,21 @@ import {
 } from '@agtlantis/core';
 import { describe } from 'vitest';
 
-import type { AgentPrompt, AgentResult, Criterion, EvalAgent, EvalTokenUsage } from '@/core/types';
-import { maxCost, maxRounds, targetScore } from '@/improvement-cycle/conditions';
-import type { CycleTerminationCondition } from '@/improvement-cycle/types';
-import { createImprover } from '@/improver/llm-improver';
-import { defaultImproverPrompt } from '@/improver/prompts/default';
-import type { Improver } from '@/improver/types';
-import { accuracy, relevance } from '@/judge/criteria';
-import { createJudge } from '@/judge/llm-judge';
-import { defaultJudgePrompt } from '@/judge/prompts/default';
-import type { Judge } from '@/judge/types';
+import type { AgentPrompt, AgentResult, Criterion, EvalAgent, EvalTokenUsage } from '../../src/core/types.js';
+import { maxCost, maxRounds, targetScore } from '../../src/improvement-cycle/conditions.js';
+import type { CycleTerminationCondition } from '../../src/improvement-cycle/types.js';
+import { createImprover } from '../../src/improver/llm-improver.js';
+import { defaultImproverPrompt } from '../../src/improver/prompts/default.js';
+import type { Improver } from '../../src/improver/types.js';
+import { accuracy, relevance } from '../../src/judge/criteria/index.js';
+import { createJudge } from '../../src/judge/llm-judge.js';
+import { defaultJudgePrompt } from '../../src/judge/prompts/default.js';
+import type { Judge } from '../../src/judge/types.js';
 // PromptRenderer is used via PromptTemplate.from().compile()
-import type { EvalPricingConfig } from '@/reporter/cost-helpers';
-import { extractJson } from '@/utils/json';
+import type { EvalPricingConfig } from '../../src/reporter/cost-helpers.js';
+import { extractJson } from '../../src/utils/json.js';
 
-import { E2E_CONFIG, validateE2EConfig } from './config';
+import { E2E_CONFIG, validateE2EConfig } from './config.js';
 
 const DEFAULT_MODEL = E2E_CONFIG.defaultModel;
 
@@ -45,7 +45,7 @@ export function toEvalTokenUsage(
     };
 }
 
-export { E2E_CONFIG } from './config';
+export { E2E_CONFIG } from './config.js';
 
 /**
  * Returns `describe` or `describe.skip` based on E2E_CONFIG.enabled.

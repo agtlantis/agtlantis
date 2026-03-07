@@ -1,15 +1,15 @@
 import type { LanguageModelUsage } from 'ai'
 import { calculateCostFromUsage } from '@agtlantis/core'
-import { createEvalSuite } from '@/core/suite'
-import { applyPromptSuggestions } from '@/improver/utils'
-import { calculateReportCosts, type EvalPricingConfig } from '@/reporter/cost-helpers'
-import type { EvalAgent, AgentPrompt, EvalTokenUsage } from '@/core/types'
-import type { EvalReport } from '@/reporter/types'
-import type { Suggestion, ImproveResult } from '@/improver/types'
+import { createEvalSuite } from '../core/suite.js'
+import { applyPromptSuggestions } from '../improver/utils.js'
+import { calculateReportCosts, type EvalPricingConfig } from '../reporter/cost-helpers.js'
+import type { EvalAgent, AgentPrompt, EvalTokenUsage } from '../core/types.js'
+import type { EvalReport } from '../reporter/types.js'
+import type { Suggestion, ImproveResult } from '../improver/types.js'
 
-import { createSession, serializePrompt, deserializePrompt } from './history'
-import type { ImprovementSession, SessionConfig } from './history'
-import { checkCycleTermination } from './conditions'
+import { createSession, serializePrompt, deserializePrompt } from './history.js'
+import type { ImprovementSession, SessionConfig } from './history.js'
+import { checkCycleTermination } from './conditions.js'
 import type {
   ImprovementCycleConfig,
   ImprovementCycleResult,
@@ -19,7 +19,7 @@ import type {
   RoundCost,
   CycleContext,
   SerializedPrompt,
-} from './types'
+} from './types.js'
 
 interface CycleState<TInput, TOutput> {
   currentPrompt: AgentPrompt<TInput>

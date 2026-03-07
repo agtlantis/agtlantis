@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { expectFileManagerInterface } from '@/testing';
+import { expectFileManagerInterface } from '../testing/index.js';
 
-import { FileError, FileErrorCode } from '../errors';
-import { NoOpFileManager } from './noop-file-manager';
-import type { FileSource } from './types';
+import { FileError, FileErrorCode } from '../errors/index.js';
+import { NoOpFileManager } from './noop-file-manager.js';
+import type { FileSource } from './types.js';
 
 describe('NoOpFileManager', () => {
     describe('upload', () => {

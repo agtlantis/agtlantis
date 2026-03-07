@@ -5,8 +5,8 @@
  * The agent attempts to extract structured data from natural language text.
  */
 
-import type { TestCase } from '@/core/types'
-import type { SchemaName } from './schema-definitions'
+import type { TestCase } from '../../../../src/core/types.js'
+import type { SchemaName } from './schema-definitions.js'
 
 // ============================================================================
 // Input Types

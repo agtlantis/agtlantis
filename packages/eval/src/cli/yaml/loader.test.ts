@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { EvalError, EvalErrorCode } from '@/core/errors.js'
+import { EvalError, EvalErrorCode } from '../../core/errors.js'
 import { mock } from '@agtlantis/core/testing'
 import {
   loadYamlEvalFile,

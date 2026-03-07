@@ -7,7 +7,7 @@ import {
   PromptIOError,
   PromptNotFoundError,
   PromptTemplateError,
-} from './errors';
+} from './errors.js';
 
 describe('PromptError', () => {
   describe('constructor', () => {

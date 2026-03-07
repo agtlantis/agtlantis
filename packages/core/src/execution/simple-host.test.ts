@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { Logger } from '@/observability/logger';
-import { SimpleSession } from '../session/simple-session';
-import { SessionSummary } from '../session/types';
-import { SimpleExecutionHost } from './simple-host';
-import { createSimpleSessionFactory } from './testing/fixtures';
-import { createMockLogger } from './testing/vitest-assertions';
+import type { Logger } from '../observability/logger.js';
+import { SimpleSession } from '../session/simple-session.js';
+import { SessionSummary } from '../session/types.js';
+import { SimpleExecutionHost } from './simple-host.js';
+import { createSimpleSessionFactory } from './testing/fixtures.js';
+import { createMockLogger } from './testing/vitest-assertions.js';
 
 vi.mock('ai', () => ({
   generateText: vi.fn(),

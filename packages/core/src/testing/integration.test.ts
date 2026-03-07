@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { CompletionEvent } from '@/execution/types';
-import { mock } from './mock';
+import type { CompletionEvent } from '../execution/types.js';
+import { mock } from './mock.js';
 
 interface ProgressEvent {
     type: 'progress';

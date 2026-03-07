@@ -1,5 +1,5 @@
 import { z, ZodError } from 'zod'
-import type { ValidatorCriterion, SchemaValidationResult } from '@/core/types.js'
+import type { ValidatorCriterion, SchemaValidationResult } from '../../core/types.js'
 import type { CriterionOptions } from './index.js'
 
 export interface SchemaOptions<T> extends CriterionOptions {

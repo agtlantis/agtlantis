@@ -12,7 +12,7 @@
  * - E2E_TIMEOUT: Request timeout in ms
  */
 
-import type { VerbosityLevel } from './types'
+import type { VerbosityLevel } from './types.js'
 
 export interface E2EConfig {
   enabled: boolean

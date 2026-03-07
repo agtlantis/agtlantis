@@ -1,4 +1,4 @@
-import type { ImprovementCycleResult, RoundResult } from '@/improvement-cycle/types'
+import type { ImprovementCycleResult, RoundResult } from '../../improvement-cycle/types.js'
 import { CLI_DEFAULTS } from '../constants.js'
 import { c } from './colors.js'
 

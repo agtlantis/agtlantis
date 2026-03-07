@@ -8,12 +8,12 @@ import {
   E2E_CONFIG,
   TEST_TIMEOUTS,
   createTempHistoryPath,
-} from './setup'
+} from './setup.js'
 import {
   e2e,
   MATH_TEST_CASES_MINIMAL,
   loadHistory,
-} from './test-helper'
+} from './test-helper.js'
 
 describe.skipIf(!E2E_CONFIG.enabled)('Real E2E: Cost Monitoring', () => {
   describe('Component-level cost tracking', () => {

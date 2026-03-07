@@ -1,3 +1,3 @@
-export * from './json'
-export * from './semaphore'
-export * from './condition-composites'
+export * from './json.js'
+export * from './semaphore.js'
+export * from './condition-composites.js'

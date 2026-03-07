@@ -6,9 +6,9 @@
  * These helpers are framework-agnostic (no vitest/jest dependency).
  */
 
-import type { SessionEvent, ExtractResult, EmittableEventInput } from '@/execution/types';
-import type { Logger } from '@/observability/logger';
-import type { SimpleSession } from '../../session/simple-session';
+import type { SessionEvent, ExtractResult, EmittableEventInput } from '../types.js';
+import type { Logger } from '../../observability/logger.js';
+import type { SimpleSession } from '../../session/simple-session.js';
 
 // ============================================================================
 // Types

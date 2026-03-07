@@ -8,7 +8,7 @@
  * - Consistent output format (structure)
  */
 
-import type { TestCase } from '@/core/types'
+import type { TestCase } from '../../../../src/core/types.js'
 
 // ============================================================================
 // Input/Output Types

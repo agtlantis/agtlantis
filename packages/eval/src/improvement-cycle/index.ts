@@ -21,7 +21,7 @@ export type {
   ImprovementCycleConfig,
   ImprovementCycleOptions,
   ImprovementCycleResult,
-} from './types'
+} from './types.js'
 
 // Type Guards
 export {
@@ -31,10 +31,10 @@ export {
   isMaxCostCondition,
   isCustomCycleCondition,
   isCycleTerminated,
-} from './types'
+} from './types.js'
 
 // Condition Utilities
-export { checkCycleCondition, checkCycleTermination } from './conditions'
+export { checkCycleCondition, checkCycleTermination } from './conditions.js'
 
 // Condition Factory Functions
 export {
@@ -46,17 +46,17 @@ export {
   and,
   or,
   not,
-} from './conditions'
+} from './conditions.js'
 
 // Runner
-export { runImprovementCycle, runImprovementCycleAuto } from './runner'
+export { runImprovementCycle, runImprovementCycleAuto } from './runner.js'
 
 // History / Persistence
 export type {
   HistoryStorage,
   ImprovementSession,
   SessionConfig,
-} from './history'
+} from './history.js'
 
 export {
   createSession,
@@ -66,4 +66,4 @@ export {
   serializePrompt,
   deserializePrompt,
   defaultHistoryStorage,
-} from './history'
+} from './history.js'

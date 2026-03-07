@@ -3,19 +3,19 @@ import type {
   EvalTestResult,
   TestCase,
   TestResultWithVerdict,
-} from './types'
-import type { Judge } from '@/judge/types'
-import type { Improver, AggregatedMetrics, Suggestion } from '@/improver/types'
-import type { EvalReport, ReportSummary } from '@/reporter/types'
-import { runWithConcurrency, type RunOptions } from './runner'
+} from './types.js'
+import type { Judge } from '../judge/types.js'
+import type { Improver, AggregatedMetrics, Suggestion } from '../improver/types.js'
+import type { EvalReport, ReportSummary } from '../reporter/types.js'
+import { runWithConcurrency, type RunOptions } from './runner.js'
 import {
   aggregateIterationResults,
   calculateAvgPassRate,
   calculateAvgStdDev,
-} from './iteration'
-import { EvalError, EvalErrorCode } from './errors'
+} from './iteration.js'
+import { EvalError, EvalErrorCode } from './errors.js'
 
-export type { RunOptions } from './runner'
+export type { RunOptions } from './runner.js'
 
 /**
  * Configuration for creating an EvalSuite.

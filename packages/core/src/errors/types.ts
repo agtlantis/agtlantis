@@ -1,4 +1,4 @@
-import { wrapAsError } from './utils';
+import { wrapAsError } from './utils.js';
 
 export enum ExecutionErrorCode {
   EXECUTION_ERROR = 'EXECUTION_ERROR',

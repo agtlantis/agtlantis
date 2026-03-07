@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deepMerge } from './deep-merge';
+import { deepMerge } from './deep-merge.js';
 
 describe('deepMerge', () => {
   it('returns empty object when no sources given', () => {

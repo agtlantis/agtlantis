@@ -4,9 +4,9 @@ import {
   createInvalidTestProvider,
   E2E_CONFIG,
 } from '@e2e/helpers';
-import { createLogger } from '@/observability/logger';
-import { ExecutionError, ExecutionErrorCode } from '@/errors';
-import type { ExecutionErrorEvent } from '@/observability';
+import { createLogger } from '../../src/observability/logger.js';
+import { ExecutionError, ExecutionErrorCode } from '../../src/errors/index.js';
+import type { ExecutionErrorEvent } from '../../src/observability/index.js';
 
 describeEachProvider('Error Recovery', (providerType) => {
   describe('Provider Error', () => {

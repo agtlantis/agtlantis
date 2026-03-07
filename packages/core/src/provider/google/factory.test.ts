@@ -6,8 +6,8 @@ import {
     type HarmCategory,
     type HarmBlockThreshold,
     type GoogleGenerativeAIProviderOptions,
-} from './factory';
-import { GoogleFileManager } from './file-manager';
+} from './factory.js';
+import { GoogleFileManager } from './file-manager.js';
 
 // Mock @ai-sdk/google
 const mockModel = { modelId: 'gemini-2.5-flash' };

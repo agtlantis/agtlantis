@@ -1,4 +1,4 @@
-import type { EvalTokenUsage } from '@/core/types'
+import type { EvalTokenUsage } from '../core/types.js'
 import {
   calculateCostFromUsage,
   type ProviderType,

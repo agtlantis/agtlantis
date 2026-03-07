@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { PromptTemplateError } from './errors';
-import { PromptTemplate } from './prompt-template';
-import { compileTemplate } from './template';
-import type { PromptTemplateData } from './types';
+import { PromptTemplateError } from './errors.js';
+import { PromptTemplate } from './prompt-template.js';
+import { compileTemplate } from './template.js';
+import type { PromptTemplateData } from './types.js';
 
 describe('compileTemplate', () => {
     describe('basic templating', () => {

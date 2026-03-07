@@ -1,4 +1,4 @@
-import type { Reporter, EvalReport } from './types'
+import type { Reporter, EvalReport } from './types.js'
 
 /**
  * Combines multiple reporters to save/log to multiple outputs.

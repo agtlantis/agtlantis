@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import type { TestCase } from './types'
+import type { TestCase } from './types.js'
 import {
   TestCaseCollection,
   testCase,
   testCases,
   type RandomOptions,
-} from './test-case-collection'
+} from './test-case-collection.js'
 
 interface TestInput {
   name: string

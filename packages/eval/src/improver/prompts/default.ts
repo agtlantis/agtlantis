@@ -1,6 +1,6 @@
-import { truncate } from '@/utils/json';
+import { truncate } from '../../utils/json.js';
 
-import type { ImproverContext, ImproverPrompt } from '../types';
+import type { ImproverContext, ImproverPrompt } from '../types.js';
 
 export const defaultImproverPrompt: ImproverPrompt = {
     id: 'default-improver',

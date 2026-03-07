@@ -1,8 +1,8 @@
 /**
  * Q&A Agent - 프롬프트 정의
  */
-import type { AgentPrompt } from '../../src/index';
-import type { QAInput, QAOutput } from './types';
+import type { AgentPrompt } from '../../src/index.js';
+import type { QAInput, QAOutput } from './types.js';
 
 /**
  * Q&A Agent 프롬프트

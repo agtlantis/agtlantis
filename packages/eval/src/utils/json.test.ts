@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extractJson, truncate } from './json'
+import { extractJson, truncate } from './json.js'
 
 describe('extractJson', () => {
   describe('raw JSON', () => {

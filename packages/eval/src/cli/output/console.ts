@@ -1,4 +1,4 @@
-import type { EvalReport } from '@/reporter/types'
+import type { EvalReport } from '../../reporter/types.js'
 import { CLI_DEFAULTS } from '../constants.js'
 import { c } from './colors.js'
 

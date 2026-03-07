@@ -26,8 +26,8 @@ import {
   relevance,
   reportToMarkdown,
   type TestCase,
-} from '../src/index'
-import { createQAAgent, type QAInput } from './qa-agent/agent'
+} from '../src/index.js'
+import { createQAAgent, type QAInput } from './qa-agent/agent.js'
 
 // ============================================================================
 // 1. 환경 설정

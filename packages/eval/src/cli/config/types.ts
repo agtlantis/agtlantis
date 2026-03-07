@@ -11,15 +11,15 @@ import type {
   Criterion,
   ValidatorCriterion,
   FileContent,
-} from '@/core/types'
-import type { JudgePrompt } from '@/judge/types'
-import type { ImproverPrompt } from '@/improver/types'
-import type { EvalPricingConfig } from '@/reporter/cost-helpers'
+} from '../../core/types.js'
+import type { JudgePrompt } from '../../judge/types.js'
+import type { ImproverPrompt } from '../../improver/types.js'
+import type { EvalPricingConfig } from '../../reporter/cost-helpers.js'
 import type {
   MultiTurnTestCase,
   TerminationCondition,
   FollowUpInput,
-} from '@/multi-turn/types'
+} from '../../multi-turn/types.js'
 
 /**
  * LLM provider configuration.

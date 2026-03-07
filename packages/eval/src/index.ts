@@ -44,13 +44,13 @@ export {
     type EvalSuiteConfig,
     type EvalSuite,
     type RunOptions,
-} from '@/core/suite';
+} from './core/suite.js';
 
 // ============================================================================
 // Runner - Low-level Execution
 // ============================================================================
 
-export { executeTestCase, runWithConcurrency, type ExecuteContext } from '@/core/runner';
+export { executeTestCase, runWithConcurrency, type ExecuteContext } from './core/runner.js';
 
 // ============================================================================
 // Core Types
@@ -100,7 +100,7 @@ export type {
     // File context types (Phase 5.3)
     FileContent,
     FileContentMetadata,
-} from '@/core/types';
+} from './core/types.js';
 
 export {
     toEvalAgent,
@@ -108,7 +108,7 @@ export {
     isSingleTurnResult,
     isMultiTurnResult,
     isIteratedResult,
-} from '@/core/types';
+} from './core/types.js';
 
 // ============================================================================
 // FileSource (Embedded Files in Input)
@@ -153,13 +153,13 @@ export {
     aggregateIterationResults,
     calculateAvgStdDev,
     calculateAvgPassRate,
-} from '@/core/iteration';
+} from './core/iteration.js';
 
 // ============================================================================
 // Errors
 // ============================================================================
 
-export { EvalError, EvalErrorCode, type EvalErrorOptions } from '@/core/errors';
+export { EvalError, EvalErrorCode, type EvalErrorOptions } from './core/errors.js';
 
 // ============================================================================
 // Judge
@@ -182,7 +182,7 @@ export {
     // Context-based API types (Phase 5.3)
     type EvalContext,
     type JudgeResult,
-} from '@/judge/index';
+} from './judge/index.js';
 
 // ============================================================================
 // Reporter
@@ -193,9 +193,9 @@ export type {
     ReportSummary,
     ReportMarkdownOptions,
     ReportComparison,
-} from '@/reporter/types';
+} from './reporter/types.js';
 
-export { reportToMarkdown, saveReportMarkdown, compareReports } from '@/reporter/markdown';
+export { reportToMarkdown, saveReportMarkdown, compareReports } from './reporter/markdown.js';
 
 // Reporter classes
 export {
@@ -204,7 +204,7 @@ export {
     ConsoleReporter,
     CompositeReporter,
     type MarkdownReporterOptions,
-} from '@/reporter';
+} from './reporter/index.js';
 
 // Reporter factory functions
 export {
@@ -213,10 +213,10 @@ export {
     createConsoleReporter,
     createCompositeReporter,
     createDefaultReporter,
-} from '@/reporter';
+} from './reporter/index.js';
 
 // Report runner (convenience wrapper)
-export { createReportRunner, type ReportRunnerOptions } from '@/reporter';
+export { createReportRunner, type ReportRunnerOptions } from './reporter/index.js';
 
 // Reporter types
 export type {
@@ -224,7 +224,7 @@ export type {
     FileReporterOptions,
     ConsoleReporterOptions,
     LogVerbosity,
-} from '@/reporter';
+} from './reporter/index.js';
 
 // ImprovementCycleResult helpers
 export {
@@ -235,7 +235,7 @@ export {
     type SaveCycleJsonOptions,
     type LogCycleOptions,
     type CycleMarkdownOptions,
-} from '@/reporter';
+} from './reporter/index.js';
 
 // ============================================================================
 // Improver
@@ -260,7 +260,7 @@ export {
     type ApplySuggestionsResult,
     // Phase 10 - ImproveResult with metadata
     type ImproveResult,
-} from '@/improver/index';
+} from './improver/index.js';
 
 // ============================================================================
 // Testing Utilities
@@ -278,7 +278,7 @@ export {
     type MockAgentConfig,
     type MockJudgeConfig,
     type MockImproverConfig,
-} from '@/testing/mock-agent';
+} from './testing/mock-agent.js';
 
 // ============================================================================
 // Prompt (from @agtlantis/core)
@@ -315,7 +315,7 @@ export type {
     TerminationCondition,
     MultiTurnExecuteContext,
     MultiTurnExecuteOptions,
-} from '@/multi-turn/index';
+} from './multi-turn/index.js';
 
 // Type guards
 export {
@@ -325,10 +325,10 @@ export {
     isMaxTurnsCondition,
     isMultiTurnTestCase,
     isTerminated,
-} from '@/multi-turn/index';
+} from './multi-turn/index.js';
 
 // Termination utilities
-export { checkCondition, checkTermination, getFieldValue } from '@/multi-turn/index';
+export { checkCondition, checkTermination, getFieldValue } from './multi-turn/index.js';
 
 // Condition factory functions
 export {
@@ -339,13 +339,13 @@ export {
     naturalLanguage,
     not,
     or,
-} from '@/multi-turn/index';
+} from './multi-turn/index.js';
 
 // Runner
-export { executeMultiTurnTestCase } from '@/multi-turn/index';
+export { executeMultiTurnTestCase } from './multi-turn/index.js';
 
 // AI User
-export { aiUser, type AIUserOptions } from '@/multi-turn/index';
+export { aiUser, type AIUserOptions } from './multi-turn/index.js';
 
 // ============================================================================
 // Cost Calculation (re-export from reporter/cost-helpers)
@@ -360,7 +360,7 @@ export {
     type MetricsWithCost,
     type TestResultWithCost,
     type EvalPricingConfig,
-} from '@/reporter/cost-helpers';
+} from './reporter/cost-helpers.js';
 
 // Re-export core pricing utilities for convenience
 export {
@@ -389,9 +389,9 @@ export {
     type CLITestCase,
     type CLISingleTurnTestCase,
     type CLIMultiTurnTestCase,
-} from '@/cli/config/types';
+} from './cli/config/types.js';
 
-export { discoverEvalFiles, type DiscoverOptions } from '@/cli/config/loader';
+export { discoverEvalFiles, type DiscoverOptions } from './cli/config/loader.js';
 
 // ============================================================================
 // Improvement Cycle (Automated Prompt Refinement)
@@ -428,7 +428,7 @@ export type {
     HistoryStorage,
     ImprovementSession,
     SessionConfig,
-} from '@/improvement-cycle';
+} from './improvement-cycle/index.js';
 
 // Type guards
 export {
@@ -438,10 +438,10 @@ export {
     isMaxCostCondition,
     isCustomCycleCondition,
     isCycleTerminated,
-} from '@/improvement-cycle';
+} from './improvement-cycle/index.js';
 
 // Condition utilities
-export { checkCycleCondition, checkCycleTermination } from '@/improvement-cycle';
+export { checkCycleCondition, checkCycleTermination } from './improvement-cycle/index.js';
 
 // Condition factory functions
 export {
@@ -454,10 +454,10 @@ export {
     and as cycleAnd,
     or as cycleOr,
     not as cycleNot,
-} from '@/improvement-cycle';
+} from './improvement-cycle/index.js';
 
 // Runner
-export { runImprovementCycle, runImprovementCycleAuto } from '@/improvement-cycle';
+export { runImprovementCycle, runImprovementCycleAuto } from './improvement-cycle/index.js';
 
 // History/Persistence
 export {
@@ -468,7 +468,7 @@ export {
     serializePrompt,
     deserializePrompt,
     defaultHistoryStorage,
-} from '@/improvement-cycle';
+} from './improvement-cycle/index.js';
 
 // ============================================================================
 // Test Case Utilities
@@ -479,4 +479,4 @@ export {
     testCase,
     testCases,
     type RandomOptions,
-} from '@/core/test-case-collection';
+} from './core/test-case-collection.js';

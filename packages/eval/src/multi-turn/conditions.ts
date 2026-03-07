@@ -1,14 +1,14 @@
 import type { Provider } from '@agtlantis/core';
-import { truncate } from '@/utils/json';
-import { checkCondition } from './termination';
-import type { ConversationContext, CustomCondition, TerminationCondition } from './types';
+import { truncate } from '../utils/json.js';
+import { checkCondition } from './termination.js';
+import type { ConversationContext, CustomCondition, TerminationCondition } from './types.js';
 
 import {
     createAndCheck,
     createOrCheck,
     createNotCheck,
     formatCompositeDescription,
-} from '../utils/condition-composites';
+} from '../utils/condition-composites.js';
 
 export interface NaturalLanguageConditionOptions {
     /** Provider to use for evaluation */

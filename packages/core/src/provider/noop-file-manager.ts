@@ -1,5 +1,5 @@
-import { FileError, FileErrorCode } from '../errors';
-import type { FileManager, FileSource, UploadedFile } from './types';
+import { FileError, FileErrorCode } from '../errors/index.js';
+import type { FileManager, FileSource, UploadedFile } from './types.js';
 
 /** FileManager for providers without file upload support (throws on upload/delete) */
 export class NoOpFileManager implements FileManager {

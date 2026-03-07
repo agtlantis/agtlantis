@@ -7,8 +7,8 @@ import type {
     CompletionEvent,
     ErrorEvent,
     ExtractResult,
-} from './types';
-import { normalizeError } from './shared';
+} from './types.js';
+import { normalizeError } from './shared.js';
 
 export type ReplaceResult<TEvent extends { type: string }, U> =
     | Exclude<TEvent, { type: 'complete' }>

@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs'
-import type { Reporter, FileReporterOptions, EvalReport } from './types'
-import { calculateReportCosts, type CostSummary, type EvalPricingConfig } from './cost-helpers'
-import { buildOutputPath } from './format-utils'
+import type { Reporter, FileReporterOptions, EvalReport } from './types.js'
+import { calculateReportCosts, type CostSummary, type EvalPricingConfig } from './cost-helpers.js'
+import { buildOutputPath } from './format-utils.js'
 
 interface SerializedReport<TInput, TOutput> {
   summary: EvalReport<TInput, TOutput>['summary']

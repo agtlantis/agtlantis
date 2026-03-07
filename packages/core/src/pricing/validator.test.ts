@@ -3,7 +3,7 @@ import {
   validateModelPricing,
   validatePricingConfig,
   validateProviderPricing,
-} from './validator';
+} from './validator.js';
 
 describe('validateModelPricing', () => {
   describe('valid pricing', () => {

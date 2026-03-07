@@ -5,9 +5,9 @@
  */
 import type { Provider } from '@agtlantis/core';
 
-import type { AgentResult, EvalAgent } from '../../src/index';
-import { qaAgentPrompt } from './prompt';
-import type { QAInput, QAOutput } from './types';
+import type { AgentResult, EvalAgent } from '../../src/index.js';
+import { qaAgentPrompt } from './prompt.js';
+import type { QAInput, QAOutput } from './types.js';
 
 /**
  * Q&A Agent 생성
@@ -90,4 +90,4 @@ export function createQAAgent(provider: Provider): EvalAgent<QAInput, QAOutput> 
 }
 
 // Re-export types for convenience
-export type { QAInput, QAOutput } from './types';
+export type { QAInput, QAOutput } from './types.js';

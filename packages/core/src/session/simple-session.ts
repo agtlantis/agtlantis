@@ -7,12 +7,12 @@ import type {
   LanguageModelUsage,
   ToolSet,
 } from 'ai';
-import { deepMerge } from '@/utils/deep-merge';
-import type { Logger } from '@/observability/logger';
-import { noopLogger } from '@/observability/logger';
-import type { FileManager } from '@/provider/types';
-import type { ProviderType, ProviderPricing } from '@/pricing/types';
-import { calculateTotalCost } from '@/pricing/calculator';
+import { deepMerge } from '../utils/deep-merge.js';
+import type { Logger } from '../observability/logger.js';
+import { noopLogger } from '../observability/logger.js';
+import type { FileManager } from '../provider/types.js';
+import type { ProviderType, ProviderPricing } from '../pricing/types.js';
+import { calculateTotalCost } from '../pricing/calculator.js';
 import {
   SessionSummary,
   type DefaultOutput,
@@ -26,8 +26,8 @@ import {
   type ToolCallSummary,
   type OutputSpec,
   type AdditionalCost,
-} from './types';
-import { mergeUsages, createZeroUsage } from './usage-extractors';
+} from './types.js';
+import { mergeUsages, createZeroUsage } from './usage-extractors.js';
 
 /**
  * Provider-specific options type.

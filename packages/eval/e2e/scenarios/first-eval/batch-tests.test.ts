@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
-import { createEvalSuite } from '@/core/suite'
-import type { EvalAgent } from '@/core/types'
+import { createEvalSuite } from '../../../src/core/suite.js'
+import type { EvalAgent } from '../../../src/core/types.js'
 import {
   E2E_CONFIG,
   TEST_TIMEOUTS,
@@ -16,8 +16,8 @@ import {
   createLLMAgent,
   loadPromptFixture,
   runAndSave,
-} from './setup'
-import { GREETING_TEST_CASES, type GreetingInput } from './fixtures/test-cases'
+} from './setup.js'
+import { GREETING_TEST_CASES, type GreetingInput } from './fixtures/test-cases.js'
 
 describe.skipIf(!E2E_CONFIG.enabled)('First Evaluation: Batch Tests', () => {
   let agent: EvalAgent<GreetingInput, string>

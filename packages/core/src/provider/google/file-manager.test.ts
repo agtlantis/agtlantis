@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FileError, FileErrorCode } from '../../errors';
-import type { FileCache, FileSource, UploadedFile } from '../types';
-import { GoogleFileManager } from './file-manager';
+import { FileError, FileErrorCode } from '../../errors/index.js';
+import type { FileCache, FileSource, UploadedFile } from '../types.js';
+import { GoogleFileManager } from './file-manager.js';
 
 // Mock hash computation to avoid file system access in tests
 vi.mock('../hash', () => ({

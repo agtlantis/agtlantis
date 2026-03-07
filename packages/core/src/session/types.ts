@@ -14,9 +14,9 @@ import type {
   ToolSet,
 } from 'ai';
 
-import type { ExecutionMetadata } from '@/observability/types';
-import type { ProviderType } from '@/pricing/types';
-import { createZeroUsage } from './usage-extractors';
+import type { ExecutionMetadata } from '../observability/types.js';
+import type { ProviderType } from '../pricing/types.js';
+import { createZeroUsage } from './usage-extractors.js';
 
 /**
  * Standard AI SDK generation parameters that can be set as defaults at the Provider level.

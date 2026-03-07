@@ -17,7 +17,7 @@ import {
   E2E_CONFIG,
   E2E_PATHS,
   createTestDirectory,
-} from './setup'
+} from './setup.js'
 
 const REAL_LLM_ENV = { GOOGLE_API_KEY: process.env.GOOGLE_API_KEY ?? '' }
 const CONFIG_PATH = join(CLI_FIXTURES_DIR, 'improve-config.ts')

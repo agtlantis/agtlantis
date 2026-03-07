@@ -1,4 +1,4 @@
-import type { AgtlantisError, AgtlantisErrorCode, AgtlantisErrorOptions } from './types';
+import type { AgtlantisError, AgtlantisErrorCode, AgtlantisErrorOptions } from './types.js';
 
 /**
  * Wraps an unknown error as a specific AgtlantisError subclass.

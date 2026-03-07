@@ -1,4 +1,4 @@
-import type { JudgeContext, JudgePrompt } from '../types';
+import type { JudgeContext, JudgePrompt } from '../types.js';
 
 export const defaultJudgePrompt: JudgePrompt = {
     id: 'default-judge',

@@ -1,14 +1,14 @@
 import { createOpenAI, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
-import type { FileCache } from '../types';
-import type { Logger } from '@/observability/logger';
-import { noopLogger } from '@/observability/logger';
-import type { ProviderPricing } from '@/pricing';
-import { validateProviderPricing } from '@/pricing';
-import type { GenerationOptions } from '@/session';
-import { NoOpFileManager } from '../noop-file-manager';
-import { SimpleSession } from '@/session/simple-session';
-import { StreamingSession } from '@/session/streaming-session';
-import { BaseProvider } from '../base-provider';
+import type { FileCache } from '../types.js';
+import type { Logger } from '../../observability/logger.js';
+import { noopLogger } from '../../observability/logger.js';
+import type { ProviderPricing } from '../../pricing/index.js';
+import { validateProviderPricing } from '../../pricing/index.js';
+import type { GenerationOptions } from '../../session/index.js';
+import { NoOpFileManager } from '../noop-file-manager.js';
+import { SimpleSession } from '../../session/simple-session.js';
+import { StreamingSession } from '../../session/streaming-session.js';
+import { BaseProvider } from '../base-provider.js';
 
 export interface OpenAIProviderConfig {
     apiKey: string;

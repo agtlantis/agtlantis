@@ -5,15 +5,15 @@ import { dirname } from 'node:path';
 
 import { compileTemplate } from '@agtlantis/core';
 
-import { EvalError, EvalErrorCode } from '@/core/errors';
-import type { AgentPrompt } from '@/core/types';
+import { EvalError, EvalErrorCode } from '../core/errors.js';
+import type { AgentPrompt } from '../core/types.js';
 
 import type {
     ImprovementHistory,
     RoundResult,
     SerializedPrompt,
     SerializedRoundResult,
-} from './types';
+} from './types.js';
 
 /** Storage abstraction for testability - allows injecting mock storage */
 export interface HistoryStorage {

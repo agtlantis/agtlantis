@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { JudgeContext } from '../types';
-import { defaultJudgePrompt } from './default';
+import type { JudgeContext } from '../types.js';
+import { defaultJudgePrompt } from './default.js';
 
 describe('defaultJudgePrompt', () => {
     describe('static properties', () => {

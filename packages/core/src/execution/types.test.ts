@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { Execution, StreamingExecution, ExecutionResult, StreamingResult, CompletionEvent, SessionEvent, ErrorEvent } from './types';
-import type { EventMetrics } from '@/observability';
-import { createMockSessionSummary } from '@/testing';
+import type { Execution, StreamingExecution, ExecutionResult, StreamingResult, CompletionEvent, SessionEvent, ErrorEvent } from './types.js';
+import type { EventMetrics } from '../observability/index.js';
+import { createMockSessionSummary } from '../testing/index.js';
 
 const mockSummary = createMockSessionSummary({ totalDuration: 100 });
 

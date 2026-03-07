@@ -3,8 +3,8 @@
  *
  * Provides a rich object for prompt templates with compilation capabilities.
  */
-import { compileTemplate } from './template';
-import type { PromptRenderer, PromptTemplateData } from './types';
+import { compileTemplate } from './template.js';
+import type { PromptRenderer, PromptTemplateData } from './types.js';
 
 /**
  * Prompt template with compilation capabilities.

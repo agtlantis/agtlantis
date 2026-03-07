@@ -21,15 +21,15 @@
 
 import type { LanguageModel } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import type { Logger } from '@/observability/logger';
-import { noopLogger } from '@/observability/logger';
-import type { ProviderPricing } from '@/pricing';
-import { BaseProvider } from '@/provider/base-provider';
-import type { GenerationOptions } from '@/session';
-import { SimpleSession } from '@/session/simple-session';
-import { StreamingSession } from '@/session/streaming-session';
-import { NoOpFileManager } from '@/provider/noop-file-manager';
-import type { FileManager } from '@/provider/types';
+import type { Logger } from '../observability/logger.js';
+import { noopLogger } from '../observability/logger.js';
+import type { ProviderPricing } from '../pricing/index.js';
+import { BaseProvider } from '../provider/base-provider.js';
+import type { GenerationOptions } from '../session/index.js';
+import { SimpleSession } from '../session/simple-session.js';
+import { StreamingSession } from '../session/streaming-session.js';
+import { NoOpFileManager } from '../provider/noop-file-manager.js';
+import type { FileManager } from '../provider/types.js';
 
 export type ModelFactory = (modelId: string) => MockLanguageModelV3;
 

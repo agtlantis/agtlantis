@@ -45,13 +45,13 @@ import {
   suggestionPreview,
   type Suggestion,
   type TestResultWithIteration,
-} from '../src/index'
+} from '../src/index.js'
 import {
   createBookingAgent,
   type BookingInput,
   type BookingOutput,
   type ConversationMessage,
-} from './multi-turn-agent/agent'
+} from './multi-turn-agent/agent.js'
 
 // ============================================================================
 // 1. Environment Setup

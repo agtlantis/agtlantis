@@ -13,10 +13,10 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
-import { executeMultiTurnTestCase, type MultiTurnExecuteContext } from '@/multi-turn/runner'
-import { aiUser, type AIUserOptions } from '@/multi-turn/ai-user'
-import type { MultiTurnTestCase } from '@/multi-turn/types'
-import type { EvalAgent } from '@/core/types'
+import { executeMultiTurnTestCase, type MultiTurnExecuteContext } from '../../../src/multi-turn/runner.js'
+import { aiUser, type AIUserOptions } from '../../../src/multi-turn/ai-user.js'
+import type { MultiTurnTestCase } from '../../../src/multi-turn/types.js'
+import type { EvalAgent } from '../../../src/core/types.js'
 import type { Provider } from '@agtlantis/core'
 
 import {
@@ -26,9 +26,9 @@ import {
   createTestJudge,
   loadChatbotPrompt,
   createChatbotAgent,
-} from './setup'
+} from './setup.js'
 
-import type { ChatbotInput, ChatbotOutput } from './fixtures/test-cases'
+import type { ChatbotInput, ChatbotOutput } from './fixtures/test-cases.js'
 
 describe.skipIf(!E2E_CONFIG.enabled)('Real E2E: Dynamic Conversation (aiUser)', () => {
   let provider: Provider

@@ -12,7 +12,7 @@ export type {
   TerminatedResult,
   TerminationCheckResult,
   TerminationCondition,
-} from './types'
+} from './types.js'
 
 export {
   isCustomCondition,
@@ -21,9 +21,9 @@ export {
   isMaxTurnsCondition,
   isMultiTurnTestCase,
   isTerminated,
-} from './types'
+} from './types.js'
 
-export { checkCondition, checkTermination, getFieldValue } from './termination'
+export { checkCondition, checkTermination, getFieldValue } from './termination.js'
 
 export {
   afterTurns,
@@ -33,10 +33,10 @@ export {
   naturalLanguage,
   not,
   or,
-} from './conditions'
-export type { NaturalLanguageConditionOptions } from './conditions'
+} from './conditions.js'
+export type { NaturalLanguageConditionOptions } from './conditions.js'
 
-export type { MultiTurnExecuteContext, MultiTurnExecuteOptions } from './runner'
-export { executeMultiTurnTestCase } from './runner'
+export type { MultiTurnExecuteContext, MultiTurnExecuteOptions } from './runner.js'
+export { executeMultiTurnTestCase } from './runner.js'
 
-export { aiUser, type AIUserOptions } from './ai-user'
+export { aiUser, type AIUserOptions } from './ai-user.js'

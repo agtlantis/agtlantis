@@ -1,6 +1,6 @@
-import type { ReadonlyValidationHistory, ValidationOptions } from './types';
-import { ValidationHistory } from './validation-history';
-import { ValidationExhaustedError } from './errors';
+import type { ReadonlyValidationHistory, ValidationOptions } from './types.js';
+import { ValidationHistory } from './validation-history.js';
+import { ValidationExhaustedError } from './errors.js';
 
 /**
  * Wraps an async operation with validation and retry logic.

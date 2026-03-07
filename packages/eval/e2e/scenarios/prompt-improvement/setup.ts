@@ -29,21 +29,21 @@ import {
     createTestImprover,
     createTestJudge,
     logEvalReportIO,
-} from '@e2e/shared';
+} from '../../shared/index.js';
 
-import { createEvalSuite } from '@/core/suite';
-import type { AgentPrompt } from '@/core/types';
-import type { EvalAgent } from '@/core/types';
-import { maxCost, maxRounds, targetScore } from '@/improvement-cycle/conditions';
-import { runImprovementCycleAuto } from '@/improvement-cycle/runner';
-import type { CycleTerminationCondition, ImprovementCycleConfig } from '@/improvement-cycle/types';
-import type { Improver } from '@/improver/types';
-import { accuracy, stepByStep } from '@/judge/criteria';
-import { createJudge } from '@/judge/llm-judge';
-import { defaultJudgePrompt } from '@/judge/prompts/default';
-import type { Judge } from '@/judge/types';
+import { createEvalSuite } from '../../../src/core/suite.js';
+import type { AgentPrompt } from '../../../src/core/types.js';
+import type { EvalAgent } from '../../../src/core/types.js';
+import { maxCost, maxRounds, targetScore } from '../../../src/improvement-cycle/conditions.js';
+import { runImprovementCycleAuto } from '../../../src/improvement-cycle/runner.js';
+import type { CycleTerminationCondition, ImprovementCycleConfig } from '../../../src/improvement-cycle/types.js';
+import type { Improver } from '../../../src/improver/types.js';
+import { accuracy, stepByStep } from '../../../src/judge/criteria/index.js';
+import { createJudge } from '../../../src/judge/llm-judge.js';
+import { defaultJudgePrompt } from '../../../src/judge/prompts/default.js';
+import type { Judge } from '../../../src/judge/types.js';
 
-import type { MathInput, MathOutput } from './fixtures/test-cases';
+import type { MathInput, MathOutput } from './fixtures/test-cases.js';
 
 // ============================================================================
 // Shared Infrastructure Re-exports
@@ -68,9 +68,9 @@ export {
     saveEvalReport,
     E2E_PATHS,
     createSubdir,
-} from '@e2e/shared';
+} from '../../shared/index.js';
 
-export type { VerbosityLevel } from '@e2e/shared';
+export type { VerbosityLevel } from '../../shared/index.js';
 
 // ============================================================================
 // Local Constants

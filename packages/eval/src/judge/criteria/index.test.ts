@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { accuracy, consistency, relevance } from './index'
-import type { Criterion } from '@/core/types'
+import { accuracy, consistency, relevance } from './index.js'
+import type { Criterion } from '../../core/types.js'
 
 describe('criteria factory functions', () => {
   describe('accuracy', () => {

@@ -3,9 +3,9 @@ import path from 'node:path';
 import { GoogleGenAI } from '@google/genai';
 import type { FilePart, ImagePart } from 'ai';
 
-import { FileError, FileErrorCode } from '../../errors';
-import { computeFileSourceHash } from '../hash';
-import type { FileCache, FileManager, FileManagerOptions, FileSource, UploadedFile } from '../types';
+import { FileError, FileErrorCode } from '../../errors/index.js';
+import { computeFileSourceHash } from '../hash.js';
+import type { FileCache, FileManager, FileManagerOptions, FileSource, UploadedFile } from '../types.js';
 
 interface GoogleFileUploadResponse {
     name?: string;

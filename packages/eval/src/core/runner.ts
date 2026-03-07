@@ -1,15 +1,15 @@
 import { resolveFileSourcesInInput } from '@agtlantis/core';
 
-import type { Judge } from '@/judge/types';
+import type { Judge } from '../judge/types.js';
 import {
     type MultiTurnTestResult,
     executeMultiTurnTestCase,
     isMultiTurnTestCase,
-} from '@/multi-turn';
-import { createSemaphore } from '@/utils/semaphore';
+} from '../multi-turn/index.js';
+import { createSemaphore } from '../utils/semaphore.js';
 
-import { ZERO_TOKEN_USAGE } from './constants';
-import { EvalError, EvalErrorCode } from './errors';
+import { ZERO_TOKEN_USAGE } from './constants.js';
+import { EvalError, EvalErrorCode } from './errors.js';
 import type {
     EvalAgent,
     EvalTestResult,
@@ -20,7 +20,7 @@ import type {
     TestCase,
     TestResult,
     TestResultWithVerdict,
-} from './types';
+} from './types.js';
 
 /**
  * Options for running test cases.

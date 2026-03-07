@@ -2,7 +2,7 @@ import type {
   ValidationResult,
   ValidationAttempt,
   ReadonlyValidationHistory,
-} from './types';
+} from './types.js';
 
 export class ValidationHistory<TResult>
   implements ReadonlyValidationHistory<TResult>

@@ -1,11 +1,11 @@
-export * from './types';
-export type { GenerationOptions } from './types';
+export * from './types.js';
+export type { GenerationOptions } from './types.js';
 
-export type { ProviderType } from './usage-extractors';
+export type { ProviderType } from './usage-extractors.js';
 
-export { mergeUsages, createZeroUsage, detectProviderType } from './usage-extractors';
+export { mergeUsages, createZeroUsage, detectProviderType } from './usage-extractors.js';
 
-export { SimpleSession, type SimpleSessionOptions } from './simple-session';
+export { SimpleSession, type SimpleSessionOptions } from './simple-session.js';
 
 export {
     StreamingSession,
@@ -13,4 +13,4 @@ export {
     type StreamingSessionOptions,
     type CreateStreamingSessionOptions,
     type StreamingSessionInternal,
-} from './streaming-session';
+} from './streaming-session.js';

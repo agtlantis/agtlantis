@@ -1,9 +1,9 @@
 import { writeFileSync } from 'node:fs';
 
-import type { ImprovementCycleResult } from '@/improvement-cycle/types';
+import type { ImprovementCycleResult } from '../improvement-cycle/types.js';
 
-import { formatScoreDelta } from './format-utils';
-import { reportToMarkdown } from './markdown';
+import { formatScoreDelta } from './format-utils.js';
+import { reportToMarkdown } from './markdown.js';
 
 /**
  * Options for generating cycle markdown.

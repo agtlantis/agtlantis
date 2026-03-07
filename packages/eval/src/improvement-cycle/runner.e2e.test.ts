@@ -18,10 +18,10 @@ import type {
     SingleTurnResult,
     TestCase,
     Verdict,
-} from '@/core/types';
-import type { AggregatedMetrics, ImproveResult, Improver, Suggestion } from '@/improver/types';
-import type { Judge } from '@/judge/types';
-import type { EvalReport, ReportSummary } from '@/reporter/types';
+} from '../core/types.js';
+import type { AggregatedMetrics, ImproveResult, Improver, Suggestion } from '../improver/types.js';
+import type { Judge } from '../judge/types.js';
+import type { EvalReport, ReportSummary } from '../reporter/types.js';
 
 import {
     and,
@@ -32,14 +32,14 @@ import {
     not,
     or,
     targetScore,
-} from './conditions';
-import { runImprovementCycle, runImprovementCycleAuto } from './runner';
+} from './conditions.js';
+import { runImprovementCycle, runImprovementCycleAuto } from './runner.js';
 import type {
     ImprovementCycleConfig,
     ImprovementCycleResult,
     RoundDecision,
     RoundYield,
-} from './types';
+} from './types.js';
 
 // =============================================================================
 // Test Types
@@ -836,7 +836,7 @@ describe('E2E: Cost Tracking', () => {
 
 describe('E2E: Error Scenarios', () => {
     it('should handle execution error gracefully and propagate', async () => {
-        const { createEvalSuite } = await import('@/core/suite');
+        const { createEvalSuite } = await import('../core/suite.js');
         vi.mocked(createEvalSuite).mockImplementationOnce(() => ({
             run: vi.fn().mockRejectedValue(new Error('Suite execution failed')),
             withAgent: vi.fn(),

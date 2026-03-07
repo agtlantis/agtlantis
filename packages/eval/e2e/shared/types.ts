@@ -4,8 +4,8 @@
  * Common type definitions for E2E testing infrastructure.
  */
 
-import type { Suggestion } from '@/improver/types'
-import type { RoundYield, ImprovementCycleResult } from '@/improvement-cycle/types'
+import type { Suggestion } from '../../src/improver/types.js'
+import type { RoundYield, ImprovementCycleResult } from '../../src/improvement-cycle/types.js'
 
 /** 'summary' = one line/round, 'detailed' = cost breakdown, 'full' = actual I/O */
 export type VerbosityLevel = 'summary' | 'detailed' | 'full'

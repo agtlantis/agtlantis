@@ -7,14 +7,14 @@ import type {
     ErrorEvent,
     SessionEvent,
     SimpleResult,
-} from './types';
+} from './types.js';
 import {
     createTestExecution,
     createTestErrorExecution,
     createTestCanceledExecution,
-} from '@/testing/test-execution';
-import { SessionSummary } from '@/session/types';
-import { mapExecution, mapExecutionResult } from './mapping';
+} from '../testing/test-execution.js';
+import { SessionSummary } from '../session/types.js';
+import { mapExecution, mapExecutionResult } from './mapping.js';
 
 // ============================================================================
 // Test event types

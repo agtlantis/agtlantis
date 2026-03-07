@@ -41,7 +41,7 @@ export type {
   PricingConfig,
   CalculateCostParams,
   CostResult,
-} from './types';
+} from './types.js';
 
 // Configuration
 export {
@@ -51,14 +51,14 @@ export {
   getEffectivePricing,
   type PricingSource,
   type EffectivePricingResult,
-} from './config';
+} from './config.js';
 
 // Validation
 export {
   validateModelPricing,
   validateProviderPricing,
   validatePricingConfig,
-} from './validator';
+} from './validator.js';
 
 // Calculation
 export {
@@ -66,7 +66,7 @@ export {
   calculateCost,
   calculateCostFromUsage,
   calculateTotalCost,
-} from './calculator';
+} from './calculator.js';
 
 // Defaults (for reference/inspection)
 export {
@@ -75,4 +75,4 @@ export {
   ANTHROPIC_PRICING,
   DEFAULT_PRICING_CONFIG,
   DEFAULT_FALLBACK_PRICING,
-} from './defaults';
+} from './defaults.js';

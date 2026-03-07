@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { LanguageModel, LanguageModelUsage } from 'ai';
-import { SimpleSession } from './simple-session';
-import { SessionSummary, type ToolCallSummary } from './types';
+import { SimpleSession } from './simple-session.js';
+import { SessionSummary, type ToolCallSummary } from './types.js';
 import {
   createMockModel,
   createMockFileManager,
   createMockLogger,
   createMockUsage,
   TEST_PROVIDER_TYPE,
-} from './test-utils';
+} from './test-utils.js';
 
 vi.mock('ai', () => ({
   generateText: vi.fn(),

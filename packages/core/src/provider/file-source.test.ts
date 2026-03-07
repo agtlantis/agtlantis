@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { FileErrorCode } from '../errors';
+import { FileErrorCode } from '../errors/index.js';
 import {
     getFileSourceDisplayInfo,
     getFileSourcesDisplayInfo,
@@ -12,7 +12,7 @@ import {
     resolveFileSource,
     resolveFileSourcesInInput,
     scanForFileSources,
-} from './file-source';
+} from './file-source.js';
 import {
     type FileSource,
     type FileSourceBase64,
@@ -24,7 +24,7 @@ import {
     isFileSourceData,
     isFileSourcePath,
     isFileSourceUrl,
-} from './types';
+} from './types.js';
 
 // ============================================================================
 // Test Fixtures - Factory Functions for DRY

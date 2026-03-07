@@ -19,13 +19,13 @@ export type {
   CompletionEvent,
   ErrorEvent,
   ExtractResult,
-} from './types';
+} from './types.js';
 
-export { StreamingExecutionHost } from './streaming-host';
-export { SimpleExecutionHost } from './simple-host';
+export { StreamingExecutionHost } from './streaming-host.js';
+export { SimpleExecutionHost } from './simple-host.js';
 
-export { ERRORS } from './constants';
-export { getDuration, combineSignals } from './utils';
-export { isAbortError, normalizeError, determineResultStatus, createHookRunner, type HookRunner } from './shared';
+export { ERRORS } from './constants.js';
+export { getDuration, combineSignals } from './utils.js';
+export { isAbortError, normalizeError, determineResultStatus, createHookRunner, type HookRunner } from './shared.js';
 
-export { mapExecution, mapExecutionResult, type ReplaceResult } from './mapping';
+export { mapExecution, mapExecutionResult, type ReplaceResult } from './mapping.js';

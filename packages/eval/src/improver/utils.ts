@@ -1,10 +1,10 @@
 import { compileTemplate } from '@agtlantis/core';
 
-import { EvalError, EvalErrorCode } from '@/core/errors';
-import type { AgentPrompt } from '@/core/types';
-import { truncate } from '@/utils/json';
+import { EvalError, EvalErrorCode } from '../core/errors.js';
+import type { AgentPrompt } from '../core/types.js';
+import { truncate } from '../utils/json.js';
 
-import type { Suggestion } from './types';
+import type { Suggestion } from './types.js';
 
 /**
  * Generates a unified diff string for a suggestion.

@@ -1,19 +1,16 @@
 {
   "name": "@agtlantis/eval",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "LLM-as-Judge based AI Agent testing library with multi-turn conversations, AI simulated users, and statistical analysis",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "agent-eval": "./dist/cli.js"
+    "agent-eval": "./dist/cli/index.js"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.js"
     }
   },
   "files": [
@@ -23,7 +20,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsgo -p tsconfig.build.json",
     "test": "vitest run src/",
     "test:e2e": "vitest run e2e/",
     "typecheck": "tsc --noEmit",
@@ -72,7 +69,7 @@
     "@types/node": "^22.0.0",
     "dotenv": "^17.2.3",
     "execa": "^9.6.1",
-    "tsup": "^8.5.1",
+    "@typescript/native-preview": "^7.0.0-dev",
     "tsx": "^4.7.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16",

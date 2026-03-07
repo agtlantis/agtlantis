@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-import { computeFileSourceHash } from './hash';
+import { computeFileSourceHash } from './hash.js';
 
 const TEST_DIR = path.join(process.cwd(), '.test-temp-hash');
 const TEST_FILE = path.join(TEST_DIR, 'test-file.txt');

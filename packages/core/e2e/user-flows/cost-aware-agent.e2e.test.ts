@@ -14,9 +14,9 @@ import {
     getEffectivePricing,
     OPENAI_PRICING,
     GOOGLE_PRICING,
-} from '@/pricing';
-import { createLogger } from '@/observability/logger';
-import type { LLMCallEndEvent } from '@/observability';
+} from '../../src/pricing/index.js';
+import { createLogger } from '../../src/observability/logger.js';
+import type { LLMCallEndEvent } from '../../src/observability/index.js';
 
 const CUSTOM_INPUT_PRICE_PER_MILLION = 100.0;
 const CUSTOM_OUTPUT_PRICE_PER_MILLION = 200.0;

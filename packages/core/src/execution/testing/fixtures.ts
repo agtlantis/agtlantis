@@ -8,11 +8,11 @@
 
 import type { LanguageModel, LanguageModelUsage } from 'ai';
 
-import type { CompletionEvent } from '@/execution/types';
-import type { FileManager } from '@/provider/types';
-import type { Logger } from '@/observability/logger';
-import { SimpleSession } from '../../session/simple-session';
-import { StreamingSession } from '../../session/streaming-session';
+import type { CompletionEvent } from '../types.js';
+import type { FileManager } from '../../provider/types.js';
+import type { Logger } from '../../observability/logger.js';
+import { SimpleSession } from '../../session/simple-session.js';
+import { StreamingSession } from '../../session/streaming-session.js';
 
 // ============================================================================
 // Types
@@ -249,4 +249,4 @@ export {
   // Logger helpers
   createOrderTrackingLogger,
   type LoggerEventType,
-} from './helpers';
+} from './helpers.js';

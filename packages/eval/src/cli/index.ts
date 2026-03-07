@@ -1,4 +1,5 @@
-import cac from 'cac'
+#!/usr/bin/env node
+import { cac } from 'cac'
 import { runCommand } from './commands/run.js'
 import { improveCommand, type ImproveCommandOptions } from './commands/improve.js'
 import { rollbackCommand, type RollbackCommandOptions } from './commands/rollback.js'

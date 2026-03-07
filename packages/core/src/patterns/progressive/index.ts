@@ -5,4 +5,4 @@ export {
   type ProgressiveStreamOptions,
   type ProgressEvent,
   type CompleteEvent,
-} from './progressive-pattern';
+} from './progressive-pattern.js';

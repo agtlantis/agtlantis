@@ -1,4 +1,4 @@
-import type { AgentMetadata, TestCase, TestResultWithVerdict } from '@/core/types'
+import type { AgentMetadata, TestCase, TestResultWithVerdict } from '../core/types.js'
 
 export type TerminationCondition<TInput = unknown, TOutput = unknown> =
   | MaxTurnsCondition

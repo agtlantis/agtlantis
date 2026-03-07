@@ -12,8 +12,8 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
-import { executeMultiTurnTestCase, type MultiTurnExecuteContext } from '@/multi-turn/runner'
-import type { EvalAgent } from '@/core/types'
+import { executeMultiTurnTestCase, type MultiTurnExecuteContext } from '../../../src/multi-turn/runner.js'
+import type { EvalAgent } from '../../../src/core/types.js'
 
 import {
   E2E_CONFIG,
@@ -23,13 +23,13 @@ import {
   loadChatbotPrompt,
   createSelectionChatbotAgent,
   type SelectionChatbotOutput,
-} from './setup'
+} from './setup.js'
 
 import {
   SELECTION_BASED_CASES_MINIMAL,
   SELECTION_MOVIE_CASE,
   type ChatbotInput,
-} from './fixtures/test-cases'
+} from './fixtures/test-cases.js'
 
 describe.skipIf(!E2E_CONFIG.enabled)('Real E2E: Selection-Based Flow', () => {
   let agent: EvalAgent<ChatbotInput, SelectionChatbotOutput>

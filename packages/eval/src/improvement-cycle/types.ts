@@ -1,10 +1,10 @@
-import type { AgentPrompt, EvalAgent, TestCase } from '@/core/types';
-import type { Improver, Suggestion } from '@/improver/types';
-import type { Judge } from '@/judge/types';
-import type { EvalPricingConfig } from '@/reporter/cost-helpers';
-import type { EvalReport } from '@/reporter/types';
+import type { AgentPrompt, EvalAgent, TestCase } from '../core/types.js';
+import type { Improver, Suggestion } from '../improver/types.js';
+import type { Judge } from '../judge/types.js';
+import type { EvalPricingConfig } from '../reporter/cost-helpers.js';
+import type { EvalReport } from '../reporter/types.js';
 
-import type { ImprovementSession } from './history';
+import type { ImprovementSession } from './history.js';
 
 /** Terminate when average score reaches threshold */
 export interface TargetScoreCondition {

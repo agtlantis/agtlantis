@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import { E2E_CONFIG, type ProviderType } from './env';
+import { E2E_CONFIG, type ProviderType } from './env.js';
 
 export const describeE2E = E2E_CONFIG.isEnabled ? describe : describe.skip;
 export const describeOpenAI = E2E_CONFIG.openai.isAvailable

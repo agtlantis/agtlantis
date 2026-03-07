@@ -1,9 +1,9 @@
-import { JsonReporter } from './json-reporter'
-import { MarkdownReporter, type MarkdownReporterOptions } from './markdown-reporter'
-import { ConsoleReporter } from './console-reporter'
-import { CompositeReporter } from './composite-reporter'
-import type { FileReporterOptions, ConsoleReporterOptions, Reporter, LogVerbosity } from './types'
-import type { EvalPricingConfig } from './cost-helpers'
+import { JsonReporter } from './json-reporter.js'
+import { MarkdownReporter, type MarkdownReporterOptions } from './markdown-reporter.js'
+import { ConsoleReporter } from './console-reporter.js'
+import { CompositeReporter } from './composite-reporter.js'
+import type { FileReporterOptions, ConsoleReporterOptions, Reporter, LogVerbosity } from './types.js'
+import type { EvalPricingConfig } from './cost-helpers.js'
 
 /**
  * Create a JSON reporter.

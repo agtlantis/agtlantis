@@ -4,7 +4,7 @@
  * Simple greeting test cases for testing the basic Agent → Judge → Report flow.
  */
 
-import type { TestCase } from '@/core/types'
+import type { TestCase } from '../../../../src/core/types.js'
 
 // ============================================================================
 // Input Types

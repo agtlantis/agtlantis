@@ -18,20 +18,20 @@ import type {
     SingleTurnResult,
     TestCase,
     Verdict,
-} from '@/core/types';
-import type { AggregatedMetrics, ImproveResult, Improver, Suggestion } from '@/improver/types';
-import type { Judge } from '@/judge/types';
-import type { EvalReport, ReportSummary } from '@/reporter/types';
-import { MOCK_LATENCY, MOCK_TOKEN_USAGE } from '@/testing/constants';
+} from '../core/types.js';
+import type { AggregatedMetrics, ImproveResult, Improver, Suggestion } from '../improver/types.js';
+import type { Judge } from '../judge/types.js';
+import type { EvalReport, ReportSummary } from '../reporter/types.js';
+import { MOCK_LATENCY, MOCK_TOKEN_USAGE } from '../testing/constants.js';
 
-import { maxRounds, targetScore } from './conditions';
-import { runImprovementCycle, runImprovementCycleAuto } from './runner';
+import { maxRounds, targetScore } from './conditions.js';
+import { runImprovementCycle, runImprovementCycleAuto } from './runner.js';
 import type {
     ImprovementCycleConfig,
     ImprovementCycleResult,
     RoundDecision,
     RoundYield,
-} from './types';
+} from './types.js';
 
 // =============================================================================
 // Test Fixtures
@@ -719,7 +719,7 @@ describe('runImprovementCycle', () => {
     describe('error handling', () => {
         it('should complete session and re-throw when error occurs', async () => {
             // Make the mocked createEvalSuite throw an error
-            const { createEvalSuite } = await import('@/core/suite');
+            const { createEvalSuite } = await import('../core/suite.js');
             vi.mocked(createEvalSuite).mockImplementationOnce(() => ({
                 run: vi.fn().mockRejectedValue(new Error('Suite execution failed')),
                 withAgent: vi.fn(),

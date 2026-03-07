@@ -11,10 +11,10 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
-import { createEvalSuite } from '@/core/suite'
-import { createJudge } from '@/judge/llm-judge'
-import { defaultJudgePrompt } from '@/judge/prompts/default'
-import type { EvalAgent } from '@/core/types'
+import { createEvalSuite } from '../../../src/core/suite.js'
+import { createJudge } from '../../../src/judge/llm-judge.js'
+import { defaultJudgePrompt } from '../../../src/judge/prompts/default.js'
+import type { EvalAgent } from '../../../src/core/types.js'
 
 import {
   E2E_CONFIG,
@@ -27,7 +27,7 @@ import {
   INVALID_PERSON_CASES,
   INVALID_ORDER_CASES,
   type ExtractorInput,
-} from './setup'
+} from './setup.js'
 
 describe.skipIf(!E2E_CONFIG.enabled)('Schema Validation: Invalid Output', () => {
   let agent: EvalAgent<ExtractorInput, unknown>

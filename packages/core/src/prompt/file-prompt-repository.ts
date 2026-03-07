@@ -8,9 +8,9 @@ import * as path from 'node:path';
 
 import * as yaml from 'yaml';
 
-import { PromptIOError, PromptInvalidFormatError, PromptNotFoundError } from './errors';
-import { compileTemplate } from './template';
-import type { FileSystem, PromptRepository, PromptTemplateData } from './types';
+import { PromptIOError, PromptInvalidFormatError, PromptNotFoundError } from './errors.js';
+import { compileTemplate } from './template.js';
+import type { FileSystem, PromptRepository, PromptTemplateData } from './types.js';
 
 // =============================================================================
 // Types

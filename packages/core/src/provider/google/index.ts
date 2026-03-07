@@ -13,7 +13,7 @@ export {
   type HarmCategory,
   type HarmBlockThreshold,
   type GoogleGenerativeAIProviderOptions,
-} from './factory';
+} from './factory.js';
 
 // FileManager
-export { GoogleFileManager } from './file-manager';
+export { GoogleFileManager } from './file-manager.js';

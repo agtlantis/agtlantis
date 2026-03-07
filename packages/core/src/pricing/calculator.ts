@@ -16,9 +16,9 @@ import type {
   ModelPricing,
   ProviderPricing,
   ProviderType,
-} from './types';
-import { DEFAULT_PRICING_CONFIG, DEFAULT_FALLBACK_PRICING } from './defaults';
-import { getPricingConfig } from './config';
+} from './types.js';
+import { DEFAULT_PRICING_CONFIG, DEFAULT_FALLBACK_PRICING } from './defaults.js';
+import { getPricingConfig } from './config.js';
 
 const TOKENS_PER_MILLION = 1_000_000;
 

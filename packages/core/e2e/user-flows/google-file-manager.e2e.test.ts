@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { GoogleFileManager } from '@/provider/google/file-manager';
-import { InMemoryFileCache } from '@/provider/file-cache';
-import type { FileSource } from '@/provider/types';
+import { GoogleFileManager } from '../../src/provider/google/file-manager.js';
+import { InMemoryFileCache } from '../../src/provider/file-cache.js';
+import type { FileSource } from '../../src/provider/types.js';
 import { describeGoogle, E2E_CONFIG } from '@e2e/helpers';
 
 describeGoogle('GoogleFileManager E2E', () => {
@@ -291,6 +291,6 @@ describeGoogle('GoogleFileManager E2E', () => {
 });
 
 async function computeHashForTest(source: FileSource): Promise<string> {
-    const { computeFileSourceHash } = await import('@/provider/hash');
+    const { computeFileSourceHash } = await import('../../src/provider/hash.js');
     return computeFileSourceHash(source);
 }

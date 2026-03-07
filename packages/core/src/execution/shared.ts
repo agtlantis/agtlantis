@@ -1,4 +1,4 @@
-import type { ExecutionStatus } from './types';
+import type { ExecutionStatus } from './types.js';
 
 /**
  * Shared utilities for execution hosts.

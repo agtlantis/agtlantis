@@ -19,7 +19,7 @@ import {
     createMockProvider,
     type MockProviderConfig,
     type ModelFactory,
-} from './mock-provider';
+} from './mock-provider.js';
 
 type DoGenerateResult = Awaited<ReturnType<MockLanguageModelV3['doGenerate']>>;
 
@@ -35,7 +35,15 @@ const DEFAULT_FINISH: DoGenerateResult['finishReason'] = {
     raw: undefined,
 };
 
-export const mock = {
+interface MockHelpers {
+    text(text: string, options?: ResponseOptions): MockLanguageModelV3;
+    json<T>(data: T, options?: ResponseOptions): MockLanguageModelV3;
+    stream(chunks: string[], options?: ResponseOptions): MockLanguageModelV3;
+    error(error: Error): MockLanguageModelV3;
+    provider(configOrModel: MockProviderConfig | MockLanguageModelV3 | ModelFactory): MockProvider;
+}
+
+export const mock: MockHelpers = {
     /**
      * Creates a MockLanguageModelV3 that returns text content.
      *

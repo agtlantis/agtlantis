@@ -1,15 +1,15 @@
 import { type LanguageModelUsage, type ModelMessage, Output } from 'ai';
 import { z } from 'zod';
 
-import { SCORE } from '@/core/constants.js';
-import { EvalError, EvalErrorCode } from '@/core/errors.js';
+import { SCORE } from '../core/constants.js';
+import { EvalError, EvalErrorCode } from '../core/errors.js';
 import type {
     Criterion,
     EvalTokenUsage,
     JudgeMetadata,
     ValidatorCriterion,
     Verdict,
-} from '@/core/types.js';
+} from '../core/types.js';
 
 import { defaultJudgePrompt } from './prompts/default.js';
 import type { EvalContext, Judge, JudgeConfig, JudgeContext, JudgeResult } from './types.js';

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import type { SingleTurnResult } from '@/core/types';
+import type { SingleTurnResult } from '../../core/types.js';
 
-import type { ImproverContext } from '../types';
-import { defaultImproverPrompt } from './default';
+import type { ImproverContext } from '../types.js';
+import { defaultImproverPrompt } from './default.js';
 
 describe('defaultImproverPrompt', () => {
     describe('static properties', () => {

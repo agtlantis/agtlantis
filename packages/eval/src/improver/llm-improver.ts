@@ -1,10 +1,10 @@
 import { type LanguageModelUsage, type ModelMessage, Output } from 'ai';
 import { z } from 'zod';
 
-import { EvalError, EvalErrorCode } from '@/core/errors';
-import type { AgentPrompt, EvalTestResult, EvalTokenUsage, ImproverMetadata } from '@/core/types';
+import { EvalError, EvalErrorCode } from '../core/errors.js';
+import type { AgentPrompt, EvalTestResult, EvalTokenUsage, ImproverMetadata } from '../core/types.js';
 
-import { defaultImproverPrompt } from './prompts/default';
+import { defaultImproverPrompt } from './prompts/default.js';
 import type {
     AggregatedMetrics,
     ImproveResult,
@@ -12,7 +12,7 @@ import type {
     ImproverConfig,
     ImproverContext,
     Suggestion,
-} from './types';
+} from './types.js';
 
 function toEvalTokenUsage(usage: LanguageModelUsage): EvalTokenUsage {
     return {

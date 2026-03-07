@@ -8,13 +8,13 @@
 import { existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 
-import type { EvalReport } from '@/reporter/types'
-import type { EvalTestResult } from '@/core/types'
-import type { EvalPricingConfig } from '@/reporter/cost-helpers'
-import { JsonReporter } from '@/reporter/json-reporter'
-import { calculateReportCosts } from '@/reporter/cost-helpers'
-import type { VerbosityLevel, E2ELogger, TestCaseIO, RoundSummary, CycleSummary } from './types'
-import { E2E_CONFIG, TEST_PRICING_CONFIG } from './setup'
+import type { EvalReport } from '../../src/reporter/types.js'
+import type { EvalTestResult } from '../../src/core/types.js'
+import type { EvalPricingConfig } from '../../src/reporter/cost-helpers.js'
+import { JsonReporter } from '../../src/reporter/json-reporter.js'
+import { calculateReportCosts } from '../../src/reporter/cost-helpers.js'
+import type { VerbosityLevel, E2ELogger, TestCaseIO, RoundSummary, CycleSummary } from './types.js'
+import { E2E_CONFIG, TEST_PRICING_CONFIG } from './setup.js'
 
 const colors = {
   reset: '\x1b[0m',

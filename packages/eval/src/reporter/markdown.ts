@@ -2,9 +2,9 @@ import { writeFile } from 'node:fs/promises';
 
 import { getFileSourcesDisplayInfo } from '@agtlantis/core';
 
-import { truncate } from '@/utils/json';
+import { truncate } from '../utils/json.js';
 
-import type { EvalReport, ReportComparison, ReportMarkdownOptions } from './types';
+import type { EvalReport, ReportComparison, ReportMarkdownOptions } from './types.js';
 
 const PASS_ICON = '✅';
 const FAIL_ICON = '❌';

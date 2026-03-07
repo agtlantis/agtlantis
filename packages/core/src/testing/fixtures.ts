@@ -1,6 +1,6 @@
-import type { CompletionEvent } from '@/execution/types';
-import type { LanguageModelUsage } from '@/observability';
-import { SessionSummary, type LLMCallRecord, type ToolCallSummary, type AdditionalCost } from '@/session/types';
+import type { CompletionEvent } from '../execution/types.js';
+import type { LanguageModelUsage } from '../observability/index.js';
+import { SessionSummary, type LLMCallRecord, type ToolCallSummary, type AdditionalCost } from '../session/types.js';
 
 export const TEST_API_KEY = 'test-api-key';
 

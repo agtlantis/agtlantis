@@ -1,6 +1,6 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import type { EventMetrics } from '@/observability';
-import type { DistributiveOmit, SessionEvent, SessionEventInput } from './types';
+import type { EventMetrics } from '../observability/index.js';
+import type { DistributiveOmit, SessionEvent, SessionEventInput } from './types.js';
 
 // ============================================================================
 // Type Helper Tests

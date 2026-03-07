@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 
-import type { CompletionEvent, ErrorEvent, SessionEvent } from '@/execution/types';
+import type { CompletionEvent, ErrorEvent, SessionEvent } from '../execution/types.js';
 
-import { createTestExecution, createTestErrorExecution, createTestCanceledExecution } from './test-execution';
+import { createTestExecution, createTestErrorExecution, createTestCanceledExecution } from './test-execution.js';
 
 type TestEvent = { type: 'progress'; step: number } | CompletionEvent<string>;
 

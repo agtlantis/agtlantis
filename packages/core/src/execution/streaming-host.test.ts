@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { StreamingSession } from '../session/streaming-session';
-import { StreamingExecutionHost } from './streaming-host';
-import type { SessionStreamGeneratorFn } from './types';
-import { SessionSummary } from '../session/types';
+import { StreamingSession } from '../session/streaming-session.js';
+import { StreamingExecutionHost } from './streaming-host.js';
+import type { SessionStreamGeneratorFn } from './types.js';
+import { SessionSummary } from '../session/types.js';
 import {
   TEST_PROVIDER_TYPE,
   type TestEvent,
@@ -15,7 +15,7 @@ import {
   createSlowGenerator,
   collectStreamAsync,
   createNeverEndingGenerator,
-} from './testing/fixtures';
+} from './testing/fixtures.js';
 
 vi.mock('ai', () => ({
   generateText: vi.fn(),

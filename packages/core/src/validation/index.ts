@@ -3,8 +3,8 @@ export type {
   ValidationAttempt,
   ValidationOptions,
   ReadonlyValidationHistory,
-} from './types';
+} from './types.js';
 
-export { ValidationHistory } from './validation-history';
-export { ValidationErrorCode, ValidationExhaustedError } from './errors';
-export { withValidation } from './with-validation';
+export { ValidationHistory } from './validation-history.js';
+export { ValidationErrorCode, ValidationExhaustedError } from './errors.js';
+export { withValidation } from './with-validation.js';

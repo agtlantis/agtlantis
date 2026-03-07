@@ -5,7 +5,7 @@
  * These test cases cover: context preservation, selection-based, dynamic (aiUser), and termination detection.
  */
 
-import type { MultiTurnTestCase } from '@/multi-turn/types'
+import type { MultiTurnTestCase } from '../../../../src/multi-turn/types.js'
 
 // ============================================================================
 // Type Definitions

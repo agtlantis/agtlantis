@@ -1,5 +1,5 @@
 import type { Task } from 'vitest';
-import type { SessionSummary } from '@/session/types';
+import type { SessionSummary } from '../../src/session/types.js';
 
 /**
  * Cost metadata recorded per test for aggregation by CostReporter.

@@ -4,8 +4,8 @@
  */
 
 import { vi, expect } from 'vitest';
-import type { ExecutionResult, StreamingResult } from '../types';
-import type { Logger } from '@/observability/logger';
+import type { ExecutionResult, StreamingResult } from '../types.js';
+import type { Logger } from '../../observability/logger.js';
 
 // ============================================================================
 // Types

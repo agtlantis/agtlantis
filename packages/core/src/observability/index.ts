@@ -1,4 +1,4 @@
-export type { EventMetrics, LanguageModelUsage, ExecutionMetadata } from './types';
+export type { EventMetrics, LanguageModelUsage, ExecutionMetadata } from './types.js';
 
 export type {
   Logger,
@@ -10,6 +10,6 @@ export type {
   ExecutionEmitEvent,
   ExecutionDoneEvent,
   ExecutionErrorEvent,
-} from './logger';
+} from './logger.js';
 
-export { noopLogger, createLogger } from './logger';
+export { noopLogger, createLogger } from './logger.js';

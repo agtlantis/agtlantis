@@ -1,8 +1,8 @@
-import { SessionSummary } from '../session/types';
-import type { SimpleSession } from '../session/simple-session';
-import type { SimpleExecution, SimpleResult } from './types';
-import { combineSignals } from './utils';
-import { isAbortError, normalizeError, createHookRunner } from './shared';
+import { SessionSummary } from '../session/types.js';
+import type { SimpleSession } from '../session/simple-session.js';
+import type { SimpleExecution, SimpleResult } from './types.js';
+import { combineSignals } from './utils.js';
+import { isAbortError, normalizeError, createHookRunner } from './shared.js';
 
 /**
  * Internal result structure for tracking execution outcome.

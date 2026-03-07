@@ -4,9 +4,9 @@ import type {
     EvalTokenUsage,
     TestResultWithVerdict,
     Verdict,
-} from '@/core/types';
-import type { ImproveResult, Improver, Suggestion } from '@/improver/types';
-import type { EvalContext, Judge, JudgeResult } from '@/judge/types';
+} from '../core/types.js';
+import type { ImproveResult, Improver, Suggestion } from '../improver/types.js';
+import type { EvalContext, Judge, JudgeResult } from '../judge/types.js';
 
 /**
  * Configuration for creating a mock agent.

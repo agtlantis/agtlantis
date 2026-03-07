@@ -6,10 +6,10 @@ import type {
     ErrorEvent,
     ExtractResult,
     SessionEvent,
-} from '@/execution/types';
-import type { BaseProvider } from '@/provider/base-provider';
-import type { StreamingSession } from '@/session/streaming-session';
-import type { StreamTextParams } from '@/session/types';
+} from '../../execution/types.js';
+import type { BaseProvider } from '../../provider/base-provider.js';
+import type { StreamingSession } from '../../session/streaming-session.js';
+import type { StreamTextParams } from '../../session/types.js';
 
 export type ProgressiveStreamOptions<TUserTools extends ToolSet = {}> = Omit<
     StreamTextParams<TUserTools>,

@@ -15,13 +15,13 @@
 import path from 'node:path';
 
 import type { Provider } from '@agtlantis/core';
-import { createPromptLoader, toEvalTokenUsage } from '@e2e/shared';
+import { createPromptLoader, toEvalTokenUsage } from '../../shared/index.js';
 import { Output } from 'ai';
 import { z } from 'zod';
 
-import type { AgentPrompt, AgentResult, EvalAgent } from '@/core/types';
+import type { AgentPrompt, AgentResult, EvalAgent } from '../../../src/core/types.js';
 
-import type { ChatbotInput, ChatbotOutput } from './fixtures/test-cases';
+import type { ChatbotInput, ChatbotOutput } from './fixtures/test-cases.js';
 
 // ============================================================================
 // Composable Zod Schemas for Structured Output
@@ -87,9 +87,9 @@ export {
     createConsoleLogger,
     // Paths
     E2E_PATHS,
-} from '@e2e/shared';
+} from '../../shared/index.js';
 
-export type { VerbosityLevel } from '@e2e/shared';
+export type { VerbosityLevel } from '../../shared/index.js';
 
 // ============================================================================
 // Local Prompt Loading
@@ -223,7 +223,7 @@ export async function createMinimalChatbotSetup(): Promise<{
     prompt: AgentPrompt<ChatbotInput>;
     agent: EvalAgent<ChatbotInput, ChatbotOutput>;
 }> {
-    const { createTestProvider } = await import('@e2e/shared');
+    const { createTestProvider } = await import('../../shared/index.js');
     const provider = createTestProvider();
     const prompt = await loadChatbotPrompt();
     const agent = createChatbotAgent(provider, prompt);

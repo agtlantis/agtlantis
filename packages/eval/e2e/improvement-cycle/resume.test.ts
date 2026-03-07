@@ -5,13 +5,13 @@
 import { describe, it, expect } from 'vitest'
 import { existsSync } from 'fs'
 import * as path from 'path'
-import { E2E_CONFIG, TEST_TIMEOUTS, E2E_PATHS, createTestDirectory } from './setup'
+import { E2E_CONFIG, TEST_TIMEOUTS, E2E_PATHS, createTestDirectory } from './setup.js'
 import {
   e2e,
   MATH_TEST_CASES_MINIMAL,
   loadHistory,
   resumeSession,
-} from './test-helper'
+} from './test-helper.js'
 
 describe.skipIf(!E2E_CONFIG.enabled)('Real E2E: Resume', () => {
   const TEST_OUTPUT_DIR = createTestDirectory(E2E_PATHS.history)

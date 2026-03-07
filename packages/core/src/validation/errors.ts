@@ -1,5 +1,5 @@
-import { AgtlantisError, type AgtlantisErrorCode } from '../errors';
-import type { ReadonlyValidationHistory } from './types';
+import { AgtlantisError, type AgtlantisErrorCode } from '../errors/index.js';
+import type { ReadonlyValidationHistory } from './types.js';
 
 export enum ValidationErrorCode {
   VALIDATION_EXHAUSTED = 'VALIDATION_EXHAUSTED',

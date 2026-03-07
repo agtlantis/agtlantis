@@ -10,8 +10,8 @@ import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { isAbsolute, resolve } from 'node:path'
 import { parse as parseYaml } from 'yaml'
-import { EvalError, EvalErrorCode } from '@/core/errors.js'
-import type { TestCase } from '@/core/types.js'
+import { EvalError, EvalErrorCode } from '../../core/errors.js'
+import type { TestCase } from '../../core/types.js'
 import type { Provider } from '@agtlantis/core'
 import {
   aiUser,
@@ -22,7 +22,7 @@ import {
   type FollowUpInput,
   type MultiTurnTestCase,
   type TerminationCondition,
-} from '@/multi-turn/index.js'
+} from '../../multi-turn/index.js'
 import { validateYamlEvalFile } from './schema.js'
 import type {
   DiscoveredEvalFile,

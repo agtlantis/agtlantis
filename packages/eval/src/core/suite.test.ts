@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { createEvalSuite, type EvalSuiteConfig } from './suite'
-import type { EvalAgent, TestCase, Verdict } from './types'
-import type { Judge } from '@/judge/types'
-import type { Improver, Suggestion } from '@/improver/types'
+import { createEvalSuite, type EvalSuiteConfig } from './suite.js'
+import type { EvalAgent, TestCase, Verdict } from './types.js'
+import type { Judge } from '../judge/types.js'
+import type { Improver, Suggestion } from '../improver/types.js'
 import {
   createMockAgent,
   createMockJudge,
   createMockImprover,
-} from '@/testing/mock-agent'
+} from '../testing/mock-agent.js'
 
 // ============================================================================
 // Test Types

@@ -1,11 +1,11 @@
-export { E2E_CONFIG, type ProviderType } from './env';
+export { E2E_CONFIG, type ProviderType } from './env.js';
 export {
   createTestProvider,
   createTestLogger,
   createInvalidTestProvider,
   type CreateTestProviderOptions,
   type CreateTestLoggerOptions,
-} from './providers';
+} from './providers.js';
 export {
   describeE2E,
   describeOpenAI,
@@ -13,5 +13,5 @@ export {
   itE2E,
   availableProviders,
   describeEachProvider,
-} from './skip-conditions';
-export { recordCostMeta, getCostMeta, type CostMeta } from './cost-meta';
+} from './skip-conditions.js';
+export { recordCostMeta, getCostMeta, type CostMeta } from './cost-meta.js';

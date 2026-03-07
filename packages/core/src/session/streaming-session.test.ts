@@ -2,15 +2,15 @@ import type { LanguageModelUsage } from 'ai';
 import { generateText, streamText } from 'ai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { TestEvent } from '../execution/testing/fixtures';
-import { StreamingSession, createStreamingSession } from './streaming-session';
+import type { TestEvent } from '../execution/testing/fixtures.js';
+import { StreamingSession, createStreamingSession } from './streaming-session.js';
 import {
     TEST_PROVIDER_TYPE,
     createMockFileManager,
     createMockLogger,
     createMockModel,
     createMockUsage,
-} from './test-utils';
+} from './test-utils.js';
 
 vi.mock('ai', () => ({
     generateText: vi.fn(),

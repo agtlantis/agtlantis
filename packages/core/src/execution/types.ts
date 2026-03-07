@@ -2,8 +2,8 @@
  * Agent execution types for @agtlantis/core.
  * Provides abstractions for streaming and non-streaming agent execution.
  */
-import type { EventMetrics } from '@/observability';
-import type { SessionSummary, StreamingSession } from '@/session';
+import type { EventMetrics } from '../observability/index.js';
+import type { SessionSummary, StreamingSession } from '../session/index.js';
 
 // ============================================================================
 // Type Helpers

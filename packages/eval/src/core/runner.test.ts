@@ -3,11 +3,11 @@ import {
   executeTestCase,
   runWithConcurrency,
   type ExecuteContext,
-} from './runner'
-import type { EvalAgent, TestCase, Verdict } from './types'
-import type { Judge } from '@/judge/types'
-import { EvalError, EvalErrorCode } from './errors'
-import { createMockAgent, createMockJudge } from '@/testing/mock-agent'
+} from './runner.js'
+import type { EvalAgent, TestCase, Verdict } from './types.js'
+import type { Judge } from '../judge/types.js'
+import { EvalError, EvalErrorCode } from './errors.js'
+import { createMockAgent, createMockJudge } from '../testing/mock-agent.js'
 
 // ============================================================================
 // Test Types

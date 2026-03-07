@@ -16,10 +16,10 @@
  */
 
 import path from 'node:path'
-import type { AgentPrompt } from '@/core/types'
-import type { EvalReport } from '@/reporter/types'
-import type { EvalSuite } from '@/core/suite'
-import type { TestCase } from '@/core/types'
+import type { AgentPrompt } from '../../../src/core/types.js'
+import type { EvalReport } from '../../../src/reporter/types.js'
+import type { EvalSuite } from '../../../src/core/suite.js'
+import type { TestCase } from '../../../src/core/types.js'
 
 // ============================================================================
 // Shared Infrastructure Re-exports
@@ -39,7 +39,7 @@ export {
   logEvalReportIO,
   saveEvalReport,
   E2E_PATHS,
-} from '@e2e/shared'
+} from '../../shared/index.js'
 
 // Local imports for use within this module
 import {
@@ -50,10 +50,10 @@ import {
   saveEvalReport,
   getTestSlug,
   createPromptLoader,
-} from '@e2e/shared'
-import type { VitestTaskContext } from '@e2e/shared'
+} from '../../shared/index.js'
+import type { VitestTaskContext } from '../../shared/index.js'
 
-export type { VerbosityLevel } from '@e2e/shared'
+export type { VerbosityLevel } from '../../shared/index.js'
 
 // ============================================================================
 // Local Prompt Loading

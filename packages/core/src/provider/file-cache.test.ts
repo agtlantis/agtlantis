@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { InMemoryFileCache } from './file-cache';
-import type { UploadedFile } from './types';
+import { InMemoryFileCache } from './file-cache.js';
+import type { UploadedFile } from './types.js';
 
 function createMockUploadedFile(overrides?: Partial<UploadedFile>): UploadedFile {
     return {

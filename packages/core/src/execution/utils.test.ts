@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getDuration, combineSignals, Deferred } from './utils';
+import { getDuration, combineSignals, Deferred } from './utils.js';
 
 describe('utils', () => {
   describe('getDuration', () => {

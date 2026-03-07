@@ -4,14 +4,14 @@ export type {
   FileReporterOptions,
   ConsoleReporterOptions,
   LogVerbosity,
-} from './types'
-export * from './types'
+} from './types.js'
+export * from './types.js'
 
 // Reporter Classes
-export { JsonReporter } from './json-reporter'
-export { MarkdownReporter, type MarkdownReporterOptions } from './markdown-reporter'
-export { ConsoleReporter } from './console-reporter'
-export { CompositeReporter } from './composite-reporter'
+export { JsonReporter } from './json-reporter.js'
+export { MarkdownReporter, type MarkdownReporterOptions } from './markdown-reporter.js'
+export { ConsoleReporter } from './console-reporter.js'
+export { CompositeReporter } from './composite-reporter.js'
 
 // Factory Functions
 export {
@@ -20,13 +20,13 @@ export {
   createConsoleReporter,
   createCompositeReporter,
   createDefaultReporter,
-} from './factory'
+} from './factory.js'
 
 // Markdown Utilities
-export { reportToMarkdown, compareReports, saveReportMarkdown } from './markdown'
+export { reportToMarkdown, compareReports, saveReportMarkdown } from './markdown.js'
 
 // Report Runner
-export { createReportRunner, type ReportRunnerOptions, type ReportRunnerResult } from './runner'
+export { createReportRunner, type ReportRunnerOptions, type ReportRunnerResult } from './runner.js'
 
 // Cost Calculation
 export {
@@ -38,9 +38,9 @@ export {
   type MetricsWithCost,
   type TestResultWithCost,
   type EvalPricingConfig,
-} from './cost-helpers'
+} from './cost-helpers.js'
 
 // Improvement Cycle Helpers
-export { saveCycleJson, type SaveCycleJsonOptions } from './cycle-json'
-export { logCycle, type LogCycleOptions } from './cycle-console'
-export { cycleToMarkdown, saveCycleMarkdown, type CycleMarkdownOptions } from './cycle-markdown'
+export { saveCycleJson, type SaveCycleJsonOptions } from './cycle-json.js'
+export { logCycle, type LogCycleOptions } from './cycle-console.js'
+export { cycleToMarkdown, saveCycleMarkdown, type CycleMarkdownOptions } from './cycle-markdown.js'

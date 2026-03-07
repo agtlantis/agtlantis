@@ -5,14 +5,14 @@ import {
   calculateCost,
   calculateCostFromUsage,
   calculateTotalCost,
-} from './calculator';
-import { configurePricing, resetPricingConfig } from './config';
+} from './calculator.js';
+import { configurePricing, resetPricingConfig } from './config.js';
 import {
   GOOGLE_PRICING,
   OPENAI_PRICING,
   ANTHROPIC_PRICING,
   DEFAULT_FALLBACK_PRICING,
-} from './defaults';
+} from './defaults.js';
 
 function createMockUsage(
   overrides: Partial<LanguageModelUsage> = {}

@@ -15,14 +15,14 @@ export {
     isFileSourceData,
     isFileSourceBase64,
     isFileSourceUrl,
-} from './types';
+} from './types.js';
 
-export { computeFileSourceHash } from './hash';
+export { computeFileSourceHash } from './hash.js';
 
-export { InMemoryFileCache, type InMemoryFileCacheOptions } from './file-cache';
+export { InMemoryFileCache, type InMemoryFileCacheOptions } from './file-cache.js';
 
-export { BaseProvider } from './base-provider';
-export { NoOpFileManager } from './noop-file-manager';
+export { BaseProvider } from './base-provider.js';
+export { NoOpFileManager } from './noop-file-manager.js';
 
 export {
     EXTENSION_TO_MIME,
@@ -36,7 +36,7 @@ export {
     type FoundFileSource,
     type ResolveOptions,
     type FileSourceDisplayInfo,
-} from './file-source';
+} from './file-source.js';
 
 export {
     createGoogleProvider,
@@ -47,10 +47,10 @@ export {
     type HarmCategory,
     type HarmBlockThreshold,
     type GoogleGenerativeAIProviderOptions,
-} from './google';
+} from './google/index.js';
 
 export {
     createOpenAIProvider,
     type OpenAIProviderConfig,
     type OpenAIChatLanguageModelOptions,
-} from './openai';
+} from './openai/index.js';
