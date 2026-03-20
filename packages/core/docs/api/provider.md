@@ -6,7 +6,7 @@
 
 The Provider module is the core abstraction for interacting with AI models. It provides a unified, provider-agnostic interface for Google AI and OpenAI, with fluent configuration and automatic session management.
 
-> **Provider Support:** Currently, the Google AI provider is fully supported with all features. The OpenAI provider supports core features (text generation, streaming, tool use) but some advanced features like file management are not yet implemented.
+> **Provider Support:** Both Google AI and OpenAI providers are fully supported with all features including text generation, streaming, tool use, and file management.
 
 ## Import
 
@@ -265,9 +265,7 @@ const providerWithTTL = createGoogleProvider({
   .withFileCache(new InMemoryFileCache({ defaultTTL: 30 * 60 * 1000 }));
 ```
 
-> **Note:** `withFileCache()` is also available on OpenAI provider for API consistency, but it's a no-op since file uploads are not yet implemented for the OpenAI provider.
-
-When a file is uploaded, the FileManager computes a hash from its content (or uses the explicit `hash` field if provided) and checks the cache. If found, the cached `UploadedFile` is returned immediately without re-uploading.
+Both Google and OpenAI providers support `withFileCache()`. When a file is uploaded, the FileManager computes a hash from its content (or uses the explicit `hash` field if provided) and checks the cache. If found, the cached `UploadedFile` is returned immediately without re-uploading.
 
 ### UploadedFile
 
@@ -495,9 +493,21 @@ const azureProvider = createOpenAIProvider({
   apiKey: process.env.AZURE_OPENAI_KEY!,
   baseURL: 'https://your-resource.openai.azure.com/openai/deployments/gpt-4',
 }).withDefaultModel('gpt-4');
+
+// With file caching
+const providerWithCache = createOpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY!,
+}).withDefaultModel('gpt-4o')
+  .withFileCache();
 ```
 
-> **Note:** The OpenAI provider does not yet implement the FileManager upload pattern. The `fileManager` will throw an error on upload. Use inline content parts instead.
+**OpenAI Provider Methods:**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `withFileCache(cache?)` | `Provider` | Set file cache for reusing uploaded files. If no cache provided, creates InMemoryFileCache |
+
+The OpenAI provider uploads non-URL files via the OpenAI Files API (returning `file_id` references). URL sources are passed inline without uploading, following the same pattern as Google provider.
 
 ## Errors
 

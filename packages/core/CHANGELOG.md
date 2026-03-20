@@ -29,9 +29,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `mapExecutionResult()` — transform only `CompletionEvent` data (result-only convenience)
   - `ReplaceResult<TEvent, U>` — type helper for replacing `CompletionEvent` data type in event union
 
+- **OpenAI File Management**: Full `FileManager` implementation for OpenAI provider
+  - `OpenAIFileManager` using OpenAI Files API for all non-URL file sources
+  - URL sources passed inline (no upload) — same pattern as Google provider
+  - `withFileCache()` now fully functional on OpenAI provider
+  - `BaseFileManager` abstract class extracted — shared upload/cache/rollback logic between providers
+
 - **File Cache Fluent API**: `withFileCache(cache?)` method for providers
   - `GoogleProvider.withFileCache()` - injects cache into `GoogleFileManager`
-  - `OpenAIProvider.withFileCache()` - no-op for API consistency
+  - `OpenAIProvider.withFileCache()` - injects cache into `OpenAIFileManager`
   - If no cache argument provided, creates default `InMemoryFileCache`
 
 ### Changed

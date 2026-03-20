@@ -162,6 +162,18 @@ const execution = provider.simpleExecution(async (session) => {
 });
 ```
 
+The same API works with OpenAI — just swap the provider:
+
+```typescript
+import { createOpenAIProvider, InMemoryFileCache } from '@agtlantis/core';
+
+const provider = createOpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY,
+})
+  .withDefaultModel('gpt-4o')
+  .withFileCache(new InMemoryFileCache({ defaultTTL: 30 * 60 * 1000 }));
+```
+
 ### Validation Module
 
 Validate and retry LLM outputs with custom logic:

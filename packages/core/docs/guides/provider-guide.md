@@ -37,7 +37,7 @@ The Provider is the core abstraction in @agtlantis/core. It handles:
 
 Think of a Provider as a configured connection to an AI service. You create it once, configure it with the fluent API, then use it to run executions.
 
-> **Provider Support:** Currently, the Google AI provider is fully supported with all features (file management, caching, grounding, safety settings). The OpenAI provider supports core features (text generation, streaming, tool use) but some advanced features like file management are not yet implemented.
+> **Provider Support:** Both Google AI and OpenAI providers are fully supported with all core features including text generation, streaming, tool use, and file management. Google AI additionally supports grounding (Google Search, URL Context) and safety settings.
 
 ## Quick Start
 
@@ -352,7 +352,7 @@ const execution = provider.simpleExecution(async (session) => {
 
 ### File Management
 
-The Google provider supports file uploads via the `fileManager`. Files are automatically cleaned up when the session ends.
+Both Google and OpenAI providers support file uploads via the `fileManager`. Files are automatically cleaned up when the session ends.
 
 ```typescript
 import { createGoogleProvider, type FileSource } from '@agtlantis/core';
@@ -454,7 +454,19 @@ if (isFileSource(value)) {
 }
 ```
 
-> **Note:** The OpenAI provider doesn't currently implement the upload + URI reference pattern. The `fileManager` on OpenAI sessions will throw an error if you try to upload files. Use inline base64 or URL content parts instead.
+The OpenAI provider works identically — just swap the provider. The session API (`fileManager.upload`, `uploaded[0].part`) is the same:
+
+```typescript
+import { createOpenAIProvider } from '@agtlantis/core';
+
+const provider = createOpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY!,
+}).withDefaultModel('gpt-4o');
+
+// Same session API as Google — upload, use .part in prompts
+```
+
+> **How it works:** The OpenAI provider uploads non-URL files via the OpenAI Files API, returning `file_id` references. URL sources are passed inline without uploading. The `@ai-sdk/openai` Responses API handles routing `file_id` to `input_image` or `input_file` based on `mediaType`.
 
 **File Caching:**
 
@@ -481,7 +493,17 @@ const providerWithCache = createGoogleProvider({
 
 When a file is uploaded, the FileManager computes a hash from its content. If an identical file was previously uploaded and cached, the cached URI is returned immediately without re-uploading.
 
-> **Note:** `withFileCache()` is also available on OpenAI provider for API consistency, but it's a no-op since file uploads are not yet implemented for the OpenAI provider.
+`withFileCache()` works the same way on the OpenAI provider:
+
+```typescript
+import { createOpenAIProvider } from '@agtlantis/core';
+
+const provider = createOpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY!,
+})
+  .withDefaultModel('gpt-4o')
+  .withFileCache();
+```
 
 ### Google Search and URL Context Grounding
 

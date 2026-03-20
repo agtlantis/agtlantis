@@ -9,3 +9,5 @@ export {
   type OpenAIProviderConfig,
   type OpenAIChatLanguageModelOptions,
 } from './factory.js';
+
+export { OpenAIFileManager, type OpenAIFileManagerOptions } from './file-manager.js';

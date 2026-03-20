@@ -5,10 +5,11 @@ import { noopLogger } from '../../observability/logger.js';
 import type { ProviderPricing } from '../../pricing/index.js';
 import { validateProviderPricing } from '../../pricing/index.js';
 import type { GenerationOptions } from '../../session/index.js';
-import { NoOpFileManager } from '../noop-file-manager.js';
+import { InMemoryFileCache } from '../file-cache.js';
 import { SimpleSession } from '../../session/simple-session.js';
 import { StreamingSession } from '../../session/streaming-session.js';
 import { BaseProvider } from '../base-provider.js';
+import { OpenAIFileManager } from './file-manager.js';
 
 export interface OpenAIProviderConfig {
     apiKey: string;
@@ -76,8 +77,8 @@ class OpenAIProvider extends BaseProvider {
     }
 
     /**
-     * Set a file cache for API consistency with GoogleProvider.
-     * Note: OpenAI does not support file caching, so this is a no-op.
+     * Enable file caching to prevent duplicate uploads across sessions.
+     * If no cache is provided, uses an in-memory cache.
      *
      * @example
      * ```typescript
@@ -86,7 +87,7 @@ class OpenAIProvider extends BaseProvider {
      * ```
      */
     withFileCache(cache?: FileCache): OpenAIProvider {
-        return new OpenAIProvider({ ...this.config, fileCache: cache });
+        return new OpenAIProvider({ ...this.config, fileCache: cache ?? new InMemoryFileCache() });
     }
 
     private getSessionConfig() {
@@ -97,7 +98,11 @@ class OpenAIProvider extends BaseProvider {
             modelFactory: (modelId: string) => this.openai(modelId),
             providerType: 'openai' as const,
             providerPricing: this.config.pricingConfig,
-            fileManager: new NoOpFileManager(),
+            fileManager: new OpenAIFileManager(this.config.apiKey, {
+                baseURL: this.config.baseURL,
+                organization: this.config.organization,
+                cache: this.config.fileCache,
+            }),
             logger: this.config.logger,
             defaultProviderOptions: this.config.defaultOptions
                 ? { openai: this.config.defaultOptions }

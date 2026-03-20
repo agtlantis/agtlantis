@@ -15,3 +15,4 @@ export {
   describeEachProvider,
 } from './skip-conditions.js';
 export { recordCostMeta, getCostMeta, type CostMeta } from './cost-meta.js';
+export { createMinimalPDF, createTestPNG } from './test-files.js';

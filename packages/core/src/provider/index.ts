@@ -22,6 +22,7 @@ export { computeFileSourceHash } from './hash.js';
 export { InMemoryFileCache, type InMemoryFileCacheOptions } from './file-cache.js';
 
 export { BaseProvider } from './base-provider.js';
+export { BaseFileManager } from './base-file-manager.js';
 export { NoOpFileManager } from './noop-file-manager.js';
 
 export {
@@ -51,6 +52,8 @@ export {
 
 export {
     createOpenAIProvider,
+    OpenAIFileManager,
     type OpenAIProviderConfig,
+    type OpenAIFileManagerOptions,
     type OpenAIChatLanguageModelOptions,
 } from './openai/index.js';

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createOpenAIProvider, type OpenAIProviderConfig } from './factory.js';
-import { NoOpFileManager } from '../noop-file-manager.js';
+import { OpenAIFileManager } from './file-manager.js';
 
 // Mock @ai-sdk/openai
 const mockModel = { modelId: 'gpt-4o' };
@@ -9,9 +9,9 @@ vi.mock('@ai-sdk/openai', () => ({
     createOpenAI: vi.fn().mockImplementation(() => mockOpenAIFn),
 }));
 
-// Mock NoOpFileManager (Vitest 4.x requires function keyword for constructor mocks)
-vi.mock('../noop-file-manager', () => ({
-    NoOpFileManager: vi.fn(function () {
+// Mock OpenAIFileManager (Vitest 4.x requires function keyword for constructor mocks)
+vi.mock('./file-manager', () => ({
+    OpenAIFileManager: vi.fn(function () {
         return {
             upload: vi.fn(),
             delete: vi.fn(),
@@ -216,8 +216,8 @@ describe('createOpenAIProvider', () => {
         });
     });
 
-    describe('NoOpFileManager integration', () => {
-        it('should use NoOpFileManager (OpenAI does not support file upload)', () => {
+    describe('OpenAIFileManager integration', () => {
+        it('should use OpenAIFileManager for file upload support', () => {
             const provider = createOpenAIProvider({ apiKey: 'test-api-key' }).withDefaultModel(
                 'gpt-4o'
             );
@@ -230,8 +230,8 @@ describe('createOpenAIProvider', () => {
             // Consume to trigger session creation
             execution.result().catch(() => {});
 
-            // NoOpFileManager should be created when session is created
-            expect(NoOpFileManager).toHaveBeenCalled();
+            // OpenAIFileManager should be created when session is created
+            expect(OpenAIFileManager).toHaveBeenCalled();
         });
     });
 
