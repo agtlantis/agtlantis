@@ -5,6 +5,22 @@ All notable changes to @agtlantis/core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0]
+
+### Added
+
+- **OpenAI File Management**: Full `FileManager` implementation for OpenAI provider
+  - `OpenAIFileManager` using OpenAI Files API for all non-URL file sources
+  - URL sources passed inline (no upload) — same pattern as Google provider
+  - `BaseFileManager` abstract class extracted — shared upload/cache/rollback logic between providers
+
+### Changed
+
+- **File Cache**: `OpenAIProvider.withFileCache()` is now fully functional (was no-op)
+  - Injects cache into `OpenAIFileManager` — same behavior as `GoogleProvider`
+
+---
+
 ## [0.5.0]
 
 ### Added
@@ -14,6 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Per-call parameters override defaults via simple spread merge
   - New `GenerationOptions` type exported from `@agtlantis/core`
 
+- **Execution Mapping Utilities**: Transform execution results and events at service boundaries
+  - `mapExecution()` — transform all events in a `StreamingExecution` or result of `SimpleExecution`
+  - `mapExecutionResult()` — transform only `CompletionEvent` data (result-only convenience)
+  - `ReplaceResult<TEvent, U>` — type helper for replacing `CompletionEvent` data type in event union
+
+- **File Cache Fluent API**: `withFileCache(cache?)` method for providers
+  - `GoogleProvider.withFileCache()` - injects cache into `GoogleFileManager`
+  - `OpenAIProvider.withFileCache()` - no-op for API consistency
+  - If no cache argument provided, creates default `InMemoryFileCache`
+
 ### Changed
 
 - **Prompt API Rename**: Clarified naming for prompt-related types and methods
@@ -21,26 +47,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `PromptContent` → `PromptTemplate`
   - `PromptContentData` → `PromptTemplateData`
   - `.toBuilder()` → `.compile()`
-
-### Added
-
-- **Execution Mapping Utilities**: Transform execution results and events at service boundaries
-  - `mapExecution()` — transform all events in a `StreamingExecution` or result of `SimpleExecution`
-  - `mapExecutionResult()` — transform only `CompletionEvent` data (result-only convenience)
-  - `ReplaceResult<TEvent, U>` — type helper for replacing `CompletionEvent` data type in event union
-
-- **OpenAI File Management**: Full `FileManager` implementation for OpenAI provider
-  - `OpenAIFileManager` using OpenAI Files API for all non-URL file sources
-  - URL sources passed inline (no upload) — same pattern as Google provider
-  - `withFileCache()` now fully functional on OpenAI provider
-  - `BaseFileManager` abstract class extracted — shared upload/cache/rollback logic between providers
-
-- **File Cache Fluent API**: `withFileCache(cache?)` method for providers
-  - `GoogleProvider.withFileCache()` - injects cache into `GoogleFileManager`
-  - `OpenAIProvider.withFileCache()` - injects cache into `OpenAIFileManager`
-  - If no cache argument provided, creates default `InMemoryFileCache`
-
-### Changed
 
 - **BREAKING**: Simplified `TEvent` generic constraint for streaming executions
   - **Before**: `TEvent extends { type: string; metrics: EventMetrics }`

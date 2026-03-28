@@ -17,13 +17,14 @@
 
 ## Installation
 
-Not published to npm yet. Use from the monorepo:
+```bash
+pnpm add @agtlantis/core
+```
+
+Peer dependencies:
 
 ```bash
-git clone <repo-url>
-cd agtlantis
-pnpm install
-pnpm build
+pnpm add ai @ai-sdk/openai @ai-sdk/google zod
 ```
 
 ## Quick Start
