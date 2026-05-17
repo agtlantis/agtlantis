@@ -92,8 +92,7 @@ describeEachProvider('Observable Agent', (providerType) => {
                 }).withLogger(logger);
 
                 const execution = provider.streamingExecution<
-                    { type: string; data?: unknown },
-                    string
+                    { type: 'complete'; data: string }
                 >(async function* (session) {
                     const result = await session.generateText({ prompt: 'Count to 3' });
                     return session.done(result.text);
@@ -132,8 +131,7 @@ describeEachProvider('Observable Agent', (providerType) => {
                 const invalidProvider = createInvalidTestProvider(providerType).withLogger(logger);
 
                 const execution = invalidProvider.streamingExecution<
-                    { type: string; error?: Error },
-                    string
+                    { type: 'complete'; data: string }
                 >(async function* (session) {
                     const result = await session.generateText({ prompt: 'Hello' });
                     return session.done(result.text);

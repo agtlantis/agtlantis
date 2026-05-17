@@ -24,11 +24,8 @@ describeEachProvider('Progressive Pattern - Happy Path', (providerType) => {
       const provider = createTestProvider(providerType, { task });
       const collectedEvents: Array<{ type: string; data?: unknown }> = [];
 
-      const execution = provider.streamingExecution<
-        { type: 'progress'; data: SimpleProgress; metrics: any },
-        SimpleResult
-      >(async function* (session) {
-        yield* pattern.runInSession(session, {
+      const execution = provider.streamingExecution<any>(async function* (session) {
+        yield* pattern.runInSession(session as any, {
           system: `You are a helpful assistant. IMPORTANT: Follow these steps EXACTLY:
 
 Step 1: Call reportProgress with { status: "thinking", message: "calculating" }
@@ -68,11 +65,8 @@ You MUST call reportProgress once, then call submitResult once. Do not skip step
       const provider = createTestProvider(providerType, { task });
       const progressEvents: SimpleProgress[] = [];
 
-      const execution = provider.streamingExecution<
-        { type: 'progress'; data: SimpleProgress; metrics: any },
-        SimpleResult
-      >(async function* (session) {
-        yield* pattern.runInSession(session, {
+      const execution = provider.streamingExecution<any>(async function* (session) {
+        yield* pattern.runInSession(session as any, {
           system: `You are a helpful assistant. IMPORTANT: Follow these steps EXACTLY in order:
 
 Step 1: Call reportProgress with { status: "counting", message: "1" }

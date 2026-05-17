@@ -17,6 +17,11 @@ const pattern = defineProgressivePattern({
   resultSchema: complexResultSchema,
 });
 
+type ScanningProgress = Extract<ComplexProgress, { phase: 'scanning' }>;
+type ExtractingProgress = Extract<ComplexProgress, { phase: 'extracting' }>;
+type AnalyzingProgress = Extract<ComplexProgress, { phase: 'analyzing' }>;
+type SummarizingProgress = Extract<ComplexProgress, { phase: 'summarizing' }>;
+
 const TEST_DOCUMENT = `
 # Q3 2024 Business Report - TechCorp Inc.
 
@@ -53,7 +58,12 @@ describeEachProvider(
       async ({ task }) => {
         const provider = createTestProvider(providerType, { task });
 
-        const progressByPhase: Record<string, ComplexProgress[]> = {
+        const progressByPhase: {
+          scanning: ScanningProgress[];
+          extracting: ExtractingProgress[];
+          analyzing: AnalyzingProgress[];
+          summarizing: SummarizingProgress[];
+        } = {
           scanning: [],
           extracting: [],
           analyzing: [],
@@ -61,11 +71,8 @@ describeEachProvider(
         };
         let result: ComplexResult | null = null;
 
-        const execution = provider.streamingExecution<
-          { type: 'progress'; data: ComplexProgress; metrics: any },
-          ComplexResult
-        >(async function* (session) {
-          yield* pattern.runInSession(session, {
+        const execution = provider.streamingExecution<any>(async function* (session) {
+          yield* pattern.runInSession(session as any, {
             system: `You are a professional business document analyst.
 
 Your task is to analyze the provided document through multiple phases using tool calls:
@@ -90,7 +97,20 @@ IMPORTANT: Call reportProgress for EACH phase before submitting the final result
         for await (const event of execution.stream()) {
           if (event.type === 'progress' && 'data' in event) {
             const progress = event.data as ComplexProgress;
-            progressByPhase[progress.phase]?.push(progress);
+            switch (progress.phase) {
+              case 'scanning':
+                progressByPhase.scanning.push(progress);
+                break;
+              case 'extracting':
+                progressByPhase.extracting.push(progress);
+                break;
+              case 'analyzing':
+                progressByPhase.analyzing.push(progress);
+                break;
+              case 'summarizing':
+                progressByPhase.summarizing.push(progress);
+                break;
+            }
           } else if (event.type === 'complete' && 'data' in event) {
             result = event.data as ComplexResult;
           }

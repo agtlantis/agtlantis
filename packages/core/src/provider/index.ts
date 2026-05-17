@@ -57,3 +57,21 @@ export {
     type OpenAIFileManagerOptions,
     type OpenAIChatLanguageModelOptions,
 } from './openai/index.js';
+
+export {
+    ANTHROPIC_API_VERSION,
+    ANTHROPIC_FILES_API_BETA,
+    ANTHROPIC_FILE_ID_MARKER_PREFIX,
+    DEFAULT_ANTHROPIC_INLINE_MAX_BYTES,
+    AnthropicFileManager,
+    createAnthropicFileIdMarker,
+    createAnthropicWebSearchTool,
+    createProviderSearchTool,
+    parseAnthropicFileIdMarker,
+    rewriteFileIdMiddleware,
+    type AnthropicFileManagerOptions,
+    type AnthropicFileManagerStrategy,
+    type AnthropicWebSearchToolOptions,
+    type ProviderSearchToolKind,
+    type RewriteFileIdMiddlewareOptions,
+} from './anthropic/index.js';

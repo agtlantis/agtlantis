@@ -25,11 +25,8 @@ describeEachProvider('Progressive Pattern - Multi-Stage', (providerType) => {
       const progressEvents: MultiStageProgress[] = [];
       let result: MultiStageResult | null = null;
 
-      const execution = provider.streamingExecution<
-        { type: 'progress'; data: MultiStageProgress; metrics: any },
-        MultiStageResult
-      >(async function* (session) {
-        yield* pattern.runInSession(session, {
+      const execution = provider.streamingExecution<any>(async function* (session) {
+        yield* pattern.runInSession(session as any, {
           system: `You are a research assistant. IMPORTANT: Follow these steps EXACTLY in order:
 
 Step 1: Call reportProgress with { stage: "thinking", thought: "..." }

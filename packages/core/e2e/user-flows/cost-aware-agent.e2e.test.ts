@@ -17,9 +17,27 @@ import {
 } from '../../src/pricing/index.js';
 import { createLogger } from '../../src/observability/logger.js';
 import type { LLMCallEndEvent } from '../../src/observability/index.js';
+import type { LanguageModelUsage } from 'ai';
 
 const CUSTOM_INPUT_PRICE_PER_MILLION = 100.0;
 const CUSTOM_OUTPUT_PRICE_PER_MILLION = 200.0;
+
+function createUsage(inputTokens: number, outputTokens: number): LanguageModelUsage {
+    return {
+        inputTokens,
+        outputTokens,
+        totalTokens: inputTokens + outputTokens,
+        inputTokenDetails: {
+            cacheReadTokens: undefined,
+            cacheWriteTokens: undefined,
+            noCacheTokens: undefined,
+        },
+        outputTokenDetails: {
+            reasoningTokens: undefined,
+            textTokens: undefined,
+        },
+    };
+}
 
 describeEachProvider('Cost-Aware Agent', (providerType) => {
     afterEach(() => {
@@ -96,9 +114,9 @@ describeEachProvider('Cost-Aware Agent', (providerType) => {
 
                 const resolvedPricing = effectivePricing.pricing;
                 const expectedInputCost =
-                    (usage.inputTokens / 1_000_000) * resolvedPricing.inputPricePerMillion;
+                    ((usage.inputTokens ?? 0) / 1_000_000) * resolvedPricing.inputPricePerMillion;
                 const expectedOutputCost =
-                    (usage.outputTokens / 1_000_000) * resolvedPricing.outputPricePerMillion;
+                    ((usage.outputTokens ?? 0) / 1_000_000) * resolvedPricing.outputPricePerMillion;
 
                 const actualCost = calculateCostFromUsage(usage, model, providerType);
 
@@ -145,9 +163,9 @@ describeEachProvider('Cost-Aware Agent', (providerType) => {
                 const customCost = calculateCostFromUsage(usage, model, providerType);
 
                 const expectedInputCost =
-                    (usage.inputTokens / 1_000_000) * CUSTOM_INPUT_PRICE_PER_MILLION;
+                    ((usage.inputTokens ?? 0) / 1_000_000) * CUSTOM_INPUT_PRICE_PER_MILLION;
                 const expectedOutputCost =
-                    (usage.outputTokens / 1_000_000) * CUSTOM_OUTPUT_PRICE_PER_MILLION;
+                    ((usage.outputTokens ?? 0) / 1_000_000) * CUSTOM_OUTPUT_PRICE_PER_MILLION;
 
                 expect(customCost.inputCost).toBeCloseTo(expectedInputCost, 10);
                 expect(customCost.outputCost).toBeCloseTo(expectedOutputCost, 10);
@@ -241,10 +259,10 @@ describeEachProvider('Cost-Aware Agent', (providerType) => {
                 expect(llmEndEvents.length).toBe(3);
 
                 const calls = llmEndEvents.map((event) => ({
-                    usage: {
-                        inputTokens: event.response.usage?.inputTokens ?? 0,
-                        outputTokens: event.response.usage?.outputTokens ?? 0,
-                    },
+                    usage: createUsage(
+                        event.response.usage?.inputTokens ?? 0,
+                        event.response.usage?.outputTokens ?? 0,
+                    ),
                     model,
                     provider: providerType as ProviderType,
                 }));

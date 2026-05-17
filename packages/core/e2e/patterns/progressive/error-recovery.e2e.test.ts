@@ -25,11 +25,8 @@ describeEachProvider('Progressive Pattern - Edge Cases', (providerType) => {
       let result: MinimalResult | null = null;
       let progressCount = 0;
 
-      const execution = provider.streamingExecution<
-        { type: 'progress'; data: MinimalProgress; metrics: any },
-        MinimalResult
-      >(async function* (session) {
-        yield* pattern.runInSession(session, {
+      const execution = provider.streamingExecution<any>(async function* (session) {
+        yield* pattern.runInSession(session as any, {
           system:
             'You are a simple assistant. Skip reportProgress entirely and call submitResult immediately with { done: true }.',
           messages: [{ role: 'user', content: 'Just say done.' }],
@@ -56,11 +53,8 @@ describeEachProvider('Progressive Pattern - Edge Cases', (providerType) => {
       const provider = createTestProvider(providerType, { task });
       let completed = false;
 
-      const execution = provider.streamingExecution<
-        { type: 'progress'; data: MinimalProgress; metrics: any },
-        MinimalResult
-      >(async function* (session) {
-        yield* pattern.runInSession(session, {
+      const execution = provider.streamingExecution<any>(async function* (session) {
+        yield* pattern.runInSession(session as any, {
           system:
             'Call reportProgress once with { step: 1 }, then call submitResult with { done: true }. Do exactly these two tool calls, nothing more.',
           messages: [{ role: 'user', content: 'Go.' }],

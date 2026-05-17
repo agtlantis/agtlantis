@@ -55,8 +55,7 @@ describeEachProvider('Error Recovery', (providerType) => {
           createInvalidTestProvider(providerType).withLogger(logger);
 
         const execution = invalidProvider.streamingExecution<
-          { type: string; error?: Error },
-          string
+          { type: 'complete'; data: string }
         >(async function* (session) {
           const result = await session.generateText({ prompt: 'Hello' });
           return session.done(result.text);
@@ -103,8 +102,7 @@ describeEachProvider('Error Recovery', (providerType) => {
           createInvalidTestProvider(providerType).withLogger(logger);
 
         const execution = invalidProvider.streamingExecution<
-          { type: string },
-          string
+          { type: 'complete'; data: string }
         >(async function* (session) {
           const result = await session.generateText({ prompt: 'Hello' });
           return session.done(result.text);

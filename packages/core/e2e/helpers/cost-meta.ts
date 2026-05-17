@@ -1,5 +1,8 @@
-import type { Task } from 'vitest';
 import type { SessionSummary } from '../../src/session/types.js';
+
+export interface TestTask {
+  meta: unknown;
+}
 
 /**
  * Cost metadata recorded per test for aggregation by CostReporter.
@@ -28,8 +31,11 @@ export interface CostMeta {
  * @param task - Vitest task from test context
  * @param summary - SessionSummary containing cost data
  */
-export function recordCostMeta(task: Task, summary: SessionSummary): void {
-  const existingCost = getCostMeta(task.meta);
+export function recordCostMeta(task: TestTask, summary: SessionSummary): void {
+  const meta = getMetaRecord(task.meta);
+  if (!meta) return;
+
+  const existingCost = getCostMeta(meta);
 
   // Accumulate costs if test has multiple executions
   const cost: CostMeta = existingCost
@@ -61,7 +67,7 @@ export function recordCostMeta(task: Task, summary: SessionSummary): void {
         },
       };
 
-  task.meta.cost = cost;
+  meta.cost = cost;
 }
 
 /**
@@ -70,8 +76,17 @@ export function recordCostMeta(task: Task, summary: SessionSummary): void {
  * @param meta - Test metadata object
  * @returns CostMeta if present, undefined otherwise
  */
-export function getCostMeta(meta: Record<string, unknown>): CostMeta | undefined {
-  return meta.cost as CostMeta | undefined;
+export function getCostMeta(meta: unknown): CostMeta | undefined {
+  const record = getMetaRecord(meta);
+  return record?.cost as CostMeta | undefined;
+}
+
+function getMetaRecord(meta: unknown): Record<string, unknown> | null {
+  if (typeof meta !== 'object' || meta === null) {
+    return null;
+  }
+
+  return meta as Record<string, unknown>;
 }
 
 function mergeCostByModel(

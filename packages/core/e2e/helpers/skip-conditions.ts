@@ -1,14 +1,17 @@
 import { describe, it } from 'vitest';
 import { E2E_CONFIG, type ProviderType } from './env.js';
 
-export const describeE2E = E2E_CONFIG.isEnabled ? describe : describe.skip;
-export const describeOpenAI = E2E_CONFIG.openai.isAvailable
+type DescribeFn = (name: string, fn: () => void) => void;
+type ItFn = (name: string, fn: () => unknown, timeout?: number) => void;
+
+export const describeE2E: DescribeFn = E2E_CONFIG.isEnabled ? describe : describe.skip;
+export const describeOpenAI: DescribeFn = E2E_CONFIG.openai.isAvailable
   ? describe
   : describe.skip;
-export const describeGoogle = E2E_CONFIG.google.isAvailable
+export const describeGoogle: DescribeFn = E2E_CONFIG.google.isAvailable
   ? describe
   : describe.skip;
-export const itE2E = E2E_CONFIG.isEnabled ? it : it.skip;
+export const itE2E: ItFn = E2E_CONFIG.isEnabled ? it : it.skip;
 
 export const availableProviders: ProviderType[] = [
   ...(E2E_CONFIG.openai.isAvailable ? (['openai'] as const) : []),

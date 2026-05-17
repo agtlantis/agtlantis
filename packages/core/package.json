@@ -32,6 +32,7 @@
     "zod-to-json-schema": "^3.25.1"
   },
   "peerDependencies": {
+    "@ai-sdk/anthropic": "^3.0.0",
     "@ai-sdk/google": "^3.0.0",
     "@ai-sdk/openai": "^3.0.0",
     "@google/genai": "^1.0.0",
@@ -39,6 +40,9 @@
     "zod": "^3.23.0 || ^4.0.0"
   },
   "peerDependenciesMeta": {
+    "@ai-sdk/anthropic": {
+      "optional": true
+    },
     "@ai-sdk/google": {
       "optional": true
     },
@@ -50,9 +54,11 @@
     }
   },
   "devDependencies": {
+    "@ai-sdk/anthropic": "npm:@ai-sdk/anthropic@ai-v6",
     "@ai-sdk/google": "^3.0.10",
     "@ai-sdk/openai": "^3.0.12",
     "@google/genai": "^1.37.0",
+    "@types/node": "^22.19.7",
     "ai": "^6.0.39",
     "dotenv": "^17.2.3",
     "@typescript/native-preview": "^7.0.0-dev",

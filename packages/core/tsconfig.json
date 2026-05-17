@@ -12,8 +12,13 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
-    "rootDir": "src"
+    "rootDir": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@e2e/helpers": ["./e2e/helpers/index.ts"],
+      "@e2e/*": ["./e2e/*"]
+    }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "e2e/**/*"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,11 +1,10 @@
-import type { Task } from 'vitest';
 import { createOpenAIProvider } from '../../src/provider/openai/factory.js';
 import { createGoogleProvider } from '../../src/provider/google/factory.js';
 import { createLogger } from '../../src/observability/logger.js';
 import type { Provider } from '../../src/provider/types.js';
 import type { Logger, EventMetrics } from '../../src/observability/index.js';
 import { E2E_CONFIG, type ProviderType } from './env.js';
-import { recordCostMeta } from './cost-meta.js';
+import { recordCostMeta, type TestTask } from './cost-meta.js';
 
 const INVALID_API_KEY = 'invalid-api-key-for-testing';
 
@@ -25,7 +24,7 @@ interface ExecutionErrorLike extends Error {
 export interface CreateTestProviderOptions {
   logging?: boolean;
   /** Vitest task for cost tracking. Pass from test context: `({ task }) => ...` */
-  task?: Task;
+  task?: TestTask;
 }
 
 interface ProviderConfig {
@@ -60,7 +59,7 @@ function createProviderWithApiKey(
 
 export interface CreateTestLoggerOptions {
   /** Vitest task for cost tracking */
-  task?: Task;
+  task?: TestTask;
 }
 
 export function createTestLogger(options?: CreateTestLoggerOptions): Logger {
@@ -69,8 +68,9 @@ export function createTestLogger(options?: CreateTestLoggerOptions): Logger {
   return createLogger({
     onLLMCallStart(event) {
       console.log(`\n[LLM Start] ${event.callType} -> ${event.modelId}`);
-      if (event.request.system) {
-        console.log(`   System: ${event.request.system.slice(0, 100)}...`);
+      const system = event.request.params.system;
+      if (typeof system === 'string') {
+        console.log(`   System: ${system.slice(0, 100)}...`);
       }
     },
     onLLMCallEnd(event) {
