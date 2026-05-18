@@ -1,3 +1,5 @@
+import { isRecord } from '../../utils/is-record.js';
+
 export const ANTHROPIC_FILE_ID_MARKER_PREFIX = 'agtlantis-anthropic-file-id:';
 
 type FetchInput = Parameters<typeof fetch>[0];
@@ -27,10 +29,6 @@ export function parseAnthropicFileIdMarker(value: unknown): string | null {
     return fileId.length > 0 ? fileId : null;
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function rewriteAnthropicFileIdMarkers(value: unknown): RewriteResult {
     if (Array.isArray(value)) {
         let changed = false;
@@ -42,12 +40,12 @@ function rewriteAnthropicFileIdMarkers(value: unknown): RewriteResult {
         return { value: changed ? next : value, changed };
     }
 
-    if (!isPlainObject(value)) {
+    if (!isRecord(value)) {
         return { value, changed: false };
     }
 
     const source = value.source;
-    if (isPlainObject(source)) {
+    if (isRecord(source)) {
         const fileId = parseAnthropicFileIdMarker(source.data);
         if (fileId) {
             return {
