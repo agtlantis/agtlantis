@@ -1,7 +1,67 @@
 import type { LanguageModelUsage } from 'ai';
 import type { ProviderType } from '../pricing/types.js';
+import { isRecord } from '../utils/is-record.js';
 
 export type { ProviderType } from '../pricing/types.js';
+
+function readNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function readRawUsageNumber(usage: LanguageModelUsage, keys: string[]): number | undefined {
+  const raw = usage.raw;
+  if (!isRecord(raw)) {
+    return undefined;
+  }
+
+  let current: unknown = raw;
+  for (const key of keys) {
+    if (!isRecord(current)) {
+      return undefined;
+    }
+    current = current[key];
+  }
+
+  return readNumber(current);
+}
+
+export function extractReasoningTokens(usage: LanguageModelUsage): number {
+  const explicit =
+    readNumber(usage.outputTokenDetails?.reasoningTokens) ??
+    readNumber(usage.reasoningTokens) ??
+    readRawUsageNumber(usage, ['output_token_details', 'reasoning_tokens']) ??
+    readRawUsageNumber(usage, ['output_tokens_details', 'reasoning_tokens']) ??
+    readRawUsageNumber(usage, ['reasoning_tokens']);
+
+  if (explicit !== undefined) {
+    return explicit;
+  }
+
+  const outputTokens = readNumber(usage.outputTokens);
+  const textTokens = readNumber(usage.outputTokenDetails?.textTokens);
+  if (outputTokens !== undefined && textTokens !== undefined && outputTokens >= textTokens) {
+    return outputTokens - textTokens;
+  }
+
+  return 0;
+}
+
+export function normalizeUsageForProvider(
+  usage: LanguageModelUsage,
+  providerType: ProviderType
+): LanguageModelUsage {
+  if (providerType !== 'anthropic') {
+    return usage;
+  }
+
+  return {
+    ...usage,
+    outputTokenDetails: {
+      textTokens: usage.outputTokenDetails?.textTokens,
+      reasoningTokens: extractReasoningTokens(usage),
+    },
+  };
+}
 
 export function mergeUsages(usages: LanguageModelUsage[]): LanguageModelUsage {
   if (usages.length === 0) {
@@ -27,7 +87,7 @@ export function mergeUsages(usages: LanguageModelUsage[]): LanguageModelUsage {
     cacheWriteTokens += usage.inputTokenDetails?.cacheWriteTokens ?? 0;
 
     textTokens += usage.outputTokenDetails?.textTokens ?? 0;
-    reasoningTokens += usage.outputTokenDetails?.reasoningTokens ?? 0;
+    reasoningTokens += extractReasoningTokens(usage);
   }
 
   return {

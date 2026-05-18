@@ -27,7 +27,7 @@ import {
   type OutputSpec,
   type AdditionalCost,
 } from './types.js';
-import { mergeUsages, createZeroUsage } from './usage-extractors.js';
+import { mergeUsages, createZeroUsage, normalizeUsageForProvider } from './usage-extractors.js';
 
 /**
  * Provider-specific options type.
@@ -168,11 +168,12 @@ export class SimpleSession {
       } as any);
       const callEndTime = Date.now();
 
+      const usage = normalizeUsageForProvider(result.usage ?? createZeroUsage(), this.providerType);
       const call: LLMCallRecord = {
         startTime: callStartTime,
         endTime: callEndTime,
         duration: callEndTime - callStartTime,
-        usage: result.usage ?? createZeroUsage(),
+        usage,
         type: 'generateText',
         model: modelId,
         provider: this.providerType,
@@ -246,14 +247,15 @@ export class SimpleSession {
       abortSignal: this.signal,
     } as any);
 
-    const usagePromise = Promise.resolve(result.usage).then((usage) => {
+    const usagePromise = Promise.resolve(result.usage).then((rawUsage) => {
       const callEndTime = Date.now();
+      const usage = normalizeUsageForProvider(rawUsage ?? createZeroUsage(), this.providerType);
 
       const call: LLMCallRecord = {
         startTime: callStartTime,
         endTime: callEndTime,
         duration: callEndTime - callStartTime,
-        usage: usage ?? createZeroUsage(),
+        usage,
         type: 'streamText',
         model: modelId,
         provider: this.providerType,
@@ -267,12 +269,12 @@ export class SimpleSession {
         timestamp: callEndTime,
         response: {
           duration: callEndTime - callStartTime,
-          usage,
+          usage: rawUsage,
           raw: result,
         },
       });
 
-      return usage;
+      return rawUsage;
     });
 
     this.pendingUsagePromises.push(usagePromise);

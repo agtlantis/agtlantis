@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import {
     createAnthropicWebSearchTool,
-    createProviderSearchTool,
+    createAnthropicProviderTool,
 } from './tools.js';
 
 import type { ToolSet } from 'ai';
@@ -46,15 +46,15 @@ describe('createAnthropicWebSearchTool', () => {
     });
 });
 
-describe('createProviderSearchTool', () => {
+describe('createAnthropicProviderTool', () => {
     it('builds web search tool for kind="webSearch"', () => {
-        const tools = createProviderSearchTool('webSearch', { maxUses: 2 });
+        const tools = createAnthropicProviderTool('webSearch', { maxUses: 2 });
         expect(Object.keys(tools)).toEqual(['web_search']);
     });
 
     it('throws on unsupported kind (exhaustive guard)', () => {
         expect(() =>
-            createProviderSearchTool('badKind' as unknown as 'webSearch'),
+            createAnthropicProviderTool('badKind' as unknown as 'webSearch'),
         ).toThrow(/Unsupported Anthropic provider tool/);
     });
 });

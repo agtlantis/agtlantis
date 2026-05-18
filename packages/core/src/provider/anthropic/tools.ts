@@ -71,15 +71,19 @@ export function createAnthropicWebSearchTool(
 }
 
 /**
- * Generic factory for Anthropic provider-supplied tools. Currently only
- * `'webSearch'` is wired; further server-side tools (bash, codeExecution,
- * computer, textEditor, toolSearch*) can be added behind this surface
- * without touching consumer code.
+ * Factory for Anthropic provider-supplied server-side tools. Currently only
+ * `'webSearch'` is wired; further Anthropic server tools (bash, codeExecution,
+ * computer, textEditor, toolSearch*) can be added behind this surface without
+ * touching consumer code.
+ *
+ * Naming is Anthropic-scoped on purpose: a true provider-neutral abstraction
+ * would need a shared tool catalog across providers, which does not exist
+ * today.
  */
-export type ProviderSearchToolKind = 'webSearch';
+export type AnthropicProviderToolKind = 'webSearch';
 
-export function createProviderSearchTool(
-    kind: ProviderSearchToolKind,
+export function createAnthropicProviderTool(
+    kind: AnthropicProviderToolKind,
     options: AnthropicWebSearchToolOptions = {},
 ): ToolSet {
     switch (kind) {

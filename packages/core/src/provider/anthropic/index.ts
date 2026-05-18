@@ -1,9 +1,15 @@
 /**
  * Anthropic Provider Module
  *
- * Exports the standalone surface for Anthropic. `createAnthropicProvider`
- * lands in F11.
+ * Exports the standalone surface for Anthropic.
  */
+
+export {
+    createAnthropicProvider,
+    type AnthropicLanguageModelOptions,
+    type AnthropicProviderConfig,
+    type AnthropicReasoningEffort,
+} from './factory.js';
 
 export {
     ANTHROPIC_API_VERSION,
@@ -23,8 +29,25 @@ export {
 } from './middleware.js';
 
 export {
+    createAnthropicProviderTool,
     createAnthropicWebSearchTool,
-    createProviderSearchTool,
+    type AnthropicProviderToolKind,
     type AnthropicWebSearchToolOptions,
-    type ProviderSearchToolKind,
 } from './tools.js';
+
+export {
+    normalizeAnthropicWebSearchCitation,
+    normalizeCitation,
+    normalizeCitations,
+} from './citation-normalizer.js';
+
+export {
+    UnsupportedAnthropicSchemaError,
+    assertAnthropicResponseFormatSupported,
+    guardAnthropicOutput,
+} from './schema-validator.js';
+
+export {
+    extractAnthropicServerToolUse,
+    type AnthropicServerToolUse,
+} from './usage.js';

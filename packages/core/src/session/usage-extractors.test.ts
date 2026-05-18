@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { LanguageModelUsage } from 'ai';
-import { createZeroUsage, detectProviderType, mergeUsages } from './usage-extractors.js';
+import {
+  createZeroUsage,
+  detectProviderType,
+  extractReasoningTokens,
+  mergeUsages,
+  normalizeUsageForProvider,
+} from './usage-extractors.js';
 import { createTestUsage } from './test-utils.js';
 
 describe('mergeUsages', () => {
@@ -170,6 +176,33 @@ describe('mergeUsages', () => {
         reasoningTokens: 30,
       });
     });
+
+    it('should derive reasoning tokens from output minus text tokens when explicit count is missing', () => {
+      const usages = [
+        createTestUsage({
+          inputTokens: 100,
+          outputTokens: 50,
+          totalTokens: 150,
+          outputTokenDetails: {
+            textTokens: 35,
+            reasoningTokens: undefined,
+          },
+        }),
+        createTestUsage({
+          inputTokens: 100,
+          outputTokens: 20,
+          totalTokens: 120,
+          outputTokenDetails: {
+            textTokens: 15,
+            reasoningTokens: undefined,
+          },
+        }),
+      ];
+
+      const result = mergeUsages(usages);
+
+      expect(result.outputTokenDetails?.reasoningTokens).toBe(20);
+    });
   });
 
   describe('undefined handling', () => {
@@ -231,6 +264,87 @@ describe('mergeUsages', () => {
         reasoningTokens: 0,
       });
     });
+  });
+});
+
+describe('extractReasoningTokens', () => {
+  it('prefers explicit outputTokenDetails reasoning tokens', () => {
+    const usage = createTestUsage({
+      outputTokenDetails: {
+        textTokens: 40,
+        reasoningTokens: 10,
+      },
+    });
+
+    expect(extractReasoningTokens(usage)).toBe(10);
+  });
+
+  it('reads deprecated reasoningTokens for older AI SDK shapes', () => {
+    const usage: LanguageModelUsage = {
+      inputTokens: 10,
+      outputTokens: 20,
+      totalTokens: 30,
+      inputTokenDetails: {
+        noCacheTokens: 10,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+      },
+      outputTokenDetails: {
+        textTokens: undefined,
+        reasoningTokens: undefined,
+      },
+      reasoningTokens: 7,
+    };
+
+    expect(extractReasoningTokens(usage)).toBe(7);
+  });
+
+  it('reads provider raw reasoning token keys when present', () => {
+    const usage = createTestUsage({
+      outputTokenDetails: {
+        textTokens: undefined,
+        reasoningTokens: undefined,
+      },
+      raw: {
+        output_token_details: {
+          reasoning_tokens: 12,
+        },
+      },
+    });
+
+    expect(extractReasoningTokens(usage)).toBe(12);
+  });
+
+  it('derives reasoning tokens from output and text token counts', () => {
+    const usage = createTestUsage({
+      outputTokens: 50,
+      outputTokenDetails: {
+        textTokens: 35,
+        reasoningTokens: undefined,
+      },
+    });
+
+    expect(extractReasoningTokens(usage)).toBe(15);
+  });
+});
+
+describe('normalizeUsageForProvider', () => {
+  it('fills Anthropic reasoning tokens with the best available derived value', () => {
+    const usage = createTestUsage({
+      outputTokens: 80,
+      outputTokenDetails: {
+        textTokens: 60,
+        reasoningTokens: undefined,
+      },
+    });
+
+    expect(normalizeUsageForProvider(usage, 'anthropic').outputTokenDetails?.reasoningTokens).toBe(20);
+  });
+
+  it('leaves non-Anthropic usage objects unchanged', () => {
+    const usage = createTestUsage();
+
+    expect(normalizeUsageForProvider(usage, 'openai')).toBe(usage);
   });
 });
 

@@ -63,7 +63,7 @@ export function createMockUsage(overrides: Partial<LanguageModelUsage> = {}): La
   };
 }
 
-export function createTestUsage(partial: Partial<LanguageModelUsage>): LanguageModelUsage {
+export function createTestUsage(partial: Partial<LanguageModelUsage> = {}): LanguageModelUsage {
   return {
     inputTokens: 0,
     outputTokens: 0,
