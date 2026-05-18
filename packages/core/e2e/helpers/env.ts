@@ -7,6 +7,7 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 60000;
 const DEFAULT_PROGRESSIVE_TIMEOUT_MS = 180000;
 const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
 const DEFAULT_GOOGLE_MODEL = 'gemini-1.5-flash';
+const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 
 export const E2E_CONFIG = {
   isEnabled: parseBoolean(process.env.REAL_AI_ENABLED),
@@ -29,8 +30,16 @@ export const E2E_CONFIG = {
     },
   },
 
+  anthropic: {
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    model: process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL,
+    get isAvailable() {
+      return Boolean(E2E_CONFIG.isEnabled && this.apiKey);
+    },
+  },
+
   timeout: DEFAULT_REQUEST_TIMEOUT_MS,
   progressiveTimeout: DEFAULT_PROGRESSIVE_TIMEOUT_MS,
 } as const;
 
-export type ProviderType = 'openai' | 'google';
+export type ProviderType = 'openai' | 'google' | 'anthropic';

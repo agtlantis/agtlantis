@@ -10,6 +10,7 @@ export {
   describeE2E,
   describeOpenAI,
   describeGoogle,
+  describeAnthropic,
   itE2E,
   availableProviders,
   describeEachProvider,

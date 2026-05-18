@@ -11,6 +11,9 @@ export const describeOpenAI: DescribeFn = E2E_CONFIG.openai.isAvailable
 export const describeGoogle: DescribeFn = E2E_CONFIG.google.isAvailable
   ? describe
   : describe.skip;
+export const describeAnthropic: DescribeFn = E2E_CONFIG.anthropic.isAvailable
+  ? describe
+  : describe.skip;
 export const itE2E: ItFn = E2E_CONFIG.isEnabled ? it : it.skip;
 
 export const availableProviders: ProviderType[] = [

@@ -14,6 +14,7 @@ import {
     getEffectivePricing,
     OPENAI_PRICING,
     GOOGLE_PRICING,
+    ANTHROPIC_PRICING,
 } from '../../src/pricing/index.js';
 import { createLogger } from '../../src/observability/logger.js';
 import type { LLMCallEndEvent } from '../../src/observability/index.js';
@@ -90,7 +91,12 @@ describeEachProvider('Cost-Aware Agent', (providerType) => {
                 expect(effectivePricing.pricing.outputPricePerMillion).toBeGreaterThan(0);
                 expect(['default', 'fallback', 'global']).toContain(effectivePricing.source);
 
-                const providerPricing = providerType === 'openai' ? OPENAI_PRICING : GOOGLE_PRICING;
+                const providerPricing =
+                    providerType === 'openai'
+                        ? OPENAI_PRICING
+                        : providerType === 'google'
+                          ? GOOGLE_PRICING
+                          : ANTHROPIC_PRICING;
                 const hasExplicitPricing = model in providerPricing;
 
                 if (hasExplicitPricing) {

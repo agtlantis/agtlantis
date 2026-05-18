@@ -1,5 +1,6 @@
 import { createOpenAIProvider } from '../../src/provider/openai/factory.js';
 import { createGoogleProvider } from '../../src/provider/google/factory.js';
+import { createAnthropicProvider } from '../../src/provider/anthropic/factory.js';
 import { createLogger } from '../../src/observability/logger.js';
 import type { Provider } from '../../src/provider/types.js';
 import type { Logger, EventMetrics } from '../../src/observability/index.js';
@@ -38,6 +39,8 @@ function getProviderConfig(type: ProviderType): ProviderConfig {
       return E2E_CONFIG.openai;
     case 'google':
       return E2E_CONFIG.google;
+    case 'anthropic':
+      return E2E_CONFIG.anthropic;
   }
 }
 
@@ -53,6 +56,10 @@ function createProviderWithApiKey(
     case 'google':
       return createGoogleProvider({ apiKey }).withDefaultModel(
         E2E_CONFIG.google.model,
+      );
+    case 'anthropic':
+      return createAnthropicProvider({ apiKey }).withDefaultModel(
+        E2E_CONFIG.anthropic.model,
       );
   }
 }
