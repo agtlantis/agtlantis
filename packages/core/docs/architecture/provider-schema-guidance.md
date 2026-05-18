@@ -29,6 +29,8 @@ Consumers use this document to choose a strategy:
 
 These boundaries come from the sprint-wide decision in `refs/decisions/_sprint.md`: this sprint is framework-only, and consumer schema ownership stays with the consumer.
 
+F11 adds one narrow framework guard: converted `discriminatedUnion` schemas are rejected for Anthropic structured output because they emit `oneOf`, which is unsupported or unreliable across both Anthropic modes. This is not a general bound-keyword scanner.
+
 ---
 
 ## Contents
@@ -117,7 +119,7 @@ That failure is immediate and non-retryable. It is much easier to diagnose than 
 
 ### Manual Schema Inventory
 
-Before switching an Anthropic agent to `outputFormat`, inspect the consumer schema for unsupported bound keywords.
+agtlantis defaults Anthropic to `outputFormat`. Before relying on the default, inspect the consumer schema for unsupported bound keywords — schemas with bound keywords must override to `jsonTool` (and split into two phases if reasoning is required).
 
 Use a simple source scan in the consumer repository:
 
@@ -168,6 +170,8 @@ Trade-offs:
 - Easier rollback because the original schema stays intact.
 
 Operational guardrail: Phase 1 should use an explicit timeout and retry quota. Do not rely on indefinite web-search waits.
+
+See `provider-aware-agents.md` for a copy-paste agent factory pattern.
 
 ### Option C: `outputFormat` Single Call
 
@@ -237,7 +241,7 @@ Consumer recommendations:
 
 ## Tools Wrapping Pattern
 
-F10 provides `createProviderSearchTool()` to isolate an AI SDK 6.x `ToolSet` typing issue.
+F10 provides `createAnthropicProviderTool()` to isolate an AI SDK 6.x `ToolSet` typing issue.
 
 ### Why the Wrapper Exists
 
@@ -258,9 +262,9 @@ The wrapper keeps the compatibility cast inside agtlantis core so consumers do n
 ```typescript
 import { Output, streamText } from "ai";
 
-import { createProviderSearchTool } from "@agtlantis/core";
+import { createAnthropicProviderTool } from "@agtlantis/core";
 
-const tools = createProviderSearchTool("webSearch", { maxUses: 2 });
+const tools = createAnthropicProviderTool("webSearch", { maxUses: 2 });
 
 await streamText({
   model,
@@ -294,7 +298,7 @@ Use this before enabling Anthropic for a consumer agent:
 3. Replace `discriminatedUnion` with a flat schema plus post-parse refinement if Anthropic support is required.
 4. Choose Option B for constrained schemas, or Option C for confirmed bound-free schemas.
 5. Bind search tools through provider-aware agent construction.
-6. Use `createProviderSearchTool()` for provider-hosted search tools until the upstream typing issue is resolved.
+6. Use `createAnthropicProviderTool()` for provider-hosted search tools until the upstream typing issue is resolved.
 7. Add timeout and retry budgets around search-enabled calls.
 8. Verify stream handlers accept multiple reasoning blocks in a single Anthropic response.
 

@@ -4,9 +4,9 @@
 
 ## Overview
 
-The Provider module is the core abstraction for interacting with AI models. It provides a unified, provider-agnostic interface for Google AI and OpenAI, with fluent configuration and automatic session management.
+The Provider module is the core abstraction for interacting with AI models. It provides a unified, provider-agnostic interface for Google AI, OpenAI, and Anthropic, with fluent configuration and automatic session management.
 
-> **Provider Support:** Both Google AI and OpenAI providers are fully supported with all features including text generation, streaming, tool use, and file management.
+> **Provider Support:** Google AI, OpenAI, and Anthropic providers support text generation, streaming, tool use, and file management. Google AI adds grounding and safety settings. Anthropic adds Files API routing, web search wrappers, and structured-output strategy support.
 
 ## Import
 
@@ -15,6 +15,7 @@ import {
   // Factory functions
   createGoogleProvider,
   createOpenAIProvider,
+  createAnthropicProvider,
 
   // Types
   type Provider,
@@ -38,6 +39,7 @@ import {
   // Config types
   type GoogleProviderConfig,
   type OpenAIProviderConfig,
+  type AnthropicProviderConfig,
   type SafetySetting,
   type HarmCategory,
   type HarmBlockThreshold,
@@ -48,6 +50,17 @@ import {
   // Provider-specific options (for withDefaultOptions)
   type GoogleGenerativeAIProviderOptions,
   type OpenAIChatLanguageModelOptions,
+  type AnthropicLanguageModelOptions,
+
+  // Anthropic-specific reasoning controls
+  type AnthropicReasoningEffort,
+  type AnthropicServerToolUse,
+  type AnthropicWebSearchToolOptions,
+
+  // Citation normalization (provider-neutral)
+  type NormalizedCitation,
+  type CitationProvider,
+  type CitationSourceType,
 
   // Generation options (for withDefaultGenerationOptions)
   type GenerationOptions,
@@ -265,7 +278,7 @@ const providerWithTTL = createGoogleProvider({
   .withFileCache(new InMemoryFileCache({ defaultTTL: 30 * 60 * 1000 }));
 ```
 
-Both Google and OpenAI providers support `withFileCache()`. When a file is uploaded, the FileManager computes a hash from its content (or uses the explicit `hash` field if provided) and checks the cache. If found, the cached `UploadedFile` is returned immediately without re-uploading.
+All three providers (Google, OpenAI, Anthropic) support `withFileCache()`. When a file is uploaded, the FileManager computes a hash from its content (or uses the explicit `hash` field if provided) and checks the cache. If found, the cached `UploadedFile` is returned immediately without re-uploading.
 
 ### UploadedFile
 
@@ -508,6 +521,103 @@ const providerWithCache = createOpenAIProvider({
 | `withFileCache(cache?)` | `Provider` | Set file cache for reusing uploaded files. If no cache provided, creates InMemoryFileCache |
 
 The OpenAI provider uploads non-URL files via the OpenAI Files API (returning `file_id` references). URL sources are passed inline without uploading, following the same pattern as Google provider.
+
+### createAnthropicProvider
+
+Creates an Anthropic (Claude) provider.
+
+```typescript
+function createAnthropicProvider(config: AnthropicProviderConfig): AnthropicProvider;
+```
+
+**AnthropicProviderConfig:**
+
+```typescript
+interface AnthropicProviderConfig {
+  apiKey: string;                                  // Required: Anthropic API key
+  baseURL?: string;                                // Optional: Custom endpoint
+  headers?: Record<string, string>;                // Optional: Extra request headers
+  fetch?: typeof fetch;                            // Optional: Custom fetch (rare; testing/proxy)
+  filesBeta?: string;                              // Optional: Files API beta header (default 'files-api-2025-04-14')
+  fileStrategy?: 'auto' | 'inline-only' | 'files-api-only'; // Optional: File upload strategy
+  inlineMaxBytes?: number;                         // Optional: Inline cutoff (default ~5MB)
+}
+```
+
+**Defaults set by the factory:**
+
+- `structuredOutputMode: 'outputFormat'` is injected as the default Anthropic provider option. This is the first-class structured-output wire — composes with `thinking`, works alongside `web_search`, streams partial JSON. Consumers can override per-call to `'jsonTool'` when schemas contain bound keywords like `.min/.max/.int`.
+- The discriminated-union guard runs before every `generateText` / `streamText` and throws `UnsupportedAnthropicSchemaError` for schemas Anthropic's wire cannot accept.
+
+**Example:**
+
+```typescript
+import { createAnthropicProvider } from '@agtlantis/core';
+
+const provider = createAnthropicProvider({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+})
+  .withDefaultModel('claude-sonnet-4-6')
+  .withReasoningBudget(1024)        // enables extended thinking + sendReasoning
+  .withWebSearch({ maxUses: 1 });   // server-side web_search as default tool
+```
+
+**Anthropic Provider Methods:**
+
+In addition to the common `Provider` methods, `AnthropicProvider` exposes:
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `withFileCache(cache?)` | `AnthropicProvider` | Set file cache for reusing uploaded files. If no cache provided, creates `InMemoryFileCache`. |
+| `withWebSearch(options?)` | `AnthropicProvider` | Register Anthropic's server-side `web_search` tool as a provider-level default. Merges with any per-call `tools` argument. |
+| `withReasoningEffort(effort)` | `AnthropicProvider` | Set Anthropic's `effort` (`'low' \| 'medium' \| 'high' \| 'max'`). Also turns on `sendReasoning`. Wired to `output_config.effort`. |
+| `withReasoningBudget(budgetTokens)` | `AnthropicProvider` | Enable extended thinking with an explicit token budget. Wired to `thinking: { type: 'enabled', budgetTokens }` + `sendReasoning: true`. |
+| `withAdaptiveReasoning()` | `AnthropicProvider` | Enable adaptive thinking where the model picks the budget. Wired to `thinking: { type: 'adaptive' }` + `sendReasoning: true`. Sonnet 4.6 / Opus 4.6 and newer only. |
+| `withSendReasoning(send)` | `AnthropicProvider` | Explicitly toggle `sendReasoning`. Use at the end of a fluent chain to turn off the auto-injected `true` from any reasoning method. |
+
+**Axis interactions:**
+
+- `withReasoningEffort` and `withReasoningBudget` / `withAdaptiveReasoning` are **separate axes** (`output_config.effort` vs `thinking` block). They can be combined.
+- `withReasoningBudget` and `withAdaptiveReasoning` write to the same `thinking` field as mutually exclusive variants. The later fluent call wins.
+- All reasoning methods auto-inject `sendReasoning: true`. To turn it off, call `.withSendReasoning(false)` later in the chain.
+
+**Cross-provider naming:**
+
+The framework chose `withReasoningEffort` because `effort` is the wire-term majority across providers (OpenAI's `reasoningEffort`, Anthropic's `effort`). Google's `thinkingLevel` will map to the same framework method name when a future factory exposes it. Each provider keeps its own first-class enum values — the framework does not flatten to a lowest common denominator. See `docs/architecture/provider-aware-agents.md` § Cross-provider naming alignment.
+
+**Anthropic provider re-exports for advanced consumers:**
+
+```typescript
+import {
+  // Schema guard
+  UnsupportedAnthropicSchemaError,
+  assertAnthropicResponseFormatSupported,
+  guardAnthropicOutput,
+
+  // Web search tool (manual usage outside .withWebSearch())
+  createAnthropicWebSearchTool,
+  createAnthropicProviderTool,
+  type AnthropicProviderToolKind,
+
+  // Usage extraction
+  extractAnthropicServerToolUse,
+
+  // Citation normalization
+  normalizeAnthropicWebSearchCitation,
+  normalizeCitation,
+  normalizeCitations,
+  normalizeAISDKSourceCitation,
+
+  // Files API plumbing
+  AnthropicFileManager,
+  ANTHROPIC_FILES_API_BETA,
+  ANTHROPIC_API_VERSION,
+  DEFAULT_ANTHROPIC_INLINE_MAX_BYTES,
+  createAnthropicFileIdMarker,
+  parseAnthropicFileIdMarker,
+  rewriteFileIdMiddleware,
+} from '@agtlantis/core';
+```
 
 ## Errors
 

@@ -30,14 +30,14 @@
 
 The Provider is the core abstraction in @agtlantis/core. It handles:
 
-- **Provider-agnostic API**: Switch between Google and OpenAI without changing your code
+- **Provider-agnostic API**: Switch between Google, OpenAI, and Anthropic without changing your code
 - **Fluent configuration**: Chain `.withDefaultModel()`, `.withLogger()`, and `.withPricing()` calls
 - **Automatic session management**: Sessions handle lifecycle, cleanup, and usage tracking
 - **Two execution modes**: Simple (Promise-based) and Streaming (AsyncGenerator-based)
 
 Think of a Provider as a configured connection to an AI service. You create it once, configure it with the fluent API, then use it to run executions.
 
-> **Provider Support:** Both Google AI and OpenAI providers are fully supported with all core features including text generation, streaming, tool use, and file management. Google AI additionally supports grounding (Google Search, URL Context) and safety settings.
+> **Provider Support:** Google AI, OpenAI, and Anthropic providers are supported with text generation, streaming, tool use, and file management. Google AI additionally supports grounding (Google Search, URL Context) and safety settings. Anthropic additionally supports Files API routing, web search tools, and provider-aware structured-output strategies.
 
 ## Quick Start
 
@@ -68,7 +68,7 @@ if (result.status === 'succeeded') {
 
 ### Creating Providers
 
-You can create providers for Google AI or OpenAI. Each provider requires an API key.
+You can create providers for Google AI, OpenAI, or Anthropic. Each provider requires an API key.
 
 **Google AI Provider:**
 
@@ -96,6 +96,81 @@ const openaiWithOrg = createOpenAIProvider({
   baseURL: 'https://custom-endpoint.example.com/v1', // For Azure OpenAI or proxies
 });
 ```
+
+**Anthropic Provider:**
+
+```typescript
+import { createAnthropicProvider } from '@agtlantis/core';
+
+const anthropic = createAnthropicProvider({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+}).withDefaultModel('claude-sonnet-4-6');
+
+// Anthropic structured output defaults to `outputFormat`. This composes with
+// extended thinking and the server-side web_search tool in a single call.
+// Switch to the legacy `jsonTool` wire per call when a schema contains bound
+// keywords (.min/.max/.int/.minItems/.pattern) that `outputFormat` rejects.
+const jsonToolFallback = await session.generateText({
+  prompt,
+  output: Output.object({ schema: constrainedSchema }),
+  providerOptions: { anthropic: { structuredOutputMode: 'jsonTool' } },
+});
+```
+
+**Anthropic-specific fluent methods:**
+
+Beyond the common fluent API, `AnthropicProvider` exposes first-class methods for the reasoning and web-search axes so consumers do not have to hand-roll `providerOptions.anthropic` on every call.
+
+```typescript
+import { createAnthropicProvider } from '@agtlantis/core';
+
+const provider = createAnthropicProvider({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+})
+  .withDefaultModel('claude-sonnet-4-6')
+  .withReasoningBudget(1024)      // thinking with explicit token budget + sendReasoning
+  .withWebSearch({ maxUses: 1 }); // register server-side web_search as default tool
+
+// Every generateText / streamText call now ships with thinking enabled,
+// reasoning blocks streamed back, and web_search available — no per-call
+// providerOptions or tools argument needed.
+const execution = provider.simpleExecution(async (session) => {
+  return await session.generateText({
+    prompt: 'Find a recent Anthropic Claude news headline and summarize it.',
+    output: Output.object({ schema: boundFreeSchema }),
+  });
+});
+```
+
+Available reasoning shortcuts:
+
+```typescript
+// Named effort tier (wired to output_config.effort, beta header auto-added)
+provider.withReasoningEffort('low');     // 'low' | 'medium' | 'high' | 'max'
+
+// Explicit thinking budget (wired to thinking.budgetTokens)
+provider.withReasoningBudget(4096);
+
+// Adaptive thinking — model picks the budget. Sonnet 4.6 / Opus 4.6 and newer only.
+provider.withAdaptiveReasoning();
+
+// Reasoning methods auto-set sendReasoning: true. Turn it off explicitly:
+provider
+  .withReasoningEffort('high')
+  .withSendReasoning(false);
+```
+
+**Axis interactions you should know:**
+
+| Combination | Result |
+|---|---|
+| `withReasoningEffort(...)` + `withReasoningBudget(n)` | Both apply — `effort` is `output_config.effort`, budget is in the `thinking` block. Separate axes. |
+| `withReasoningBudget(n)` + `withAdaptiveReasoning()` | Last call wins — they write to the same `thinking` field as mutually exclusive variants. |
+| Any reasoning method + per-call `providerOptions.anthropic` | Per-call value wins (deep merge). |
+
+**Why these method names:**
+
+`withReasoningEffort` follows the wire-term majority — both OpenAI (`reasoningEffort`) and Anthropic (`effort`) use the term `effort` for named reasoning strength. Each provider keeps its own first-class enum values (`'max'` for Anthropic, `'xhigh'` for OpenAI, etc.). See `docs/architecture/provider-aware-agents.md` § Cross-provider naming alignment for the rationale.
 
 ### Fluent Configuration
 
@@ -225,7 +300,9 @@ const execution = provider.simpleExecution(async (session) => {
 
 | Method | Scope | Merge strategy |
 |--------|-------|----------------|
-| `withDefaultOptions` | Provider-specific (Google's `thinkingConfig`, OpenAI's `reasoningEffort`) | Deep merge via `providerOptions` |
+| `withDefaultOptions` | Provider-specific (Google's `thinkingConfig`, OpenAI's `reasoningEffort`, Anthropic's `effort` / `thinking`) | Deep merge via `providerOptions` |
+| `withReasoningEffort` / `withReasoningBudget` / `withAdaptiveReasoning` / `withSendReasoning` | Anthropic-only shortcuts that write to the same `providerOptions.anthropic` slot | Deep merge — per-call still wins |
+| `withWebSearch` | Anthropic-only — registers `web_search` as a provider-level default tool | Merged with per-call `tools` argument |
 | `withDefaultGenerationOptions` | Standard AI SDK params (`maxOutputTokens`, `temperature`, etc.) | Simple spread (per-call wins) |
 
 ### Simple Execution
