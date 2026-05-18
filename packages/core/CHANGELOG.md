@@ -5,6 +5,53 @@ All notable changes to @agtlantis/core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0]
+
+### Added
+
+- **Anthropic Provider** (`createAnthropicProvider`): first-class Anthropic Claude provider
+  - Default `structuredOutputMode: 'outputFormat'` — composes with `thinking`, integrates with `web_search`, streams partial JSON. Override per call to `'jsonTool'` when schemas contain bound keywords (`.min/.max/.int`, etc.)
+  - Schema guard: rejects discriminated-union-like `oneOf` schemas with `UnsupportedAnthropicSchemaError` before the wire call — fail-fast for shapes Anthropic's structured output cannot reliably produce
+  - Fluent methods specific to Anthropic:
+    - `withWebSearch(options?)` — register Anthropic server-side `web_search` as a provider-level default tool
+    - `withReasoningEffort('low' | 'medium' | 'high' | 'max')` — Anthropic effort enum (wired to `output_config.effort`)
+    - `withReasoningBudget(budgetTokens)` — explicit thinking token budget (wired to `thinking: { type: 'enabled', budgetTokens }`)
+    - `withAdaptiveReasoning()` — adaptive thinking (`thinking: { type: 'adaptive' }`, Sonnet 4.6 / Opus 4.6 and newer)
+    - `withSendReasoning(send)` — explicit toggle for `sendReasoning` after a reasoning method auto-injects it
+    - `withFileCache(cache?)` — Anthropic file cache support (parity with Google/OpenAI)
+  - `AnthropicReasoningEffort` type exported
+- **Anthropic file management**
+  - `AnthropicFileManager` integrating Anthropic's Files API beta
+  - File strategy modes: `'auto' | 'inline-only' | 'files-api-only'`
+  - `rewriteFileIdMiddleware` — rewrites internal file-id markers to wire `file_id` and auto-adds the Files API beta header on the messages endpoint
+  - Helpers: `createAnthropicFileIdMarker`, `parseAnthropicFileIdMarker`, `ANTHROPIC_FILES_API_BETA`, `ANTHROPIC_API_VERSION`, `DEFAULT_ANTHROPIC_INLINE_MAX_BYTES`
+- **Anthropic server tool wrappers**
+  - `createAnthropicWebSearchTool(options?)` — typed `ToolSet` entry for the web search tool, absorbing the AI SDK 6.x `ToolSet` typing quirk for provider-supplied tools
+  - `createAnthropicProviderTool(kind, options?)` — generic Anthropic server-tool factory (currently `'webSearch'`)
+  - `extractAnthropicServerToolUse(usage)` — extracts `web_search_requests` / `web_fetch_requests` counters from raw Anthropic usage
+- **Provider-neutral citation module** (`@agtlantis/core` root export)
+  - `NormalizedCitation`, `CitationProvider`, `CitationSourceType`, `NormalizeCitationOptions` types
+  - `normalizeAISDKSourceCitation` for generic AI SDK URL / document source chunks
+  - `normalizeAnthropicWebSearchCitation` for Anthropic `web_search_result` blocks (preserves `encryptedContent` in `providerMetadata`)
+  - `normalizeCitation` / `normalizeCitations` Anthropic-aware combining entrypoints
+- **Reasoning token derivation**: `extractReasoningTokens(usage)` now derives reasoning tokens from `outputTokens − textTokens` when explicit fields are missing, supporting older AI SDK shapes and provider raw layouts
+- **Provider-type detection helper**: `detectProviderType(modelId)` classifies model IDs into `openai | google | anthropic`
+
+### Changed
+
+- **Internal predicate utility**: shared `isRecord` predicate now lives in `src/utils/is-record.ts` and is reused by the Anthropic schema validator, file-id middleware, usage extractors, and citation normalizers (was previously duplicated as `isPlainObject` / `isRecord` across four modules)
+- **Session-time tool merging**: `defaultTools` on the session config is now wired to the Anthropic provider state, so `withWebSearch` and any future provider-level tool helpers compose with per-call `tools` automatically
+- **Anthropic provider factory consolidation**: removed internal `AnthropicSimpleSession` / `AnthropicStreamingSession` subclasses in favor of an internal `applyAnthropicGuard` helper, restoring structural consistency with the OpenAI and Google factories that instantiate base sessions directly
+
+### Documentation
+
+- New `docs/architecture/provider-aware-agents.md` — Anthropic strategy guide covering the default `outputFormat` path, `jsonTool` fallback patterns (single-call and two-phase), the `oneOf` schema guard, and cross-provider naming alignment for fluent reasoning methods
+- New `docs/architecture/provider-schema-guidance.md` — wire compatibility table per provider plus consumer migration guidance for bound-keyword schemas
+- Updated `docs/guides/provider-guide.md` — Anthropic section now documents the new fluent methods, axis interactions (`effort` vs `thinking`, mutual exclusivity of `Budget` vs `Adaptive`, `sendReasoning` override), and the cross-provider naming rationale
+- Updated `docs/api/provider.md` — full `createAnthropicProvider` API reference with config, defaults, methods, axis interactions, and the advanced re-export surface
+
+---
+
 ## [0.6.0]
 
 ### Added
